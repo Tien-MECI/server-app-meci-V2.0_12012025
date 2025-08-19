@@ -243,7 +243,5 @@ app.get('/bbgn_print', async (req, res) => {
 // Khởi động server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`\nỨng dụng đang chạy tại: http://localhost:${PORT}`);
-    console.log(`Truy cập đường dẫn sau để in biên bản:`);
-    console.log(`http://localhost:${PORT}/bbgn\n`);
+    console.log(`Server is running on port ${PORT}`);
 });
