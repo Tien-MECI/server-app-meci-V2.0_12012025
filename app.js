@@ -37,6 +37,18 @@ const sheets = google.sheets({ version: "v4", auth });
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const { google } = require("googleapis");
+const drive = google.drive({ version: "v3", auth });
+
+// Hàm tải file từ Google Drive về dưới dạng Base64
+async function getFileAsBase64(fileId) {
+    const res = await drive.files.get(
+        { fileId, alt: "media" },
+        { responseType: "arraybuffer" }
+    );
+    const buffer = Buffer.from(res.data, "binary");
+    return buffer.toString("base64");
+}
 
 // EJS view engine
 app.set("view engine", "ejs");
@@ -142,18 +154,29 @@ app.get("/bbgn", async (req, res) => {
 
         console.log(`Tìm thấy ${products.length} sản phẩm`);
 
-        const logoBase64 = ""; // có thể nhúng logo
+        // ✅ Lấy logo từ Google Drive
+        const LOGO_FILE_ID = "1Rwo4pJt222dLTXN9W6knN3A5LwJ5TDIa";
+        let logoBase64 = "";
+
+        try {
+            logoBase64 = await getFileAsBase64(LOGO_FILE_ID);
+            logoBase64 = `data:image/png;base64,${logoBase64}`; // thêm prefix
+        } catch (err) {
+            console.error("⚠️ Không lấy được logo:", err.message);
+        }
+
 
         res.render("bbgn", {
             donHang,
             products,
             logoBase64,
-            autoPrint: false,
+            autoPrint: true,
         });
     } catch (err) {
         console.error("❌ Lỗi xuất BBGN:", JSON.stringify(err, null, 2));
         res.status(500).send("❌ Lỗi khi xuất biên bản giao nhận");
     }
+
 });
 
 // --- Start server ---
@@ -167,6 +190,7 @@ app.get("/debug", (req, res) => {
         scopes: scopes,
     });
 });
+
 app.get("/time", (req, res) => {
     res.send(new Date().toISOString());
 });
