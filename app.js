@@ -14,13 +14,13 @@ const credentials = JSON.parse(
 );
 
 // Fix xuống dòng cho private_key
-if (credentials.private_key) {
-    credentials.private_key = credentials.private_key.replace(/\\n/g, "\n");
-} else {
-    console.error("Private key is missing in credentials!");
-    process.exit(1);
-}
-
+// Thay thế toàn bộ \\n bằng \n và trim()
+credentials.private_key = credentials.private_key
+    .replace(/\\n/g, '\n')
+    .trim();
+// Sau khi xử lý private key
+console.log("Private key starts with:", credentials.private_key.substring(0, 50));
+console.log("Private key ends with:", credentials.private_key.slice(-50));
 // === Google Auth ===
 const scopes = [
     "https://www.googleapis.com/auth/spreadsheets",
@@ -165,4 +165,16 @@ app.get("/debug", (req, res) => {
         clientEmail: credentials.client_email,
         scopes: scopes,
     });
+});
+app.get("/time", (req, res) => {
+    res.send(new Date().toISOString());
+});
+app.get("/test-auth", async (req, res) => {
+    try {
+        const token = await auth.getAccessToken();
+        res.json({ success: true, token });
+    } catch (err) {
+        console.error("Auth test failed:", err);
+        res.status(500).json({ error: err.message });
+    }
 });
