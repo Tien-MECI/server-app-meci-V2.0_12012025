@@ -37,7 +37,6 @@ const sheets = google.sheets({ version: "v4", auth });
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const { google } = require("googleapis");
 const drive = google.drive({ version: "v3", auth });
 
 // Hàm tải file từ Google Drive về dưới dạng Base64
