@@ -1,3 +1,4 @@
+require('dotenv').config(); // Thêm dòng này ngay đầu file
 const express = require("express");
 const { google } = require("googleapis");
 const path = require("path");
@@ -178,3 +179,4 @@ app.get("/test-auth", async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+app.set("views", path.join(__dirname, "views"));
