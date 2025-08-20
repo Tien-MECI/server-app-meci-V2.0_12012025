@@ -1,4 +1,5 @@
-require('dotenv').config(); // Thêm dòng này ngay đầu file
+import dotenv from "dotenv";
+dotenv.config();
 const express = require("express");
 const { google } = require("googleapis");
 const path = require("path");
