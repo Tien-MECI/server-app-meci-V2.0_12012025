@@ -2,6 +2,7 @@ require('dotenv').config(); // Thêm dòng này ngay đầu file
 const express = require("express");
 const { google } = require("googleapis");
 const path = require("path");
+const LOGO_FILE_ID = "1Rwo4pJt222dLTXN9W6knN3A5LwJ5TDIa";
 
 // === Load credentials từ biến môi trường ===
 const credentialsBase64 = process.env.GOOGLE_CREDENTIALS_B64;
