@@ -91,7 +91,7 @@ app.get("/bbgn", async (req, res) => {
         });
         const rows = donHangRes.data.values;
         const data = rows.slice(1);
-        const donHang = data.find(row => row[5] === maDonHang);
+        const donHang = data.find(row => row[6] === maDonHang);
         if (!donHang) return res.send("❌ Không tìm thấy đơn hàng với mã: " + maDonHang);
 
         // 3. Lấy chi tiết sản phẩm
