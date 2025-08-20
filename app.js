@@ -14,7 +14,6 @@ const credentials = JSON.parse(
     Buffer.from(credentialsBase64, "base64").toString("utf-8")
 );
 
-// Fix xuống dòng cho private_key
 // Thay thế toàn bộ \\n bằng \n và trim()
 credentials.private_key = credentials.private_key
     .replace(/\\n/g, '\n')
@@ -64,41 +63,6 @@ app.get("/", (req, res) => {
     res.send("🚀 Google Sheets API server is running!");
 });
 
-// --- Endpoint đọc sheet theo tên ---
-app.get("/sheet/:name", async (req, res) => {
-    const sheetName = req.params.name;
-    try {
-        const response = await sheets.spreadsheets.values.get({
-            spreadsheetId: SPREADSHEET_ID,
-            range: `${sheetName}!A:Z`,
-        });
-        res.json(response.data);
-    } catch (err) {
-        console.error("❌ Lỗi Google Sheets:", err.errors || err.message || err);
-        res.status(500).send(`Error reading sheet "${sheetName}"`);
-    }
-});
-
-// --- Endpoint đọc toàn bộ sheet đầu tiên ---
-app.get("/sheet-all", async (req, res) => {
-    try {
-        const meta = await sheets.spreadsheets.get({
-            spreadsheetId: SPREADSHEET_ID,
-        });
-
-        const firstSheet = meta.data.sheets[0].properties.title;
-        console.log("📄 Sheet đầu tiên:", firstSheet);
-
-        const response = await sheets.spreadsheets.values.get({
-            spreadsheetId: SPREADSHEET_ID,
-            range: `${firstSheet}!A:Z`,
-        });
-        res.json(response.data);
-    } catch (err) {
-        console.error("❌ Lỗi Google Sheets:", err.errors || err.message || err);
-        res.status(500).send("Error reading first sheet");
-    }
-});
 
 // ✅ Endpoint xuất Biên bản giao nhận
 app.get("/bbgn", async (req, res) => {
@@ -158,11 +122,24 @@ app.get("/bbgn", async (req, res) => {
         let logoBase64 = "";
 
         try {
-            logoBase64 = await getFileAsBase64(LOGO_FILE_ID);
-            logoBase64 = `data:image/png;base64,${logoBase64}`; // thêm prefix
+            const fileMeta = await drive.files.get({
+                fileId: LOGO_FILE_ID,
+                fields: "mimeType"
+            });
+
+            const res = await drive.files.get(
+                { fileId: LOGO_FILE_ID, alt: "media" },
+                { responseType: "arraybuffer" }
+            );
+
+            const buffer = Buffer.from(res.data, "binary");
+            logoBase64 = `data:${fileMeta.data.mimeType};base64,${buffer.toString("base64")}`;
+
+            console.log("✅ Logo loaded, mime:", fileMeta.data.mimeType);
         } catch (err) {
             console.error("⚠️ Không lấy được logo:", err.message);
         }
+
 
 
         res.render("bbgn", {
