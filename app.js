@@ -1,17 +1,17 @@
-// === Import theo ESM ===
-import express from "express";
 import dotenv from "dotenv";
+import express from "express";
 import { google } from "googleapis";
-import puppeteer from "puppeteer";
 import path from "path";
+import puppeteer from "puppeteer";
 import { fileURLToPath } from "url";
+import { dirname } from "path";
 
-// === Để dùng __dirname trong ESM ===
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// === Load .env ===
 dotenv.config();
+
+// Tạo __dirname trong ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 
 const LOGO_FILE_ID = "1Rwo4pJt222dLTXN9W6knN3A5LwJ5TDIa";
 
@@ -97,7 +97,7 @@ app.get("/bbgn", async (req, res) => {
         // 3. Lấy chi tiết sản phẩm
         const ctRes = await sheets.spreadsheets.values.get({
             spreadsheetId: SPREADSHEET_ID,
-            range: "Don_hang_ct!A1:AD100000",
+            range: "Don_hang_PVC_ct!A1:AD100000",
         });
         const ctRows = ctRes.data.values.slice(1);
         const products = ctRows
