@@ -65,45 +65,41 @@ app.get("/", (req, res) => {
 });
 
 
-// ✅ Endpoint xuất Biên bản giao nhận
+import puppeteer from "puppeteer";
+// ✅ Endpoint xuất Biên bản giao nhận + tự động tạo PDF
 app.get("/bbgn", async (req, res) => {
     try {
         console.log("Bắt đầu xuất BBGN...");
 
-        // Lấy mã đơn hàng từ ô B2
-        const response = await sheets.spreadsheets.values.get({
+        // 1. Lấy mã đơn hàng từ dòng cuối cột B sheet file_BBGN_ct
+        const bbgnRes = await sheets.spreadsheets.values.get({
             spreadsheetId: SPREADSHEET_ID,
-            range: "Xuat_BB_GN!B2",
+            range: "file_BBGN_ct!B:B",
         });
-        const cellValue = response.data.values ? response.data.values[0][0] : "";
+        const colB = bbgnRes.data.values ? bbgnRes.data.values.flat() : [];
+        const lastRowWithData = colB.length;
+        const maDonHang = colB[lastRowWithData - 1];
+        console.log(`Mã đơn hàng: ${maDonHang} (dòng ${lastRowWithData})`);
 
-        if (!cellValue) {
-            return res.send("⚠️ Ô B2 đang rỗng, chưa có dữ liệu để xuất Biên bản giao nhận.");
+        if (!maDonHang) {
+            return res.send("⚠️ Không tìm thấy dữ liệu ở cột B sheet file_BBGN_ct.");
         }
 
-        const maDonHang = cellValue;
-        console.log(`Mã đơn hàng: ${maDonHang}`);
-
-        // Lấy dữ liệu đơn hàng
+        // 2. Lấy dữ liệu đơn hàng
         const donHangRes = await sheets.spreadsheets.values.get({
             spreadsheetId: SPREADSHEET_ID,
             range: "Don_hang!A1:CG500903",
         });
-
         const rows = donHangRes.data.values;
         const data = rows.slice(1);
-
         const donHang = data.find(row => row[5] === maDonHang);
-        if (!donHang) {
-            return res.send("❌ Không tìm thấy đơn hàng với mã: " + maDonHang);
-        }
+        if (!donHang) return res.send("❌ Không tìm thấy đơn hàng với mã: " + maDonHang);
 
-        // Lấy chi tiết sản phẩm
+        // 3. Lấy chi tiết sản phẩm
         const ctRes = await sheets.spreadsheets.values.get({
             spreadsheetId: SPREADSHEET_ID,
             range: "Don_hang_ct!A1:AD100000",
         });
-
         const ctRows = ctRes.data.values.slice(1);
         const products = ctRows
             .filter(row => row[1] === maDonHang)
@@ -116,64 +112,87 @@ app.get("/bbgn", async (req, res) => {
                 ghiChu: row[29] || "",
             }));
 
-        console.log(`Tìm thấy ${products.length} sản phẩm`);
-
-        // ✅ Lấy logo từ Google Drive
+        // 4. Lấy logo
         const LOGO_FILE_ID = "1Rwo4pJt222dLTXN9W6knN3A5LwJ5TDIa";
         let logoBase64 = "";
-
         try {
-            const fileMeta = await drive.files.get({
-                fileId: LOGO_FILE_ID,
-                fields: "mimeType"
-            });
-
-            const res = await drive.files.get(
-                { fileId: LOGO_FILE_ID, alt: "media" },
-                { responseType: "arraybuffer" }
-            );
-
-            const buffer = Buffer.from(res.data, "binary");
+            const fileMeta = await drive.files.get({ fileId: LOGO_FILE_ID, fields: "mimeType" });
+            const resFile = await drive.files.get({ fileId: LOGO_FILE_ID, alt: "media" }, { responseType: "arraybuffer" });
+            const buffer = Buffer.from(resFile.data, "binary");
             logoBase64 = `data:${fileMeta.data.mimeType};base64,${buffer.toString("base64")}`;
-            console.log("✅ Logo loaded, mime:", fileMeta.data.mimeType);
         } catch (err) {
             console.error("⚠️ Không lấy được logo:", err.message);
         }
 
-        // ✅ Lấy watermark từ Google Drive
+        // 5. Lấy watermark
         const WATERMARK_FILE_ID = "1fNROb-dRtRl2RCCDCxGPozU3oHMSIkHr";
         let watermarkBase64 = "";
-
         try {
-            const fileMeta = await drive.files.get({
-                fileId: WATERMARK_FILE_ID,
-                fields: "mimeType"
-            });
-
-            const res = await drive.files.get(
-                { fileId: WATERMARK_FILE_ID, alt: "media" },
-                { responseType: "arraybuffer" }
-            );
-
-            const buffer = Buffer.from(res.data, "binary");
+            const fileMeta = await drive.files.get({ fileId: WATERMARK_FILE_ID, fields: "mimeType" });
+            const resFile = await drive.files.get({ fileId: WATERMARK_FILE_ID, alt: "media" }, { responseType: "arraybuffer" });
+            const buffer = Buffer.from(resFile.data, "binary");
             watermarkBase64 = `data:${fileMeta.data.mimeType};base64,${buffer.toString("base64")}`;
-            console.log("✅ Watermark loaded, mime:", fileMeta.data.mimeType);
         } catch (err) {
             console.error("⚠️ Không lấy được watermark:", err.message);
         }
 
+        // 6. Tạo PDF với puppeteer và lưu lên Drive
+        const today = new Date();
+        const dd = String(today.getDate()).padStart(2, "0");
+        const mm = String(today.getMonth() + 1).padStart(2, "0");
+        const yyyy = today.getFullYear();
+        const hh = String(today.getHours()).padStart(2, "0");
+        const mi = String(today.getMinutes()).padStart(2, "0");
+        const ss = String(today.getSeconds()).padStart(2, "0");
+
+        const fileName = `BBGN - ${maDonHang} - ${dd}${mm}${yyyy} - ${hh}-${mi}-${ss}.pdf`;
+
+        const browser = await puppeteer.launch({ headless: "new" });
+        const page = await browser.newPage();
+
+        // ⚠️ Dùng endpoint riêng hiển thị HTML sạch (không autoPrint) để render PDF
+        await page.goto(`https://hsdh-app-cu.onrender.com/bbgn-view?maDonHang=${maDonHang}`, {
+            waitUntil: "networkidle0"
+        });
+        const pdfBuffer = await page.pdf({ format: "A4", printBackground: true });
+        await browser.close();
+
+        const folderId = "1CL3JuFprNj1a406XWXTtbQMZmyKxhczW";
+        const fileMeta = { name: fileName, parents: [folderId] };
+        const media = { mimeType: "application/pdf", body: Buffer.from(pdfBuffer) };
+
+        const pdfFile = await drive.files.create({
+            requestBody: fileMeta,
+            media,
+            fields: "id, name"
+        });
+
+        const folderMeta = await drive.files.get({ fileId: folderId, fields: "name" });
+        const pathToFile = `${folderMeta.data.name}/${pdfFile.data.name}`;
+
+        // Ghi đường dẫn vào cột D dòng tương ứng
+        await sheets.spreadsheets.values.update({
+            spreadsheetId: SPREADSHEET_ID,
+            range: `file_BBGN_ct!D${lastRowWithData}`,
+            valueInputOption: "RAW",
+            requestBody: { values: [[pathToFile]] }
+        });
+
+        // 7. Render bbgn cho người dùng + autoPrint
         res.render("bbgn", {
             donHang,
             products,
             logoBase64,
             watermarkBase64,
             autoPrint: true,
+            maDonHang
         });
     } catch (err) {
-        console.error("❌ Lỗi xuất BBGN:", JSON.stringify(err, null, 2));
+        console.error("❌ Lỗi xuất BBGN:", err);
         res.status(500).send("❌ Lỗi khi xuất biên bản giao nhận");
     }
 });
+
 
 
 
