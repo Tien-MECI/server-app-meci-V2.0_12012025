@@ -1,3 +1,4 @@
+import fs from "fs";
 import dotenv from "dotenv";
 import express from "express";
 import { google } from "googleapis";
@@ -165,20 +166,25 @@ app.get("/bbgn", async (req, res) => {
         const ss = String(today.getSeconds()).padStart(2, "0");
 
         const fileName = `BBGN - ${maDonHang} - ${dd}${mm}${yyyy} - ${hh}-${mi}-${ss}.pdf`;
+        const chromePath = "/opt/render/.cache/puppeteer/chrome/linux-139.0.7258.68/chrome-linux64/chrome";
+        console.log("Checking Chrome path:", chromePath, "exists:", fs.existsSync(chromePath));
+
+        let executablePath;
+        if (fs.existsSync(chromePath)) {
+            executablePath = chromePath;
+        } else {
+            executablePath = "/usr/bin/google-chrome";
+            console.log("Falling back to system Chrome at:", executablePath, "exists:", fs.existsSync(executablePath));
+        }
 
         const browser = await puppeteer.launch({
             headless: "new",
             args: ["--no-sandbox", "--disable-setuid-sandbox"],
-            executablePath: await puppeteer.executablePath({
-                cacheDirectory: "/opt/render/.cache/puppeteer",
-            }) || "/usr/bin/chromium-browser", // Fallback đến Chrome hệ thống nếu có
+            executablePath: executablePath,
         }).catch((err) => {
             console.error("Puppeteer launch failed:", err.message);
             throw err;
         });
-        console.log("Puppeteer executable path:", await puppeteer.executablePath({
-            cacheDirectory: "/opt/render/.cache/puppeteer",
-        }));
         const page = await browser.newPage();
         await page.goto(
             `https://hsdh-app-cu.onrender.com/bbgn-view?maDonHang=${maDonHang}`,
