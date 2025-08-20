@@ -1,8 +1,18 @@
+// === Import theo ESM ===
+import express from "express";
 import dotenv from "dotenv";
+import { google } from "googleapis";
+import puppeteer from "puppeteer";
+import path from "path";
+import { fileURLToPath } from "url";
+
+// === Để dùng __dirname trong ESM ===
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// === Load .env ===
 dotenv.config();
-const express = require("express");
-const { google } = require("googleapis");
-const path = require("path");
+
 const LOGO_FILE_ID = "1Rwo4pJt222dLTXN9W6knN3A5LwJ5TDIa";
 
 // === Load credentials từ biến môi trường ===
@@ -16,13 +26,13 @@ const credentials = JSON.parse(
     Buffer.from(credentialsBase64, "base64").toString("utf-8")
 );
 
-// Thay thế toàn bộ \\n bằng \n và trim()
 credentials.private_key = credentials.private_key
-    .replace(/\\n/g, '\n')
+    .replace(/\\n/g, "\n")
     .trim();
-// Sau khi xử lý private key
+
 console.log("Private key starts with:", credentials.private_key.substring(0, 50));
 console.log("Private key ends with:", credentials.private_key.slice(-50));
+
 // === Google Auth ===
 const scopes = [
     "https://www.googleapis.com/auth/spreadsheets",
@@ -35,20 +45,10 @@ const auth = new google.auth.JWT(
     scopes
 );
 const sheets = google.sheets({ version: "v4", auth });
+const drive = google.drive({ version: "v3", auth });
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const drive = google.drive({ version: "v3", auth });
-
-// Hàm tải file từ Google Drive về dưới dạng Base64
-async function getFileAsBase64(fileId) {
-    const res = await drive.files.get(
-        { fileId, alt: "media" },
-        { responseType: "arraybuffer" }
-    );
-    const buffer = Buffer.from(res.data, "binary");
-    return buffer.toString("base64");
-}
 
 // EJS view engine
 app.set("view engine", "ejs");
@@ -65,14 +65,12 @@ app.get("/", (req, res) => {
     res.send("🚀 Google Sheets API server is running!");
 });
 
-
-import puppeteer from "puppeteer";
 // ✅ Endpoint xuất Biên bản giao nhận + tự động tạo PDF
 app.get("/bbgn", async (req, res) => {
     try {
         console.log("Bắt đầu xuất BBGN...");
 
-        // 1. Lấy mã đơn hàng từ dòng cuối cột B sheet file_BBGN_ct
+        // 1. Lấy mã đơn hàng
         const bbgnRes = await sheets.spreadsheets.values.get({
             spreadsheetId: SPREADSHEET_ID,
             range: "file_BBGN_ct!B:B",
@@ -114,7 +112,6 @@ app.get("/bbgn", async (req, res) => {
             }));
 
         // 4. Lấy logo
-        const LOGO_FILE_ID = "1Rwo4pJt222dLTXN9W6knN3A5LwJ5TDIa";
         let logoBase64 = "";
         try {
             const fileMeta = await drive.files.get({ fileId: LOGO_FILE_ID, fields: "mimeType" });
@@ -137,7 +134,7 @@ app.get("/bbgn", async (req, res) => {
             console.error("⚠️ Không lấy được watermark:", err.message);
         }
 
-        // 6. Tạo PDF với puppeteer và lưu lên Drive
+        // 6. Tạo PDF với puppeteer
         const today = new Date();
         const dd = String(today.getDate()).padStart(2, "0");
         const mm = String(today.getMonth() + 1).padStart(2, "0");
@@ -150,10 +147,8 @@ app.get("/bbgn", async (req, res) => {
 
         const browser = await puppeteer.launch({ headless: "new" });
         const page = await browser.newPage();
-
-        // ⚠️ Dùng endpoint riêng hiển thị HTML sạch (không autoPrint) để render PDF
         await page.goto(`https://hsdh-app-cu.onrender.com/bbgn-view?maDonHang=${maDonHang}`, {
-            waitUntil: "networkidle0"
+            waitUntil: "networkidle0",
         });
         const pdfBuffer = await page.pdf({ format: "A4", printBackground: true });
         await browser.close();
@@ -165,28 +160,26 @@ app.get("/bbgn", async (req, res) => {
         const pdfFile = await drive.files.create({
             requestBody: fileMeta,
             media,
-            fields: "id, name"
+            fields: "id, name",
         });
 
         const folderMeta = await drive.files.get({ fileId: folderId, fields: "name" });
         const pathToFile = `${folderMeta.data.name}/${pdfFile.data.name}`;
 
-        // Ghi đường dẫn vào cột D dòng tương ứng
         await sheets.spreadsheets.values.update({
             spreadsheetId: SPREADSHEET_ID,
             range: `file_BBGN_ct!D${lastRowWithData}`,
             valueInputOption: "RAW",
-            requestBody: { values: [[pathToFile]] }
+            requestBody: { values: [[pathToFile]] },
         });
 
-        // 7. Render bbgn cho người dùng + autoPrint
         res.render("bbgn", {
             donHang,
             products,
             logoBase64,
             watermarkBase64,
             autoPrint: true,
-            maDonHang
+            maDonHang,
         });
     } catch (err) {
         console.error("❌ Lỗi xuất BBGN:", err);
@@ -194,13 +187,7 @@ app.get("/bbgn", async (req, res) => {
     }
 });
 
-
-
-
-// --- Start server ---
-app.listen(PORT, () => {
-    console.log(`✅ Server is running on port ${PORT}`);
-});
+// --- Debug endpoint ---
 app.get("/debug", (req, res) => {
     res.json({
         spreadsheetId: SPREADSHEET_ID,
@@ -209,27 +196,26 @@ app.get("/debug", (req, res) => {
     });
 });
 
-
-
-
+// --- Test logo ---
 app.get("/test-logo", async (req, res) => {
     try {
         const fileMeta = await drive.files.get({
             fileId: LOGO_FILE_ID,
-            fields: "mimeType"
+            fields: "mimeType",
         });
-
         const response = await drive.files.get(
             { fileId: LOGO_FILE_ID, alt: "media" },
             { responseType: "arraybuffer" }
         );
-
         const buffer = Buffer.from(response.data, "binary");
         const base64 = `data:${fileMeta.data.mimeType};base64,${buffer.toString("base64")}`;
-
         res.send(`<img src="${base64}" style="max-height:100px;">`);
     } catch (err) {
         res.send("Lỗi lấy logo: " + err.message);
     }
 });
 
+// --- Start server ---
+app.listen(PORT, () => {
+    console.log(`✅ Server is running on port ${PORT}`);
+});
