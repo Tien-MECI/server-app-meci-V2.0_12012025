@@ -180,3 +180,27 @@ app.get("/test-auth", async (req, res) => {
     }
 });
 app.set("views", path.join(__dirname, "views"));
+
+
+
+app.get("/test-logo", async (req, res) => {
+    try {
+        const fileMeta = await drive.files.get({
+            fileId: LOGO_FILE_ID,
+            fields: "mimeType"
+        });
+
+        const response = await drive.files.get(
+            { fileId: LOGO_FILE_ID, alt: "media" },
+            { responseType: "arraybuffer" }
+        );
+
+        const buffer = Buffer.from(response.data, "binary");
+        const base64 = `data:${fileMeta.data.mimeType};base64,${buffer.toString("base64")}`;
+
+        res.send(`<img src="${base64}" style="max-height:100px;">`);
+    } catch (err) {
+        res.send("Lỗi lấy logo: " + err.message);
+    }
+});
+
