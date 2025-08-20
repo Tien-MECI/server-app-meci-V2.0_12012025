@@ -2,3 +2,6 @@ credentials.json
 token.json
 .env
 *.json
+echo "credentials.json" >> .gitignore
+echo "friendly-slate-469401-t8-af6f25b16a8d.json" >> .gitignore
+echo "*.json" >> .gitignore  # Nếu bạn muốn bỏ tất cả file JSON

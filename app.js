@@ -166,21 +166,15 @@ app.get("/bbgn", async (req, res) => {
         const ss = String(today.getSeconds()).padStart(2, "0");
 
         const fileName = `BBGN - ${maDonHang} - ${dd}${mm}${yyyy} - ${hh}-${mi}-${ss}.pdf`;
-        const chromePath = "/opt/render/.cache/puppeteer/chrome/linux-139.0.7258.68/chrome-linux64/chrome";
+        const chromePath = fs.existsSync("/usr/bin/chromium-browser")
+            ? "/usr/bin/chromium-browser"
+            : "/usr/bin/google-chrome";
         console.log("Checking Chrome path:", chromePath, "exists:", fs.existsSync(chromePath));
-
-        let executablePath;
-        if (fs.existsSync(chromePath)) {
-            executablePath = chromePath;
-        } else {
-            executablePath = "/usr/bin/google-chrome";
-            console.log("Falling back to system Chrome at:", executablePath, "exists:", fs.existsSync(executablePath));
-        }
 
         const browser = await puppeteer.launch({
             headless: "new",
             args: ["--no-sandbox", "--disable-setuid-sandbox"],
-            executablePath: executablePath,
+            executablePath: chromePath,
         }).catch((err) => {
             console.error("Puppeteer launch failed:", err.message);
             throw err;
