@@ -166,7 +166,13 @@ app.get("/bbgn", async (req, res) => {
 
         const fileName = `BBGN - ${maDonHang} - ${dd}${mm}${yyyy} - ${hh}-${mi}-${ss}.pdf`;
 
-        const browser = await puppeteer.launch({ headless: "new" });
+        const browser = await puppeteer.launch({
+            headless: "new",
+            args: ["--no-sandbox", "--disable-setuid-sandbox"],
+            executablePath: await puppeteer.executablePath({
+                cacheDirectory: "/opt/render/.cache/puppeteer",
+            }),
+        });
         const page = await browser.newPage();
         await page.goto(
             `https://hsdh-app-cu.onrender.com/bbgn-view?maDonHang=${maDonHang}`,
