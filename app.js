@@ -171,8 +171,14 @@ app.get("/bbgn", async (req, res) => {
             args: ["--no-sandbox", "--disable-setuid-sandbox"],
             executablePath: await puppeteer.executablePath({
                 cacheDirectory: "/opt/render/.cache/puppeteer",
-            }),
+            }) || "/usr/bin/chromium-browser", // Fallback đến Chrome hệ thống nếu có
+        }).catch((err) => {
+            console.error("Puppeteer launch failed:", err.message);
+            throw err;
         });
+        console.log("Puppeteer executable path:", await puppeteer.executablePath({
+            cacheDirectory: "/opt/render/.cache/puppeteer",
+        }));
         const page = await browser.newPage();
         await page.goto(
             `https://hsdh-app-cu.onrender.com/bbgn-view?maDonHang=${maDonHang}`,
