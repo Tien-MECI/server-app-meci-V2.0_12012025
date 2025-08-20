@@ -96,114 +96,132 @@
 </head>
 
 <body>
-    <table style="width: 100%; border-collapse: collapse;">
-        <tr>
-            <td class="no-border">
-                <img class="logo" src="<%= logoBase64 %>" style="width: 80px; height: 40px;" />
-            </td>
-            <td class="no-border" style="text-align: right;">
-                <strong>CÔNG TY CỔ PHẦN CÔNG NGHIỆP MECI</strong>
-            </td>
-        </tr>
-        <tr>
-            <td colspan="2" style="border: none; padding: 0;">
-                <div style="border-top: 3px double black; margin: -1px 0 0 0;"></div>
-            </td>
-        </tr>
-    </table>
-
-    <h2 class="center-text">BIÊN BẢN GIAO NHẬN</h2>
-    <p class="center-text">(Kiêm phiếu xuất kho số: <span class="red">
-            <%= donHang[5] %>
-        </span>)</p>
-    <p>- Căn cứ hợp đồng/đơn hàng ngày … tháng … năm …</p>
-    <p>Hôm nay, ngày … tháng … năm …. Tại: <span class="red">
-            <%= donHang[23] %>
-        </span></p>
-    <br>
-
-    <!-- Thông tin bên nhận -->
-    <p><b>I. ĐẠI DIỆN BÊN NHẬN: </b>
-        <%= donHang[8] %>
-    </p>
-    <p>- Ông/Bà: <span class="red">
-            <%= donHang[16] || donHang[19] %>
-        </span>..............................................| Chức vụ:.........................................</p>
-    <p>- Điện thoại: <span class="red">
-            <%= donHang[24] || donHang[26] || donHang[28] %>
-        </span>..............................................| Chức vụ:.........................................</p>
-    <p>- Địa chỉ: <span class="red">
-            <%= donHang[23] || donHang[25] || donHang[27] %>
-        </span>..............................................</p>
-    <br>
-
-    <!-- Thông tin bên giao -->
-    <p><b><strong>II. ĐẠI DIỆN BÊN GIAO:</strong></b> CÔNG TY CỔ PHẦN CÔNG NGHIỆP M.E.C.I</p>
-    <p>- Ông/Bà:...............................................................................| Chức
-        vụ:..........................................</p>
-    <p>- Điện thoại:...........................................................................| Số
-        CMND/CCCD:.....................................</p>
-    <p>- Địa chỉ văn phòng: KM10+15 Đại Lộ Thăng Long, An Khánh, Hoài Đức, Hà Nội</p>
-    <p>- Địa chỉ nhà máy: KM9+800 QL21, X. Cổ Đông, Tx. Sơn Tây, Hà Nội</p>
-    <p>- Nhân viên theo dõi hợp đồng/đơn hàng: <span class="red">
-            <%= donHang[2] %>
-        </span> | Điện thoại: <span class="red">
-            <%= donHang[56] %>
-        </span></p>
-    <br>
-
-    <!-- Bảng sản phẩm -->
-    <table style="width: 100%; font-size: 13px; border-collapse: collapse;">
-        <thead>
-            <tr>
-                <th style="text-align: center;">STT</th>
-                <th style="text-align: left;">Tên sản phẩm chi tiết</th>
-                <th style="text-align: center;">SL giao</th>
-                <th style="text-align: center;">Đơn vị</th>
-                <th style="text-align: center;">Tổng số lượng</th>
-                <th style="text-align: center;">Ghi chú</th>
-            </tr>
-        </thead>
-        <tbody>
-            <% products.forEach(function(product) { %>
+    <% if (watermarkBase64) { %>
+        <div style="
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.1;
+            background: url('<%= watermarkBase64 %>') center center no-repeat;
+            background-size: contain;
+        ">
+        </div>
+        <% } %>
+            <table style="width: 100%; border-collapse: collapse;">
                 <tr>
-                    <td style="text-align: center;">
-                        <%= product.stt %>
+                    <td class="no-border">
+                        <img class="logo" src="<%= logoBase64 %>" style="width: 80px; height: 40px;" />
                     </td>
-                    <td style="text-align: left;">
-                        <%= product.tenSanPham %>
-                    </td>
-                    <td style="text-align: center;">
-                        <%= product.soLuong %>
-                    </td>
-                    <td style="text-align: center;">
-                        <%= product.donVi %>
-                    </td>
-                    <td style="text-align: center;">
-                        <%= product.tongSoLuong %>
-                    </td>
-                    <td style="text-align: center;">
-                        <%= product.ghiChu %>
+                    <td class="no-border" style="text-align: right;">
+                        <strong>CÔNG TY CỔ PHẦN CÔNG NGHIỆP MECI</strong>
                     </td>
                 </tr>
-                <% }); %>
-        </tbody>
-    </table>
+                <tr>
+                    <td colspan="2" style="border: none; padding: 0;">
+                        <div style="border-top: 3px double black; margin: -1px 0 0 0;"></div>
+                    </td>
+                </tr>
+            </table>
 
-    <br>
-    <p>Hai bên đồng ý với nội dung giao nhận trên, biên bản giao nhận được lập thành 02 bản, mỗi bên giữ 1 bản có giá
-        trị pháp lý như nhau để làm căn cứ thanh quyết toán.</p>
+            <h2 class="center-text">BIÊN BẢN GIAO NHẬN</h2>
+            <p class="center-text">(Kiêm phiếu xuất kho số: <span class="red">
+                    <%= donHang[5] %>
+                </span>)</p>
+            <p>- Căn cứ hợp đồng/đơn hàng ngày … tháng … năm …</p>
+            <p>Hôm nay, ngày … tháng … năm …. Tại: <span class="red">
+                    <%= donHang[23] %>
+                </span></p>
+            <br>
 
-    <p>Đề nghị quý khách hàng nhận hàng, kiểm tra hàng và phản ánh tình trạng hàng hóa ngay sau khi nhận hàng. Thời gian
-        tiếp nhận và xử lý hàng hóa không quá 24 giờ kể từ khi khách nhận được hàng.</p>
+            <!-- Thông tin bên nhận -->
+            <p><b>I. ĐẠI DIỆN BÊN NHẬN: </b>
+                <%= donHang[8] %>
+            </p>
+            <p>- Ông/Bà: <span class="red">
+                    <%= donHang[16] || donHang[19] %>
+                </span>..............................................| Chức vụ:.........................................
+            </p>
+            <p>- Điện thoại: <span class="red">
+                    <%= donHang[24] || donHang[26] || donHang[28] %>
+                </span>..............................................| Chức vụ:.........................................
+            </p>
+            <p>- Địa chỉ: <span class="red">
+                    <%= donHang[23] || donHang[25] || donHang[27] %>
+                </span>..............................................</p>
+            <br>
 
-    <!-- Ký tên -->
-    <table class="no-border">
-        <tr>
-            <td style="text-align: center; border: none;">ĐẠI DIỆN BÊN GIAO<br>(Ký và ghi rõ họ tên)</td>
-            <td style="text-align: center; border: none;">ĐẠI DIỆN BÊN NHẬN<br>(Ký và ghi rõ họ tên)</td>
-        </tr>
-    </table>
+            <!-- Thông tin bên giao -->
+            <p><b><strong>II. ĐẠI DIỆN BÊN GIAO:</strong></b> CÔNG TY CỔ PHẦN CÔNG NGHIỆP M.E.C.I</p>
+            <p>- Ông/Bà:...........................................................| Chức
+                vụ:..........................................</p>
+            <p>- Điện thoại:.......................................................| Số
+                CMND/CCCD:.....................................</p>
+            <p>- Địa chỉ trụ sở chính: Số 164, đường Nguyễn Trãi, phường Thanh Xuân, thành phố Hà Nội</p>
+            <p>- Địa điểm sản xuất, kinh doanh: Số 162, đường 916, thôn La Gián, xã Đoài Phương, thành phố Hà Nội</p>
+            <p>- Nhân viên theo dõi hợp đồng/đơn hàng: <span class="red">
+                    <%= donHang[2] %>
+                </span> | Điện thoại: <span class="red">
+                    <%= donHang[56] %>
+                </span></p>
+            <br>
+
+            <!-- Bảng sản phẩm -->
+            <table style="width: 100%; font-size: 13px; border-collapse: collapse;">
+                <thead>
+                    <tr>
+                        <th style="text-align: center;">STT</th>
+                        <th style="text-align: left;">Tên sản phẩm chi tiết</th>
+                        <th style="text-align: center;">SL giao</th>
+                        <th style="text-align: center;">Đơn vị</th>
+                        <th style="text-align: center;">Tổng số lượng</th>
+                        <th style="text-align: center;">Ghi chú</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% products.forEach(function(product) { %>
+                        <tr>
+                            <td style="text-align: center;">
+                                <%= product.stt %>
+                            </td>
+                            <td style="text-align: left;">
+                                <%= product.tenSanPham %>
+                            </td>
+                            <td style="text-align: center;">
+                                <%= product.soLuong %>
+                            </td>
+                            <td style="text-align: center;">
+                                <%= product.donVi %>
+                            </td>
+                            <td style="text-align: center;">
+                                <%= product.tongSoLuong %>
+                            </td>
+                            <td style="text-align: center;">
+                                <%= product.ghiChu %>
+                            </td>
+                        </tr>
+                        <% }); %>
+                </tbody>
+            </table>
+
+            <br>
+            <p>Hai bên đồng ý với nội dung giao nhận trên, biên bản giao nhận được lập thành 02 bản, mỗi bên giữ 1 bản
+                có giá
+                trị pháp lý như nhau để làm căn cứ thanh quyết toán.</p>
+
+            <p>Đề nghị quý khách hàng nhận hàng, kiểm tra hàng và phản ánh tình trạng hàng hóa ngay sau khi nhận hàng.
+                Thời gian
+                tiếp nhận và xử lý hàng hóa không quá 24 giờ kể từ khi khách nhận được hàng.</p>
+
+            <!-- Ký tên -->
+            <table class="no-border">
+                <tr>
+                    <td style="text-align: center; border: none;">ĐẠI DIỆN BÊN GIAO<br>(Ký và ghi rõ họ tên)</td>
+                    <td style="text-align: center; border: none;">ĐẠI DIỆN BÊN NHẬN<br>(Ký và ghi rõ họ tên)</td>
+                </tr>
+            </table>
 </body>
 
 </html>

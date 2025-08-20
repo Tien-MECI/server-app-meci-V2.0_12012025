@@ -135,26 +135,47 @@ app.get("/bbgn", async (req, res) => {
 
             const buffer = Buffer.from(res.data, "binary");
             logoBase64 = `data:${fileMeta.data.mimeType};base64,${buffer.toString("base64")}`;
-
             console.log("✅ Logo loaded, mime:", fileMeta.data.mimeType);
         } catch (err) {
             console.error("⚠️ Không lấy được logo:", err.message);
         }
 
+        // ✅ Lấy watermark từ Google Drive
+        const WATERMARK_FILE_ID = "1fNROb-dRtRl2RCCDCxGPozU3oHMSIkHr";
+        let watermarkBase64 = "";
 
+        try {
+            const fileMeta = await drive.files.get({
+                fileId: WATERMARK_FILE_ID,
+                fields: "mimeType"
+            });
+
+            const res = await drive.files.get(
+                { fileId: WATERMARK_FILE_ID, alt: "media" },
+                { responseType: "arraybuffer" }
+            );
+
+            const buffer = Buffer.from(res.data, "binary");
+            watermarkBase64 = `data:${fileMeta.data.mimeType};base64,${buffer.toString("base64")}`;
+            console.log("✅ Watermark loaded, mime:", fileMeta.data.mimeType);
+        } catch (err) {
+            console.error("⚠️ Không lấy được watermark:", err.message);
+        }
 
         res.render("bbgn", {
             donHang,
             products,
             logoBase64,
+            watermarkBase64,
             autoPrint: true,
         });
     } catch (err) {
         console.error("❌ Lỗi xuất BBGN:", JSON.stringify(err, null, 2));
         res.status(500).send("❌ Lỗi khi xuất biên bản giao nhận");
     }
-
 });
+
+
 
 // --- Start server ---
 app.listen(PORT, () => {
@@ -168,19 +189,6 @@ app.get("/debug", (req, res) => {
     });
 });
 
-app.get("/time", (req, res) => {
-    res.send(new Date().toISOString());
-});
-app.get("/test-auth", async (req, res) => {
-    try {
-        const token = await auth.getAccessToken();
-        res.json({ success: true, token });
-    } catch (err) {
-        console.error("Auth test failed:", err);
-        res.status(500).json({ error: err.message });
-    }
-});
-app.set("views", path.join(__dirname, "views"));
 
 
 
