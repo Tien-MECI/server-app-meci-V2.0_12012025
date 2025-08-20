@@ -50,6 +50,22 @@
             border: none;
         }
 
+        /* ✅ Watermark */
+        .watermark {
+            position: fixed;
+            top: 35%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: -1;
+            opacity: 0.1;
+            text-align: center;
+        }
+
+        .watermark img {
+            width: 70%;
+            height: auto;
+        }
+
         /* CSS cho in ấn */
         @media print {
             @page {
@@ -60,30 +76,17 @@
             body {
                 margin: 1.5cm;
                 padding: 0;
-            }
-
-            /* Ẩn header/footer mặc định của trình duyệt */
-            @page :first {
-                margin-top: 0;
-            }
-
-            @page :left {
-                margin-left: 0;
-            }
-
-            @page :right {
-                margin-right: 0;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
             }
         }
     </style>
+
     <% if (typeof autoPrint !=='undefined' && autoPrint) { %>
         <script>
-            // Tự động in sau khi trang tải xong
             window.onload = function () {
                 setTimeout(function () {
                     window.print();
-
-                    // Đóng cửa sổ nếu được mở từ popup
                     setTimeout(function () {
                         if (window.opener) {
                             window.close();
@@ -97,19 +100,11 @@
 
 <body>
     <% if (watermarkBase64) { %>
-        <div style="
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -1;
-            opacity: 0.4;
-            background: url('<%= watermarkBase64 %>') center center no-repeat;
-            background-size: contain;
-        ">
+        <div class="watermark">
+            <img src="<%= watermarkBase64 %>" />
         </div>
         <% } %>
+
             <table style="width: 100%; border-collapse: collapse;">
                 <tr>
                     <td class="no-border">
@@ -142,15 +137,15 @@
             </p>
             <p>- Ông/Bà: <span class="red">
                     <%= donHang[16] || donHang[19] %>
-                </span>..............................................| Chức vụ:.........................................
-            </p>
+                </span> ..............................................| Chức
+                vụ:.........................................</p>
             <p>- Điện thoại: <span class="red">
                     <%= donHang[24] || donHang[26] || donHang[28] %>
-                </span>..............................................| Chức vụ:.........................................
-            </p>
+                </span> ..............................................| Chức
+                vụ:.........................................</p>
             <p>- Địa chỉ: <span class="red">
                     <%= donHang[23] || donHang[25] || donHang[27] %>
-                </span>..............................................</p>
+                </span> ..............................................</p>
             <br>
 
             <!-- Thông tin bên giao -->
@@ -208,12 +203,9 @@
 
             <br>
             <p>Hai bên đồng ý với nội dung giao nhận trên, biên bản giao nhận được lập thành 02 bản, mỗi bên giữ 1 bản
-                có giá
-                trị pháp lý như nhau để làm căn cứ thanh quyết toán.</p>
-
+                có giá trị pháp lý như nhau để làm căn cứ thanh quyết toán.</p>
             <p>Đề nghị quý khách hàng nhận hàng, kiểm tra hàng và phản ánh tình trạng hàng hóa ngay sau khi nhận hàng.
-                Thời gian
-                tiếp nhận và xử lý hàng hóa không quá 24 giờ kể từ khi khách nhận được hàng.</p>
+                Thời gian tiếp nhận và xử lý hàng hóa không quá 24 giờ kể từ khi khách nhận được hàng.</p>
 
             <!-- Ký tên -->
             <table class="no-border">
