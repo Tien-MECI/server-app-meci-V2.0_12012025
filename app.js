@@ -75,9 +75,11 @@ app.get("/bbgn", async (req, res) => {
             spreadsheetId: SPREADSHEET_ID,
             range: "file_BBGN_ct!B:B",
         });
+
         const colB = bbgnRes.data.values ? bbgnRes.data.values.flat() : [];
         const lastRowWithData = colB.length;
         const maDonHang = colB[lastRowWithData - 1];
+
         console.log(`Mã đơn hàng: ${maDonHang} (dòng ${lastRowWithData})`);
 
         if (!maDonHang) {
@@ -91,8 +93,11 @@ app.get("/bbgn", async (req, res) => {
         });
         const rows = donHangRes.data.values;
         const data = rows.slice(1);
-        const donHang = data.find(row => row[6] === maDonHang);
-        if (!donHang) return res.send("❌ Không tìm thấy đơn hàng với mã: " + maDonHang);
+        const donHang = data.find((row) => row[6] === maDonHang);
+
+        if (!donHang) {
+            return res.send("❌ Không tìm thấy đơn hàng với mã: " + maDonHang);
+        }
 
         // 3. Lấy chi tiết sản phẩm
         const ctRes = await sheets.spreadsheets.values.get({
@@ -101,7 +106,7 @@ app.get("/bbgn", async (req, res) => {
         });
         const ctRows = ctRes.data.values.slice(1);
         const products = ctRows
-            .filter(row => row[1] === maDonHang)
+            .filter((row) => row[1] === maDonHang)
             .map((row, index) => ({
                 stt: index + 1,
                 tenSanPham: row[9],
@@ -114,10 +119,18 @@ app.get("/bbgn", async (req, res) => {
         // 4. Lấy logo
         let logoBase64 = "";
         try {
-            const fileMeta = await drive.files.get({ fileId: LOGO_FILE_ID, fields: "mimeType" });
-            const resFile = await drive.files.get({ fileId: LOGO_FILE_ID, alt: "media" }, { responseType: "arraybuffer" });
+            const fileMeta = await drive.files.get({
+                fileId: LOGO_FILE_ID,
+                fields: "mimeType",
+            });
+            const resFile = await drive.files.get(
+                { fileId: LOGO_FILE_ID, alt: "media" },
+                { responseType: "arraybuffer" }
+            );
             const buffer = Buffer.from(resFile.data, "binary");
-            logoBase64 = `data:${fileMeta.data.mimeType};base64,${buffer.toString("base64")}`;
+            logoBase64 = `data:${fileMeta.data.mimeType};base64,${buffer.toString(
+                "base64"
+            )}`;
         } catch (err) {
             console.error("⚠️ Không lấy được logo:", err.message);
         }
@@ -126,10 +139,18 @@ app.get("/bbgn", async (req, res) => {
         const WATERMARK_FILE_ID = "1fNROb-dRtRl2RCCDCxGPozU3oHMSIkHr";
         let watermarkBase64 = "";
         try {
-            const fileMeta = await drive.files.get({ fileId: WATERMARK_FILE_ID, fields: "mimeType" });
-            const resFile = await drive.files.get({ fileId: WATERMARK_FILE_ID, alt: "media" }, { responseType: "arraybuffer" });
+            const fileMeta = await drive.files.get({
+                fileId: WATERMARK_FILE_ID,
+                fields: "mimeType",
+            });
+            const resFile = await drive.files.get(
+                { fileId: WATERMARK_FILE_ID, alt: "media" },
+                { responseType: "arraybuffer" }
+            );
             const buffer = Buffer.from(resFile.data, "binary");
-            watermarkBase64 = `data:${fileMeta.data.mimeType};base64,${buffer.toString("base64")}`;
+            watermarkBase64 = `data:${fileMeta.data.mimeType};base64,${buffer.toString(
+                "base64"
+            )}`;
         } catch (err) {
             console.error("⚠️ Không lấy được watermark:", err.message);
         }
@@ -147,9 +168,10 @@ app.get("/bbgn", async (req, res) => {
 
         const browser = await puppeteer.launch({ headless: "new" });
         const page = await browser.newPage();
-        await page.goto(`https://hsdh-app-cu.onrender.com/bbgn-view?maDonHang=${maDonHang}`, {
-            waitUntil: "networkidle0",
-        });
+        await page.goto(
+            `https://hsdh-app-cu.onrender.com/bbgn-view?maDonHang=${maDonHang}`,
+            { waitUntil: "networkidle0" }
+        );
         const pdfBuffer = await page.pdf({ format: "A4", printBackground: true });
         await browser.close();
 
@@ -163,7 +185,11 @@ app.get("/bbgn", async (req, res) => {
             fields: "id, name",
         });
 
-        const folderMeta = await drive.files.get({ fileId: folderId, fields: "name" });
+        const folderMeta = await drive.files.get({
+            fileId: folderId,
+            fields: "name",
+        });
+
         const pathToFile = `${folderMeta.data.name}/${pdfFile.data.name}`;
 
         await sheets.spreadsheets.values.update({
@@ -182,10 +208,11 @@ app.get("/bbgn", async (req, res) => {
             maDonHang,
         });
     } catch (err) {
-        console.error("❌ Lỗi xuất BBGN:", err);
+        console.error("❌ Lỗi xuất BBGN:", err.stack || err);
         res.status(500).send("❌ Lỗi khi xuất biên bản giao nhận");
     }
 });
+
 
 // --- Debug endpoint ---
 app.get("/debug", (req, res) => {
