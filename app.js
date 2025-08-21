@@ -5,17 +5,15 @@ import path from "path";
 import puppeteer from "puppeteer";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
-import ejs from "ejs"; // 👈 cần import ejs để render file bbgn.ejs
+import ejs from "ejs";
 
 dotenv.config();
 
-// Tạo __dirname trong ESM
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const LOGO_FILE_ID = "1Rwo4pJt222dLTXN9W6knN3A5LwJ5TDIa";
 
-// === Load credentials từ biến môi trường ===
 const credentialsBase64 = process.env.GOOGLE_CREDENTIALS_B64;
 if (!credentialsBase64) {
     console.error("GOOGLE_CREDENTIALS_B64 environment variable is missing!");
@@ -30,10 +28,6 @@ credentials.private_key = credentials.private_key
     .replace(/\\n/g, "\n")
     .trim();
 
-console.log("Private key starts with:", credentials.private_key.substring(0, 50));
-console.log("Private key ends with:", credentials.private_key.slice(-50));
-
-// === Google Auth ===
 const scopes = [
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/drive",
@@ -50,27 +44,47 @@ const drive = google.drive({ version: "v3", auth });
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// EJS view engine
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 
-// === Spreadsheet ID ===
 const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
 if (!SPREADSHEET_ID) {
     console.error("SPREADSHEET_ID environment variable is missing!");
     process.exit(1);
 }
 
+// Add this function outside of the route handler
+async function exportBBGN(htmlContent) {
+    const browser = await puppeteer.launch({
+        headless: "new",
+        executablePath: await puppeteer.executablePath(),
+        args: [
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-dev-shm-usage",
+        ],
+    });
+
+    const page = await browser.newPage();
+    await page.setContent(htmlContent, { waitUntil: "networkidle0" });
+
+    const pdfBuffer = await page.pdf({
+        format: "A4",
+        printBackground: true,
+    });
+
+    await browser.close();
+    return pdfBuffer;
+}
+
 app.get("/", (req, res) => {
     res.send("🚀 Google Sheets API server is running!");
 });
 
-// ✅ Endpoint xuất Biên bản giao nhận + tự động tạo PDF
 app.get("/bbgn", async (req, res) => {
     try {
         console.log("Bắt đầu xuất BBGN...");
 
-        // 1. Lấy mã đơn hàng
         const bbgnRes = await sheets.spreadsheets.values.get({
             spreadsheetId: SPREADSHEET_ID,
             range: "file_BBGN_ct!B:B",
@@ -86,7 +100,6 @@ app.get("/bbgn", async (req, res) => {
             return res.send("⚠️ Không tìm thấy dữ liệu ở cột B sheet file_BBGN_ct.");
         }
 
-        // 2. Lấy dữ liệu đơn hàng
         const donHangRes = await sheets.spreadsheets.values.get({
             spreadsheetId: SPREADSHEET_ID,
             range: "Don_hang!A1:CG500903",
@@ -99,7 +112,6 @@ app.get("/bbgn", async (req, res) => {
             return res.send("❌ Không tìm thấy đơn hàng với mã: " + maDonHang);
         }
 
-        // 3. Lấy chi tiết sản phẩm
         const ctRes = await sheets.spreadsheets.values.get({
             spreadsheetId: SPREADSHEET_ID,
             range: "Don_hang_PVC_ct!A1:AD100000",
@@ -116,7 +128,6 @@ app.get("/bbgn", async (req, res) => {
                 ghiChu: row[29] || "",
             }));
 
-        // 4. Lấy logo
         let logoBase64 = "";
         try {
             const fileMeta = await drive.files.get({
@@ -135,7 +146,6 @@ app.get("/bbgn", async (req, res) => {
             console.error("⚠️ Không lấy được logo:", err.message);
         }
 
-        // 5. Lấy watermark
         const WATERMARK_FILE_ID = "1fNROb-dRtRl2RCCDCxGPozU3oHMSIkHr";
         let watermarkBase64 = "";
         try {
@@ -155,7 +165,7 @@ app.get("/bbgn", async (req, res) => {
             console.error("⚠️ Không lấy được watermark:", err.message);
         }
 
-        // 6. Render HTML từ bbgn.ejs
+        // Render HTML cho PDF
         const htmlContent = await ejs.renderFile("views/bbgn.ejs", {
             donHang,
             products,
@@ -165,31 +175,10 @@ app.get("/bbgn", async (req, res) => {
             maDonHang,
         });
 
-        // 7. Dùng Puppeteer export ra buffer PDF
-        async function exportBBGN(htmlContent, outputPath) {
-            const browser = await puppeteer.launch({
-                headless: "new",
-                executablePath: await puppeteer.executablePath(), // 👈 dùng path chính xác
-                args: [
-                    "--no-sandbox",
-                    "--disable-setuid-sandbox",
-                    "--disable-dev-shm-usage"
-                ],
-            });
+        // Tạo PDF từ HTML
+        const pdfBuffer = await exportBBGN(htmlContent);
 
-            const page = await browser.newPage();
-            await page.setContent(htmlContent, { waitUntil: "networkidle0" });
-
-            await page.pdf({
-                path: outputPath,
-                format: "A4",
-                printBackground: true,
-            });
-
-            await browser.close();
-        }
-
-        // 8. Upload PDF lên Google Drive
+        // Upload PDF lên Google Drive
         const today = new Date();
         const dd = String(today.getDate()).padStart(2, "0");
         const mm = String(today.getMonth() + 1).padStart(2, "0");
@@ -202,7 +191,7 @@ app.get("/bbgn", async (req, res) => {
         const folderId = "1CL3JuFprNj1a406XWXTtbQMZmyKxhczW";
 
         const fileMeta = { name: fileName, parents: [folderId] };
-        const media = { mimeType: "application/pdf", body: Buffer.from(pdfBuffer) };
+        const media = { mimeType: "application/pdf", body: pdfBuffer };
 
         const pdfFile = await drive.files.create({
             requestBody: fileMeta,
@@ -210,14 +199,12 @@ app.get("/bbgn", async (req, res) => {
             fields: "id, name",
         });
 
-        // 9. Lấy tên folder để ghi lại đường dẫn
         const folderMeta = await drive.files.get({
             fileId: folderId,
             fields: "name",
         });
         const pathToFile = `${folderMeta.data.name}/${pdfFile.data.name}`;
 
-        // 10. Ghi link file PDF vào Google Sheets
         await sheets.spreadsheets.values.update({
             spreadsheetId: SPREADSHEET_ID,
             range: `file_BBGN_ct!D${lastRowWithData}`,
@@ -225,7 +212,7 @@ app.get("/bbgn", async (req, res) => {
             requestBody: { values: [[pathToFile]] },
         });
 
-        // 11. Render lại bbgn.ejs cho client
+        // Render HTML cho client
         res.render("bbgn", {
             donHang,
             products,
@@ -240,7 +227,6 @@ app.get("/bbgn", async (req, res) => {
     }
 });
 
-// --- Debug endpoint ---
 app.get("/debug", (req, res) => {
     res.json({
         spreadsheetId: SPREADSHEET_ID,
@@ -249,7 +235,6 @@ app.get("/debug", (req, res) => {
     });
 });
 
-// --- Start server ---
 app.listen(PORT, () => {
     console.log(`✅ Server is running on port ${PORT}`);
 });
