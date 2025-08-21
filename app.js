@@ -1,4 +1,3 @@
-import fs from "fs";
 import dotenv from "dotenv";
 import express from "express";
 import { google } from "googleapis";
@@ -6,7 +5,6 @@ import path from "path";
 import puppeteer from "puppeteer";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
-
 dotenv.config();
 
 // Tạo __dirname trong ESM
@@ -166,19 +164,20 @@ app.get("/bbgn", async (req, res) => {
         const ss = String(today.getSeconds()).padStart(2, "0");
 
         const fileName = `BBGN - ${maDonHang} - ${dd}${mm}${yyyy} - ${hh}-${mi}-${ss}.pdf`;
-        const chromePath = fs.existsSync("/usr/bin/chromium-browser")
-            ? "/usr/bin/chromium-browser"
-            : "/usr/bin/google-chrome";
-        console.log("Checking Chrome path:", chromePath, "exists:", fs.existsSync(chromePath));
 
         const browser = await puppeteer.launch({
             headless: "new",
-            args: ["--no-sandbox", "--disable-setuid-sandbox"],
-            executablePath: chromePath,
-        }).catch((err) => {
-            console.error("Puppeteer launch failed:", err.message);
-            throw err;
+            args: [
+                "--no-sandbox",
+                "--disable-setuid-sandbox",
+                "--disable-dev-shm-usage",
+                "--disable-gpu",
+                "--no-zygote",
+                "--single-process"
+            ],
+            executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath()
         });
+
         const page = await browser.newPage();
         await page.goto(
             `https://hsdh-app-cu.onrender.com/bbgn-view?maDonHang=${maDonHang}`,
