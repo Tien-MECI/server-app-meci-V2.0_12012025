@@ -56,22 +56,24 @@ if (!SPREADSHEET_ID) {
 
 // Add this function outside of the route handler
 async function exportBBGN(htmlContent) {
-    // Set up Chromium options
-    chromium.setGraphicsMode = false;
-
+    // Sử dụng chromium có sẵn trên Render
     const browser = await puppeteer.launch({
-        args: [...chromium.args, '--hide-scrollbars', '--disable-web-security'],
-        defaultViewport: chromium.defaultViewport,
-        executablePath: await chromium.executablePath(),
-        headless: chromium.headless,
-        ignoreHTTPSErrors: true,
+        headless: "new",
+        args: [
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-gpu",
+            "--single-process"
+        ],
+        executablePath: process.env.CHROMIUM_PATH || await puppeteer.executablePath()
     });
 
     const page = await browser.newPage();
-    await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+    await page.setContent(htmlContent, { waitUntil: "networkidle0" });
 
     const pdfBuffer = await page.pdf({
-        format: 'A4',
+        format: "A4",
         printBackground: true,
     });
 

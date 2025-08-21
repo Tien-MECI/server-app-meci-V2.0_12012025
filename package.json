@@ -5,8 +5,7 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "start": "node app.js",
-    "postinstall": "node node_modules/@sparticuz/chromium/bin/install.js"
+    "start": "node app.js"
   },
   "dependencies": {
     "dotenv": "^16.6.1",
