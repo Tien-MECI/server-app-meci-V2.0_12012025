@@ -2,13 +2,22 @@ import dotenv from "dotenv";
 import express from "express";
 import { google } from "googleapis";
 import path from "path";
-import puppeteer from "puppeteer";
+import PdfPrinter from "pdfmake";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 import ejs from "ejs";
 
 dotenv.config();
-
+// fonts (cần font .ttf để pdfmake render Unicode tốt)
+const fonts = {
+    Roboto: {
+        normal: path.join(__dirname, "fonts/Roboto-Regular.ttf"),
+        bold: path.join(__dirname, "fonts/Roboto-Bold.ttf"),
+        italics: path.join(__dirname, "fonts/Roboto-Italic.ttf"),
+        bolditalics: path.join(__dirname, "fonts/Roboto-BoldItalic.ttf"),
+    },
+};
+const printer = new PdfPrinter(fonts);
 // --- __dirname trong ESM ---
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -126,40 +135,100 @@ app.get("/bbgn", async (req, res) => {
         const logoBase64 = await loadDriveImageBase64(LOGO_FILE_ID);
         const watermarkBase64 = await loadDriveImageBase64(WATERMARK_FILE_ID);
 
-        // 5) Render EJS -> HTML
-        const htmlContent = await new Promise((resolve, reject) => {
-            app.render(
-                "bbgn",
-                { donHang, products, logoBase64, watermarkBase64, autoPrint: false, maDonHang },
-                (err, html) => (err ? reject(err) : resolve(html))
-            );
-        });
+        // 5) Không cần EJS HTML nữa -> xây docDefinition cho pdfmake
+        const bodyTable = [
+            [
+                { text: "STT", bold: true },
+                { text: "Tên sản phẩm", bold: true },
+                { text: "Số lượng", bold: true },
+                { text: "Đơn vị", bold: true },
+                { text: "Ghi chú", bold: true }
+            ],
+            ...products.map(p => [p.stt, p.tenSanPham, p.soLuong, p.donVi, p.ghiChu])
+        ];
 
-        // 6) HTML -> PDF buffer (dùng Puppeteer)
-        const browser = await puppeteer.launch({
-            args: ["--no-sandbox", "--disable-setuid-sandbox"],
-            headless: "new", // đảm bảo chạy headless trong môi trường server
-        });
-        const page = await browser.newPage();
-        await page.setContent(htmlContent, { waitUntil: "networkidle0" });
-
-        const pdfBuffer = await page.pdf({
-            format: "A4",
-            printBackground: true,
-            margin: {
-                top: "1.5cm",
-                right: "1.5cm",
-                bottom: "1.5cm",
-                left: "1.5cm",
+        // 6) Logo & watermark (base64) đã lấy ở trên
+        const docDefinition = {
+            content: [
+                {
+                    image: logoBase64,
+                    width: 120,
+                    alignment: "center",
+                },
+                { text: "BIÊN BẢN GIAO NHẬN", style: "header", margin: [0, 20, 0, 20] },
+                {
+                    table: {
+                        headerRows: 1,
+                        widths: ["auto", "*", "auto", "auto", "*"],
+                        body: bodyTable
+                    }
+                }
+            ],
+            styles: {
+                header: { fontSize: 18, bold: true, alignment: "center" }
             },
+            defaultStyle: {
+                font: "NotoSans",
+                fontSize: 11,
+            },
+            background: watermarkBase64
+                ? [
+                    {
+                        image: watermarkBase64,
+                        width: 400,
+                        absolutePosition: { x: 100, y: 200 },
+                        opacity: 0.1,
+                    },
+                ]
+                : [],
+
+        };
+
+        // 7) Xuất PDF buffer
+        const pdfDoc = printer.createPdfKitDocument(docDefinition);
+        const chunks = [];
+        pdfDoc.on("data", (chunk) => chunks.push(chunk));
+        pdfDoc.on("end", async () => {
+            const pdfBuffer = Buffer.concat(chunks);
+
+            const { ddmmyyyy, hhmmss } = formatDateForName(new Date(), "Asia/Bangkok");
+            const fileName = `BBGN - ${maDonHang} - ${ddmmyyyy} - ${hhmmss}.pdf`;
+
+            // Gửi sang GAS
+            const payload = {
+                fileName,
+                fileDataBase64: pdfBuffer.toString("base64"),
+            };
+            const gasResp = await fetch(GAS_WEBAPP_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            });
+
+            const gasText = await gasResp.text();
+            let gasJson = {};
+            try {
+                gasJson = JSON.parse(gasText);
+            } catch {
+                console.error("⚠️ GAS trả về không phải JSON:", gasText);
+                throw new Error("Không nhận được JSON từ Apps Script");
+            }
+            if (!gasJson.ok) throw new Error(gasJson.error || "Apps Script báo lỗi khi lưu file.");
+
+            const folderName = gasJson.folderName || "BBGN";
+            const pathToFile = `${folderName}/${fileName}`;
+            await sheets.spreadsheets.values.update({
+                spreadsheetId: SPREADSHEET_ID,
+                range: `file_BBGN_ct!D${lastRowWithData}`,
+                valueInputOption: "RAW",
+                requestBody: { values: [[pathToFile]] },
+            });
+            console.log("✔️ Đã ghi đường dẫn:", pathToFile);
+
+            res.send(`✔️ Đã tạo & lưu file: ${pathToFile}`);
         });
 
-        await browser.close();
-
-
-        // 7) Đặt tên file tại app.js theo format yêu cầu
-        const { ddmmyyyy, hhmmss } = formatDateForName(new Date(), "Asia/Bangkok");
-        const fileName = `BBGN - ${maDonHang} - ${ddmmyyyy} - ${hhmmss}.pdf`;
+        pdfDoc.end();
 
         // 8) Gửi JSON (base64) sang Apps Script để CHỈ lưu file
         const payload = {

@@ -13,6 +13,6 @@
     "express": "^4.21.2",
     "google-auth-library": "^9.15.1",
     "googleapis": "^126.0.1",
-    "puppeteer": "^23.11.1"
+    "pdfmake": "^0.2.20"
   }
 }
