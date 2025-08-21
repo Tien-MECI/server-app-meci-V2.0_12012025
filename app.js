@@ -14,7 +14,7 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// fonts
+// --- fonts ---
 const fonts = {
     NotoSans: {
         normal: path.join(__dirname, "fonts/NotoSans-Regular.ttf"),
@@ -89,6 +89,46 @@ async function loadDriveImageBase64(fileId) {
         console.error(`⚠️ Không tải được file Drive ${fileId}:`, e.message);
         return "";
     }
+}
+
+// --- Tạo PDF và gửi GAS (memory safe) ---
+async function createPdfAndSend(docDefinition, maDonHang) {
+    return new Promise((resolve, reject) => {
+        try {
+            const pdfDoc = printer.createPdfKitDocument(docDefinition);
+            const chunks = [];
+
+            pdfDoc.on("data", chunk => chunks.push(chunk));
+            pdfDoc.on("end", async () => {
+                try {
+                    const pdfBuffer = Buffer.concat(chunks);
+                    const { ddmmyyyy, hhmmss } = formatDateForName(new Date(), "Asia/Bangkok");
+                    const fileName = `BBGN - ${maDonHang} - ${ddmmyyyy} - ${hhmmss}.pdf`;
+
+                    const payload = { fileName, fileDataBase64: pdfBuffer.toString("base64") };
+                    const gasResp = await fetch(GAS_WEBAPP_URL, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payload),
+                    });
+
+                    const gasText = await gasResp.text();
+                    let gasJson = {};
+                    try { gasJson = JSON.parse(gasText); } catch { throw new Error("Không nhận được JSON từ Apps Script"); }
+                    if (!gasJson.ok) throw new Error(gasJson.error || "Apps Script báo lỗi khi lưu file.");
+
+                    const folderName = gasJson.folderName || "BBGN";
+                    resolve(`${folderName}/${fileName}`);
+                } catch (err) {
+                    reject(err);
+                }
+            });
+
+            pdfDoc.end();
+        } catch (err) {
+            reject(err);
+        }
+    });
 }
 
 // --- routes ---
@@ -166,41 +206,20 @@ app.get("/bbgn", async (req, res) => {
             background: watermarkBase64 ? [{ image: watermarkBase64, width: 400, absolutePosition: { x: 100, y: 200 }, opacity: 0.1 }] : [],
         };
 
-        // --- Tạo PDF ---
-        const pdfDoc = printer.createPdfKitDocument(docDefinition);
-        const chunks = [];
-        pdfDoc.on("data", chunk => chunks.push(chunk));
-        pdfDoc.end();
+        // --- Tạo PDF + gửi GAS ---
+        const pathToFile = await createPdfAndSend(docDefinition, maDonHang);
 
-        pdfDoc.on("end", async () => {
-            const pdfBuffer = Buffer.concat(chunks);
-            const { ddmmyyyy, hhmmss } = formatDateForName(new Date(), "Asia/Bangkok");
-            const fileName = `BBGN - ${maDonHang} - ${ddmmyyyy} - ${hhmmss}.pdf`;
-
-            // --- Gửi sang GAS ---
-            const payload = { fileName, fileDataBase64: pdfBuffer.toString("base64") };
-            const gasResp = await fetch(GAS_WEBAPP_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-            const gasText = await gasResp.text();
-
-            let gasJson = {};
-            try { gasJson = JSON.parse(gasText); } catch { throw new Error("Không nhận được JSON từ Apps Script"); }
-            if (!gasJson.ok) throw new Error(gasJson.error || "Apps Script báo lỗi khi lưu file.");
-
-            const folderName = gasJson.folderName || "BBGN";
-            const pathToFile = `${folderName}/${fileName}`;
-
-            // --- Ghi đường dẫn vào Sheet ---
-            await sheets.spreadsheets.values.update({
-                spreadsheetId: SPREADSHEET_ID,
-                range: `file_BBGN_ct!D${lastRowWithData}`,
-                valueInputOption: "RAW",
-                requestBody: { values: [[pathToFile]] },
-            });
-            console.log("✔️ Đã ghi đường dẫn:", pathToFile);
-
-            // --- Render trang in ---
-            res.render("bbgn", { donHang, products, logoBase64, watermarkBase64, autoPrint: true, maDonHang });
+        // --- Ghi đường dẫn vào Sheet ---
+        await sheets.spreadsheets.values.update({
+            spreadsheetId: SPREADSHEET_ID,
+            range: `file_BBGN_ct!D${lastRowWithData}`,
+            valueInputOption: "RAW",
+            requestBody: { values: [[pathToFile]] },
         });
+        console.log("✔️ Đã ghi đường dẫn:", pathToFile);
+
+        // --- Render trang in ---
+        res.render("bbgn", { donHang, products, logoBase64, watermarkBase64, autoPrint: true, maDonHang });
 
     } catch (err) {
         console.error("❌ Lỗi khi xuất BBGN:", err.stack || err.message);
