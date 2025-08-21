@@ -14,6 +14,12 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 // fonts
 const fonts = {
+    NotoSans: {
+        normal: path.join(__dirname, "fonts/NotoSans-Regular.ttf"),
+        bold: path.join(__dirname, "fonts/NotoSans-Bold.ttf"),
+        italics: path.join(__dirname, "fonts/NotoSans-Italic.ttf"),
+        bolditalics: path.join(__dirname, "fonts/NotoSans-BoldItalic.ttf"),
+    },
     Roboto: {
         normal: path.join(__dirname, "fonts/Roboto-Regular.ttf"),
         bold: path.join(__dirname, "fonts/Roboto-Bold.ttf"),
@@ -21,6 +27,7 @@ const fonts = {
         bolditalics: path.join(__dirname, "fonts/Roboto-BoldItalic.ttf"),
     },
 };
+
 
 
 const printer = new PdfPrinter(fonts);
