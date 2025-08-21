@@ -4,11 +4,12 @@ import bodyParser from "body-parser";
 import fs from "fs";
 import path from "path";
 import pdf from "html-pdf"; // thay puppeteer bằng html-pdf
-
+import { createRequire } from "module";
 const app = express();
 app.use(bodyParser.json());
 app.set("view engine", "ejs");
-
+const require = createRequire(import.meta.url);
+const pdf = require("html-pdf");
 // Google API setup
 const auth = new google.auth.GoogleAuth({
     credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON),
