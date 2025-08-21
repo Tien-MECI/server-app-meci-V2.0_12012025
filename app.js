@@ -6,228 +6,208 @@ import pdf from "html-pdf";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 import ejs from "ejs";
-import { Readable } from "stream"; // ✅ để upload buffer lên Drive
 
 dotenv.config();
 
-// Tạo __dirname trong ESM
+// --- __dirname trong ESM ---
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+// --- IDs file Drive dùng trong EJS ---
 const LOGO_FILE_ID = "1Rwo4pJt222dLTXN9W6knN3A5LwJ5TDIa";
+const WATERMARK_FILE_ID = "1fNROb-dRtRl2RCCDCxGPozU3oHMSIkHr";
 
-// === Load credentials từ biến môi trường ===
-const credentialsBase64 = process.env.GOOGLE_CREDENTIALS_B64;
-if (!credentialsBase64) {
-    console.error("GOOGLE_CREDENTIALS_B64 environment variable is missing!");
+// --- ENV cần có ---
+const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
+const GAS_WEBAPP_URL =
+    process.env.GAS_WEBAPP_URL || "https://script.google.com/macros/s/AKfycbyYKqYXMlDMG9n_LrpjjNqOtnA6MElh_ds00og0j59-E2UtvGq9YQZVI3lBTUb60Zo-/exec";
+const GOOGLE_CREDENTIALS_B64 = process.env.GOOGLE_CREDENTIALS_B64;
+
+if (!SPREADSHEET_ID || !GAS_WEBAPP_URL || !GOOGLE_CREDENTIALS_B64) {
+    console.error("❌ Thiếu biến môi trường: SPREADSHEET_ID / GAS_WEBAPP_URL / GOOGLE_CREDENTIALS_B64");
     process.exit(1);
 }
 
-const credentials = JSON.parse(
-    Buffer.from(credentialsBase64, "base64").toString("utf-8")
-);
+// --- Giải mã Service Account JSON ---
+const credentials = JSON.parse(Buffer.from(GOOGLE_CREDENTIALS_B64, "base64").toString("utf-8"));
+credentials.private_key = credentials.private_key.replace(/\\n/g, "\n").trim();
 
-credentials.private_key = credentials.private_key
-    .replace(/\\n/g, "\n")
-    .trim();
-
-console.log("Private key starts with:", credentials.private_key.substring(0, 50));
-console.log("Private key ends with:", credentials.private_key.slice(-50));
-
-// === Google Auth ===
+// --- Google Auth (chỉ dùng Sheets + đọc file Drive hình ảnh) ---
 const scopes = [
     "https://www.googleapis.com/auth/spreadsheets",
-    "https://www.googleapis.com/auth/drive",
+    "https://www.googleapis.com/auth/drive.readonly",
 ];
-const auth = new google.auth.JWT(
-    credentials.client_email,
-    null,
-    credentials.private_key,
-    scopes
-);
+const auth = new google.auth.JWT(credentials.client_email, null, credentials.private_key, scopes);
 const sheets = google.sheets({ version: "v4", auth });
 const drive = google.drive({ version: "v3", auth });
 
+// --- Express ---
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// EJS view engine
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 
-// === Spreadsheet ID ===
-const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
-if (!SPREADSHEET_ID) {
-    console.error("SPREADSHEET_ID environment variable is missing!");
-    process.exit(1);
+// --- helpers ---
+function formatDateForName(date = new Date(), tz = "Asia/Bangkok") {
+    const pad = (n) => String(n).padStart(2, "0");
+    const toTZ = new Date(date.toLocaleString("en-US", { timeZone: tz }));
+    const dd = pad(toTZ.getDate());
+    const mm = pad(toTZ.getMonth() + 1);
+    const yyyy = toTZ.getFullYear();
+    const hh = pad(toTZ.getHours());
+    const mi = pad(toTZ.getMinutes());
+    const ss = pad(toTZ.getSeconds());
+    return { ddmmyyyy: `${dd}${mm}${yyyy}`, hhmmss: `${hh}-${mi}-${ss}` };
 }
 
-app.get("/", (req, res) => {
-    res.send("🚀 Google Sheets API server is running!");
-});
+async function loadDriveImageBase64(fileId) {
+    try {
+        const meta = await drive.files.get({ fileId, fields: "mimeType" });
+        const bin = await drive.files.get({ fileId, alt: "media" }, { responseType: "arraybuffer" });
+        const buffer = Buffer.from(bin.data, "binary");
+        return `data:${meta.data.mimeType};base64,${buffer.toString("base64")}`;
+    } catch (e) {
+        console.error(`⚠️ Không tải được file Drive ${fileId}:`, e.message);
+        return "";
+    }
+}
 
-// ✅ Endpoint xuất Biên bản giao nhận + tự động tạo PDF
+// --- routes ---
+app.get("/", (_req, res) => res.send("🚀 Server chạy ổn! /bbgn để xuất BBGN."));
+
 app.get("/bbgn", async (req, res) => {
     try {
-        console.log("Bắt đầu xuất BBGN...");
+        console.log("▶️ Bắt đầu xuất BBGN ...");
 
-        // 1. Lấy mã đơn hàng
+        // 1) Lấy mã đơn hàng: dòng cuối của cột B sheet file_BBGN_ct
         const bbgnRes = await sheets.spreadsheets.values.get({
             spreadsheetId: SPREADSHEET_ID,
             range: "file_BBGN_ct!B:B",
         });
-
         const colB = bbgnRes.data.values ? bbgnRes.data.values.flat() : [];
         const lastRowWithData = colB.length;
         const maDonHang = colB[lastRowWithData - 1];
+        if (!maDonHang) return res.send("⚠️ Không tìm thấy dữ liệu ở cột B sheet file_BBGN_ct.");
 
-        console.log(`Mã đơn hàng: ${maDonHang} (dòng ${lastRowWithData})`);
+        console.log(`✔️ Mã đơn hàng: ${maDonHang} (dòng ${lastRowWithData})`);
 
-        if (!maDonHang) {
-            return res.send("⚠️ Không tìm thấy dữ liệu ở cột B sheet file_BBGN_ct.");
-        }
-
-        // 2. Lấy dữ liệu đơn hàng
+        // 2) Lấy dòng đơn hàng trong "Don_hang"
         const donHangRes = await sheets.spreadsheets.values.get({
             spreadsheetId: SPREADSHEET_ID,
             range: "Don_hang!A1:CG500903",
         });
-        const rows = donHangRes.data.values;
+        const rows = donHangRes.data.values || [];
         const data = rows.slice(1);
-        const donHang = data.find((row) => row[6] === maDonHang);
+        const donHang =
+            data.find((r) => r[5] === maDonHang) || // một số file dùng cột F (index 5)
+            data.find((r) => r[6] === maDonHang);   // mẫu bạn đưa dùng cột G (index 6)
+        if (!donHang) return res.send("❌ Không tìm thấy đơn hàng với mã: " + maDonHang);
 
-        if (!donHang) {
-            return res.send("❌ Không tìm thấy đơn hàng với mã: " + maDonHang);
-        }
-
-        // 3. Lấy chi tiết sản phẩm
+        // 3) Lấy chi tiết sản phẩm
         const ctRes = await sheets.spreadsheets.values.get({
             spreadsheetId: SPREADSHEET_ID,
-            range: "Don_hang_PVC_ct!A1:AD100000",
+            range: "Don_hang_PVC_ct!A1:AD100000", // nếu sheet khác, đổi lại tên range này
         });
-        const ctRows = ctRes.data.values.slice(1);
+        const ctRows = (ctRes.data.values || []).slice(1);
         const products = ctRows
             .filter((row) => row[1] === maDonHang)
-            .map((row, index) => ({
-                stt: index + 1,
+            .map((row, i) => ({
+                stt: i + 1,
                 tenSanPham: row[9],
                 soLuong: row[22],
                 donVi: row[23],
                 tongSoLuong: row[22],
                 ghiChu: row[29] || "",
             }));
+        console.log(`✔️ Tìm thấy ${products.length} sản phẩm.`);
 
-        // 4. Lấy logo
-        let logoBase64 = "";
-        try {
-            const fileMeta = await drive.files.get({
-                fileId: LOGO_FILE_ID,
-                fields: "mimeType",
-            });
-            const resFile = await drive.files.get(
-                { fileId: LOGO_FILE_ID, alt: "media" },
-                { responseType: "arraybuffer" }
-            );
-            const buffer = Buffer.from(resFile.data, "binary");
-            logoBase64 = `data:${fileMeta.data.mimeType};base64,${buffer.toString(
-                "base64"
-            )}`;
-        } catch (err) {
-            console.error("⚠️ Không lấy được logo:", err.message);
-        }
+        // 4) Logo & Watermark từ Drive (base64)
+        const logoBase64 = await loadDriveImageBase64(LOGO_FILE_ID);
+        const watermarkBase64 = await loadDriveImageBase64(WATERMARK_FILE_ID);
 
-        // 5. Lấy watermark
-        const WATERMARK_FILE_ID = "1fNROb-dRtRl2RCCDCxGPozU3oHMSIkHr";
-        let watermarkBase64 = "";
-        try {
-            const fileMeta = await drive.files.get({
-                fileId: WATERMARK_FILE_ID,
-                fields: "mimeType",
-            });
-            const resFile = await drive.files.get(
-                { fileId: WATERMARK_FILE_ID, alt: "media" },
-                { responseType: "arraybuffer" }
-            );
-            const buffer = Buffer.from(resFile.data, "binary");
-            watermarkBase64 = `data:${fileMeta.data.mimeType};base64,${buffer.toString(
-                "base64"
-            )}`;
-        } catch (err) {
-            console.error("⚠️ Không lấy được watermark:", err.message);
-        }
-
-        // 6. Render HTML từ bbgn.ejs
+        // 5) Render EJS -> HTML
         const htmlContent = await new Promise((resolve, reject) => {
-            app.render("bbgn", {
-                donHang,
-                products,
-                logoBase64,
-                watermarkBase64,
-                autoPrint: false,
-                maDonHang
-            }, (err, html) => {
+            app.render(
+                "bbgn",
+                { donHang, products, logoBase64, watermarkBase64, autoPrint: false, maDonHang },
+                (err, html) => (err ? reject(err) : resolve(html))
+            );
+        });
+
+        // 6) HTML -> PDF buffer (html-pdf/phantomjs)
+        const pdfBuffer = await new Promise((resolve, reject) => {
+            pdf.create(htmlContent, { format: "A4", border: "10mm" }).toBuffer((err, buffer) => {
                 if (err) reject(err);
-                else resolve(html);
+                else resolve(buffer);
             });
         });
 
-        // 7. Xuất PDF ra buffer
-        function exportBBGN(htmlContent) {
-            return new Promise((resolve, reject) => {
-                pdf.create(htmlContent, { format: "A4", border: "10mm" }).toBuffer((err, buffer) => {
-                    if (err) reject(err);
-                    else resolve(buffer);
-                });
-            });
-        }
-        const pdfBuffer = await exportBBGN(htmlContent);
+        // 7) Đặt tên file tại app.js theo format yêu cầu
+        const { ddmmyyyy, hhmmss } = formatDateForName(new Date(), "Asia/Bangkok");
+        const fileName = `BBGN - ${maDonHang} - ${ddmmyyyy} - ${hhmmss}.pdf`;
 
-        // 8. Gửi PDF buffer qua Apps Script Web App
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbyeFMlcZa_auvA-f9vFG1bOXFDSG0w5pymV0JQAC6nqFS_RmARR2ZAfPHaLFY068gRa/exec";
+        // 8) Gửi JSON (base64) sang Apps Script để CHỈ lưu file
+        const payload = {
+            fileName,
+            // nếu muốn GAS tự tính lại giờ theo timezone script thì có thể bỏ tham số này
+            fileDataBase64: Buffer.from(pdfBuffer).toString("base64"),
+        };
 
-        const fileName = `BBGN-${maDonHang}-${Date.now()}.pdf`;
-
-        const response = await fetch(GAS_URL, {
+        const gasResp = await fetch(GAS_WEBAPP_URL, {
             method: "POST",
-            headers: {
-                "Content-Type": "application/pdf",
-                "X-Filename": fileName, // để GAS biết tên file
-            },
-            body: pdfBuffer,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
         });
 
-        const driveResult = await response.text();
-        console.log("Kết quả từ GAS:", driveResult);
+        const gasText = await gasResp.text();
+        let gasJson = {};
+        try {
+            gasJson = JSON.parse(gasText);
+        } catch {
+            console.error("⚠️ GAS trả về không phải JSON:", gasText);
+            throw new Error("Không nhận được JSON từ Apps Script");
+        }
+        if (!gasJson.ok) {
+            throw new Error(gasJson.error || "Apps Script báo lỗi khi lưu file.");
+        }
 
+        // 9) Xây đường dẫn theo yêu cầu ngay tại app.js: "FolderName/FileName"
+        const folderName = gasJson.folderName || "BBGN";
+        const pathToFile = `${folderName}/${fileName}`;
 
-        // 9. Ghi lại link file PDF vào Google Sheets
+        // 10) Ghi đường dẫn vào cột D của dòng cuối cùng
         await sheets.spreadsheets.values.update({
             spreadsheetId: SPREADSHEET_ID,
             range: `file_BBGN_ct!D${lastRowWithData}`,
             valueInputOption: "RAW",
-            requestBody: { values: [[driveResult]] },
+            requestBody: { values: [[pathToFile]] },
         });
 
-        // 10. Render lại bbgn.ejs cho client
-        res.render("bbgn", { donHang, products, logoBase64, watermarkBase64, autoPrint: true, maDonHang });
+        console.log("✔️ Đã ghi đường dẫn:", pathToFile);
 
-
+        // 11) Trả lại trang in cho client (tuỳ chọn autoPrint: true)
+        res.render("bbgn", {
+            donHang,
+            products,
+            logoBase64,
+            watermarkBase64,
+            autoPrint: true,
+            maDonHang,
+        });
     } catch (err) {
-        console.error("❌ Lỗi khi xuất BBGN:", err.message);
-        res.status(500).send("Lỗi server: " + err.message);
+        console.error("❌ Lỗi khi xuất BBGN:", err.stack || err.message);
+        res.status(500).send("Lỗi server: " + (err.message || err));
     }
 });
 
-// ✅ Debug endpoint
-app.get("/debug", (req, res) => {
+// Debug
+app.get("/debug", (_req, res) => {
     res.json({
         spreadsheetId: SPREADSHEET_ID,
         clientEmail: credentials.client_email,
-        scopes: scopes,
+        gasWebappUrl: GAS_WEBAPP_URL,
     });
 });
 
-// ✅ Start server
-app.listen(PORT, () => {
-    console.log(`✅ Server is running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`✅ Server is running on port ${PORT}`));
