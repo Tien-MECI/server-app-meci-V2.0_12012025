@@ -197,7 +197,7 @@ app.get("/bbgn", async (req, res) => {
         const ss = String(today.getSeconds()).padStart(2, "0");
 
         const fileName = `BBGN - ${maDonHang} - ${dd}${mm}${yyyy} - ${hh}-${mi}-${ss}.pdf`;
-        const folderId = "1CL3JuFprNj1a406XWXTtbQMZmyKxhczW";
+        const folderId = "1VIUzc9ttoD9ixOlZ5nyLguw8yRON7e5o";
 
         const fileMeta = { name: fileName, parents: [folderId] };
         const media = {
