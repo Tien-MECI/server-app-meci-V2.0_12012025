@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 import express from "express";
 import { google } from "googleapis";
 import path from "path";
-import pdf from "html-pdf";
+import puppeteer from "puppeteer";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 import ejs from "ejs";
@@ -135,13 +135,27 @@ app.get("/bbgn", async (req, res) => {
             );
         });
 
-        // 6) HTML -> PDF buffer (html-pdf/phantomjs)
-        const pdfBuffer = await new Promise((resolve, reject) => {
-            pdf.create(htmlContent, { format: "A4", border: "10mm" }).toBuffer((err, buffer) => {
-                if (err) reject(err);
-                else resolve(buffer);
-            });
+        // 6) HTML -> PDF buffer (dùng Puppeteer)
+        const browser = await puppeteer.launch({
+            args: ["--no-sandbox", "--disable-setuid-sandbox"],
+            headless: "new", // đảm bảo chạy headless trong môi trường server
         });
+        const page = await browser.newPage();
+        await page.setContent(htmlContent, { waitUntil: "networkidle0" });
+
+        const pdfBuffer = await page.pdf({
+            format: "A4",
+            printBackground: true,
+            margin: {
+                top: "1.5cm",
+                right: "1.5cm",
+                bottom: "1.5cm",
+                left: "1.5cm",
+            },
+        });
+
+        await browser.close();
+
 
         // 7) Đặt tên file tại app.js theo format yêu cầu
         const { ddmmyyyy, hhmmss } = formatDateForName(new Date(), "Asia/Bangkok");
