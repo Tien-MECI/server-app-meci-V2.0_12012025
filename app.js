@@ -5,7 +5,7 @@ import path from "path";
 import pdf from "html-pdf";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
-import ejs from "ejs"; // 👈 cần import ejs để render file bbgn.ejs
+import ejs from "ejs";
 
 dotenv.config();
 
@@ -13,27 +13,17 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const LOGO_FILE_ID = "1Rwo4pJt222dLTXN9W6knN3A5LwJ5TDIa";
-
-// === Load credentials từ biến môi trường ===
+// Load credentials từ biến môi trường
 const credentialsBase64 = process.env.GOOGLE_CREDENTIALS_B64;
 if (!credentialsBase64) {
     console.error("GOOGLE_CREDENTIALS_B64 environment variable is missing!");
     process.exit(1);
 }
 
-const credentials = JSON.parse(
-    Buffer.from(credentialsBase64, "base64").toString("utf-8")
-);
+const credentials = JSON.parse(Buffer.from(credentialsBase64, "base64").toString("utf-8"));
+credentials.private_key = credentials.private_key.replace(/\\n/g, "\n").trim();
 
-credentials.private_key = credentials.private_key
-    .replace(/\\n/g, "\n")
-    .trim();
-
-console.log("Private key starts with:", credentials.private_key.substring(0, 50));
-console.log("Private key ends with:", credentials.private_key.slice(-50));
-
-// === Google Auth ===
+// Google Auth
 const scopes = [
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/drive",
@@ -54,21 +44,25 @@ const PORT = process.env.PORT || 3000;
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 
-// === Spreadsheet ID ===
+// Spreadsheet ID
 const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
 if (!SPREADSHEET_ID) {
     console.error("SPREADSHEET_ID environment variable is missing!");
     process.exit(1);
 }
 
+const LOGO_FILE_ID = process.env.LOGO_FILE_ID;
+const WATERMARK_FILE_ID = process.env.WATERMARK_FILE_ID;
+const FOLDER_ID = process.env.FOLDER_ID;
+
 app.get("/", (req, res) => {
     res.send("🚀 Google Sheets API server is running!");
 });
 
-// ✅ Endpoint xuất Biên bản giao nhận + tự động tạo PDF
 app.get("/bbgn", async (req, res) => {
     try {
-        console.log("Bắt đầu xuất BBGN...");
+        // Kiểm tra quyền truy cập
+        await auth.getAccessToken();
 
         // 1. Lấy mã đơn hàng
         const bbgnRes = await sheets.spreadsheets.values.get({
@@ -76,34 +70,42 @@ app.get("/bbgn", async (req, res) => {
             range: "file_BBGN_ct!B:B",
         });
 
-        const colB = bbgnRes.data.values ? bbgnRes.data.values.flat() : [];
+        if (!bbgnRes.data.values || bbgnRes.data.values.length === 0) {
+            return res.render("error", { message: "Không tìm thấy dữ liệu trong sheet file_BBGN_ct." });
+        }
+
+        const colB = bbgnRes.data.values.flat();
         const lastRowWithData = colB.length;
         const maDonHang = colB[lastRowWithData - 1];
 
-        console.log(`Mã đơn hàng: ${maDonHang} (dòng ${lastRowWithData})`);
-
         if (!maDonHang) {
-            return res.send("⚠️ Không tìm thấy dữ liệu ở cột B sheet file_BBGN_ct.");
+            return res.render("error", { message: "Không tìm thấy mã đơn hàng." });
         }
 
         // 2. Lấy dữ liệu đơn hàng
         const donHangRes = await sheets.spreadsheets.values.get({
             spreadsheetId: SPREADSHEET_ID,
-            range: "Don_hang!A1:CG500903",
+            range: "Don_hang!A:G", // Tối ưu range
         });
+
+        if (!donHangRes.data.values || donHangRes.data.values.length <= 1) {
+            return res.render("error", { message: "Không tìm thấy dữ liệu đơn hàng." });
+        }
+
         const rows = donHangRes.data.values;
         const data = rows.slice(1);
         const donHang = data.find((row) => row[6] === maDonHang);
 
         if (!donHang) {
-            return res.send("❌ Không tìm thấy đơn hàng với mã: " + maDonHang);
+            return res.render("error", { message: `Không tìm thấy đơn hàng với mã: ${maDonHang}` });
         }
 
         // 3. Lấy chi tiết sản phẩm
         const ctRes = await sheets.spreadsheets.values.get({
             spreadsheetId: SPREADSHEET_ID,
-            range: "Don_hang_PVC_ct!A1:AD100000",
+            range: "Don_hang_PVC_ct!A:AD", // Tối ưu range
         });
+
         const ctRows = ctRes.data.values.slice(1);
         const products = ctRows
             .filter((row) => row[1] === maDonHang)
@@ -128,15 +130,12 @@ app.get("/bbgn", async (req, res) => {
                 { responseType: "arraybuffer" }
             );
             const buffer = Buffer.from(resFile.data, "binary");
-            logoBase64 = `data:${fileMeta.data.mimeType};base64,${buffer.toString(
-                "base64"
-            )}`;
+            logoBase64 = `data:${fileMeta.data.mimeType};base64,${buffer.toString("base64")}`;
         } catch (err) {
             console.error("⚠️ Không lấy được logo:", err.message);
         }
 
         // 5. Lấy watermark
-        const WATERMARK_FILE_ID = "1fNROb-dRtRl2RCCDCxGPozU3oHMSIkHr";
         let watermarkBase64 = "";
         try {
             const fileMeta = await drive.files.get({
@@ -148,9 +147,7 @@ app.get("/bbgn", async (req, res) => {
                 { responseType: "arraybuffer" }
             );
             const buffer = Buffer.from(resFile.data, "binary");
-            watermarkBase64 = `data:${fileMeta.data.mimeType};base64,${buffer.toString(
-                "base64"
-            )}`;
+            watermarkBase64 = `data:${fileMeta.data.mimeType};base64,${buffer.toString("base64")}`;
         } catch (err) {
             console.error("⚠️ Không lấy được watermark:", err.message);
         }
@@ -196,9 +193,7 @@ app.get("/bbgn", async (req, res) => {
         const ss = String(today.getSeconds()).padStart(2, "0");
 
         const fileName = `BBGN - ${maDonHang} - ${dd}${mm}${yyyy} - ${hh}-${mi}-${ss}.pdf`;
-        const folderId = "1CL3JuFprNj1a406XWXTtbQMZmyKxhczW";
-
-        const fileMeta = { name: fileName, parents: [folderId] };
+        const fileMeta = { name: fileName, parents: [FOLDER_ID] };
         const media = { mimeType: "application/pdf", body: Buffer.from(pdfBuffer) };
 
         const pdfFile = await drive.files.create({
@@ -209,7 +204,7 @@ app.get("/bbgn", async (req, res) => {
 
         // 9. Lấy tên folder để ghi lại đường dẫn
         const folderMeta = await drive.files.get({
-            fileId: folderId,
+            fileId: FOLDER_ID,
             fields: "name",
         });
         const pathToFile = `${folderMeta.data.name}/${pdfFile.data.name}`;
@@ -231,17 +226,24 @@ app.get("/bbgn", async (req, res) => {
             autoPrint: true,
             maDonHang,
         });
+    } catch (err) {
+        console.error("Lỗi trong endpoint /bbgn:", err.message);
+        res.status(500).render("error", { message: "Đã xảy ra lỗi khi xử lý yêu cầu. Vui lòng thử lại sau." });
+    }
+});
 
-        // --- Debug endpoint ---
-        app.get("/debug", (req, res) => {
-            res.json({
-                spreadsheetId: SPREADSHEET_ID,
-                clientEmail: credentials.client_email,
-                scopes: scopes,
-            });
-        });
+// Debug endpoint
+app.get("/debug", (req, res) => {
+    if (process.env.NODE_ENV !== "development") {
+        return res.status(403).send("Debug endpoint is disabled in production");
+    }
+    res.json({
+        spreadsheetId: SPREADSHEET_ID,
+        scopes: scopes,
+    });
+});
 
-        // --- Start server ---
-        app.listen(PORT, () => {
-            console.log(`✅ Server is running on port ${PORT}`);
-        });
+// Start server
+app.listen(PORT, () => {
+    console.log(`✅ Server is running on port ${PORT}`);
+});
