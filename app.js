@@ -2,13 +2,17 @@ import dotenv from "dotenv";
 import express from "express";
 import { google } from "googleapis";
 import path from "path";
-import PdfPrinter from "pdfmake";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
+import PdfPrinter from "pdfmake";
 import ejs from "ejs";
 
 dotenv.config();
-// fonts (cần font .ttf để pdfmake render Unicode tốt)
+
+// --- __dirname trong ESM ---
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+// fonts
 const fonts = {
     Roboto: {
         normal: path.join(__dirname, "fonts/Roboto-Regular.ttf"),
@@ -17,11 +21,9 @@ const fonts = {
         bolditalics: path.join(__dirname, "fonts/Roboto-BoldItalic.ttf"),
     },
 };
-const printer = new PdfPrinter(fonts);
-// --- __dirname trong ESM ---
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
+
+const printer = new PdfPrinter(fonts);
 // --- IDs file Drive dùng trong EJS ---
 const LOGO_FILE_ID = "1Rwo4pJt222dLTXN9W6knN3A5LwJ5TDIa";
 const WATERMARK_FILE_ID = "1fNROb-dRtRl2RCCDCxGPozU3oHMSIkHr";
