@@ -165,26 +165,26 @@ app.get("/bbgn", async (req, res) => {
 
         const fileName = `BBGN - ${maDonHang} - ${dd}${mm}${yyyy} - ${hh}-${mi}-${ss}.pdf`;
 
-        const browser = await puppeteer.launch({
-            headless: "new",
-            args: [
-                "--no-sandbox",
-                "--disable-setuid-sandbox",
-                "--disable-dev-shm-usage",
-                "--disable-gpu",
-                "--no-zygote",
-                "--single-process"
-            ],
-            executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath()
-        });
+        async function exportBBGN(htmlContent, outputPath) {
+            const browser = await puppeteer.launch({
+                headless: "new",
+                args: [
+                    "--no-sandbox",
+                    "--disable-setuid-sandbox",
+                    "--disable-dev-shm-usage"
+                ]
+            });
+            const page = await browser.newPage();
+            await page.setContent(htmlContent, { waitUntil: "networkidle0" });
 
-        const page = await browser.newPage();
-        await page.goto(
-            `https://hsdh-app-cu.onrender.com/bbgn-view?maDonHang=${maDonHang}`,
-            { waitUntil: "networkidle0" }
-        );
-        const pdfBuffer = await page.pdf({ format: "A4", printBackground: true });
-        await browser.close();
+            await page.pdf({
+                path: outputPath,
+                format: "A4",
+                printBackground: true
+            });
+
+            await browser.close();
+        }
 
         const folderId = "1CL3JuFprNj1a406XWXTtbQMZmyKxhczW";
         const fileMeta = { name: fileName, parents: [folderId] };
