@@ -6,8 +6,6 @@ import puppeteer from "puppeteer";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 import ejs from "ejs";
-import chromium from '@sparticuz/chromium';
-
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
