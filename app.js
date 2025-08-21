@@ -33,7 +33,7 @@ const fonts = {
 const printer = new PdfPrinter(fonts);
 
 // --- IDs file Drive ---
-const LOGO_FILE_ID = "1Rwo4pJt222dLTXN9W6knN3a5LwJ5TDIa";
+const LOGO_FILE_ID = "1Rwo4pJt222dLTXN9W6knN3A5LwJ5TDIa";
 const WATERMARK_FILE_ID = "1fNROb-dRtRl2RCCDCxGPozU3oHMSIkHr";
 
 // --- ENV ---
