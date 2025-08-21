@@ -3,7 +3,6 @@ import { google } from "googleapis";
 import bodyParser from "body-parser";
 import fs from "fs";
 import path from "path";
-import pdf from "html-pdf"; // thay puppeteer bằng html-pdf
 import { createRequire } from "module";
 const app = express();
 app.use(bodyParser.json());
