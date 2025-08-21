@@ -245,4 +245,3 @@ app.get("/bbgn", async (req, res) => {
         app.listen(PORT, () => {
             console.log(`✅ Server is running on port ${PORT}`);
         });
-trên đây là tất cả code app.js:
