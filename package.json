@@ -1,7 +1,7 @@
 {
   "name": "google-sheets-project",
   "version": "1.0.0",
-  "main": "server.js",
+  "main": "app.js",
   "license": "MIT",
   "type": "module",
   "scripts": {
@@ -13,6 +13,6 @@
     "express": "^4.21.2",
     "google-auth-library": "^9.15.1",
     "googleapis": "^126.0.1",
-    "puppeteer": "^24.16.2"
+    "puppeteer": "^22.15.0"
   }
 }
