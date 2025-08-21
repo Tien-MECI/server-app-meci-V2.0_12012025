@@ -130,7 +130,7 @@ app.get("/bbgn", async (req, res) => {
         // --- Lấy đơn hàng ---
         const donHangRes = await sheets.spreadsheets.values.get({
             spreadsheetId: SPREADSHEET_ID,
-            range: "Don_hang!A1:BJ500903",
+            range: "Don_hang!A1:BJ50000",
         });
         const rows = donHangRes.data.values || [];
         const data = rows.slice(1);
@@ -143,7 +143,7 @@ app.get("/bbgn", async (req, res) => {
         // --- Chi tiết sản phẩm ---
         const ctRes = await sheets.spreadsheets.values.get({
             spreadsheetId: SPREADSHEET_ID,
-            range: "Don_hang_PVC_ct!A1:AC100000",
+            range: "Don_hang_PVC_ct!A1:AC50000",
         });
         const ctRows = (ctRes.data.values || []).slice(1);
         const products = ctRows
