@@ -6,6 +6,7 @@ import puppeteer from "puppeteer";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 import ejs from "ejs";
+import chromium from '@sparticuz/chromium';
 
 dotenv.config();
 
@@ -55,21 +56,22 @@ if (!SPREADSHEET_ID) {
 
 // Add this function outside of the route handler
 async function exportBBGN(htmlContent) {
+    // Set up Chromium options
+    chromium.setGraphicsMode = false;
+
     const browser = await puppeteer.launch({
-        headless: "new",
-        executablePath: await puppeteer.executablePath(),
-        args: [
-            "--no-sandbox",
-            "--disable-setuid-sandbox",
-            "--disable-dev-shm-usage",
-        ],
+        args: [...chromium.args, '--hide-scrollbars', '--disable-web-security'],
+        defaultViewport: chromium.defaultViewport,
+        executablePath: await chromium.executablePath(),
+        headless: chromium.headless,
+        ignoreHTTPSErrors: true,
     });
 
     const page = await browser.newPage();
-    await page.setContent(htmlContent, { waitUntil: "networkidle0" });
+    await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
 
     const pdfBuffer = await page.pdf({
-        format: "A4",
+        format: 'A4',
         printBackground: true,
     });
 
