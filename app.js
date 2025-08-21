@@ -171,70 +171,46 @@ app.get("/bbgn", async (req, res) => {
             });
         });
 
-        // 7. Dùng html-pdf export ra buffer PDF
+        // 7. Xuất PDF ra buffer
         function exportBBGN(htmlContent) {
             return new Promise((resolve, reject) => {
-                pdf.create(htmlContent, {
-                    format: "A4",
-                    border: "10mm",
-                    type: "pdf"
-                }).toBuffer((err, buffer) => {
+                pdf.create(htmlContent, { format: "A4", border: "10mm" }).toBuffer((err, buffer) => {
                     if (err) reject(err);
                     else resolve(buffer);
                 });
             });
         }
-
         const pdfBuffer = await exportBBGN(htmlContent);
 
-        // 8. Upload PDF lên Google Drive
-        const today = new Date();
-        const dd = String(today.getDate()).padStart(2, "0");
-        const mm = String(today.getMonth() + 1).padStart(2, "0");
-        const yyyy = today.getFullYear();
-        const hh = String(today.getHours()).padStart(2, "0");
-        const mi = String(today.getMinutes()).padStart(2, "0");
-        const ss = String(today.getSeconds()).padStart(2, "0");
+        // 8. Gửi PDF buffer qua Apps Script Web App
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbyeFMlcZa_auvA-f9vFG1bOXFDSG0w5pymV0JQAC6nqFS_RmARR2ZAfPHaLFY068gRa/exec";
 
-        const fileName = `BBGN - ${maDonHang} - ${dd}${mm}${yyyy} - ${hh}-${mi}-${ss}.pdf`;
-        const folderId = "1VIUzc9ttoD9ixOlZ5nyLguw8yRON7e5o";
+        const fileName = `BBGN-${maDonHang}-${Date.now()}.pdf`;
 
-        const fileMeta = { name: fileName, parents: [folderId] };
-        const media = {
-            mimeType: "application/pdf",
-            body: Readable.from(pdfBuffer) // ✅ đổi Buffer -> stream
-        };
-
-        const pdfFile = await drive.files.create({
-            requestBody: fileMeta,
-            media,
-            fields: "id, name",
+        const response = await fetch(GAS_URL, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/pdf",
+                "X-Filename": fileName, // để GAS biết tên file
+            },
+            body: pdfBuffer,
         });
 
-        // 9. Lấy tên folder để ghi lại đường dẫn
-        const folderMeta = await drive.files.get({
-            fileId: folderId,
-            fields: "name",
-        });
-        const pathToFile = `${folderMeta.data.name}/${pdfFile.data.name}`;
+        const driveResult = await response.text();
+        console.log("Kết quả từ GAS:", driveResult);
 
-        // 10. Ghi link file PDF vào Google Sheets
+
+        // 9. Ghi lại link file PDF vào Google Sheets
         await sheets.spreadsheets.values.update({
             spreadsheetId: SPREADSHEET_ID,
             range: `file_BBGN_ct!D${lastRowWithData}`,
             valueInputOption: "RAW",
-            requestBody: { values: [[pathToFile]] },
+            requestBody: { values: [[driveResult]] },
         });
 
-        // 11. Render lại bbgn.ejs cho client
-        res.render("bbgn", {
-            donHang,
-            products,
-            logoBase64,
-            watermarkBase64,
-            autoPrint: true,
-            maDonHang,
-        });
+        // 10. Render lại bbgn.ejs cho client
+        res.render("bbgn", { donHang, products, logoBase64, watermarkBase64, autoPrint: true, maDonHang });
+
 
     } catch (err) {
         console.error("❌ Lỗi khi xuất BBGN:", err.message);
