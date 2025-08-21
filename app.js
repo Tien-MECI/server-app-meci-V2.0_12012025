@@ -5,12 +5,13 @@ import path from "path";
 import puppeteer from "puppeteer";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
+import ejs from "ejs"; // 👈 cần import ejs để render file bbgn.ejs
+
 dotenv.config();
 
 // Tạo __dirname trong ESM
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-
 
 const LOGO_FILE_ID = "1Rwo4pJt222dLTXN9W6knN3A5LwJ5TDIa";
 
@@ -154,7 +155,27 @@ app.get("/bbgn", async (req, res) => {
             console.error("⚠️ Không lấy được watermark:", err.message);
         }
 
-        // 6. Tạo PDF với puppeteer
+        // 6. Render HTML từ bbgn.ejs
+        const htmlContent = await ejs.renderFile("views/bbgn.ejs", {
+            donHang,
+            products,
+            logoBase64,
+            watermarkBase64,
+            autoPrint: false,
+            maDonHang,
+        });
+
+        // 7. Dùng Puppeteer export ra buffer PDF
+        const browser = await puppeteer.launch({
+            headless: "new",
+            args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
+        });
+        const page = await browser.newPage();
+        await page.setContent(htmlContent, { waitUntil: "networkidle0" });
+        const pdfBuffer = await page.pdf({ format: "A4", printBackground: true });
+        await browser.close();
+
+        // 8. Upload PDF lên Google Drive
         const today = new Date();
         const dd = String(today.getDate()).padStart(2, "0");
         const mm = String(today.getMonth() + 1).padStart(2, "0");
@@ -164,29 +185,8 @@ app.get("/bbgn", async (req, res) => {
         const ss = String(today.getSeconds()).padStart(2, "0");
 
         const fileName = `BBGN - ${maDonHang} - ${dd}${mm}${yyyy} - ${hh}-${mi}-${ss}.pdf`;
-
-        async function exportBBGN(htmlContent, outputPath) {
-            const browser = await puppeteer.launch({
-                headless: "new",
-                args: [
-                    "--no-sandbox",
-                    "--disable-setuid-sandbox",
-                    "--disable-dev-shm-usage"
-                ]
-            });
-            const page = await browser.newPage();
-            await page.setContent(htmlContent, { waitUntil: "networkidle0" });
-
-            await page.pdf({
-                path: outputPath,
-                format: "A4",
-                printBackground: true
-            });
-
-            await browser.close();
-        }
-
         const folderId = "1CL3JuFprNj1a406XWXTtbQMZmyKxhczW";
+
         const fileMeta = { name: fileName, parents: [folderId] };
         const media = { mimeType: "application/pdf", body: Buffer.from(pdfBuffer) };
 
@@ -196,13 +196,14 @@ app.get("/bbgn", async (req, res) => {
             fields: "id, name",
         });
 
+        // 9. Lấy tên folder để ghi lại đường dẫn
         const folderMeta = await drive.files.get({
             fileId: folderId,
             fields: "name",
         });
-
         const pathToFile = `${folderMeta.data.name}/${pdfFile.data.name}`;
 
+        // 10. Ghi link file PDF vào Google Sheets
         await sheets.spreadsheets.values.update({
             spreadsheetId: SPREADSHEET_ID,
             range: `file_BBGN_ct!D${lastRowWithData}`,
@@ -210,6 +211,7 @@ app.get("/bbgn", async (req, res) => {
             requestBody: { values: [[pathToFile]] },
         });
 
+        // 11. Render lại bbgn.ejs cho client
         res.render("bbgn", {
             donHang,
             products,
@@ -224,7 +226,6 @@ app.get("/bbgn", async (req, res) => {
     }
 });
 
-
 // --- Debug endpoint ---
 app.get("/debug", (req, res) => {
     res.json({
@@ -232,25 +233,6 @@ app.get("/debug", (req, res) => {
         clientEmail: credentials.client_email,
         scopes: scopes,
     });
-});
-
-// --- Test logo ---
-app.get("/test-logo", async (req, res) => {
-    try {
-        const fileMeta = await drive.files.get({
-            fileId: LOGO_FILE_ID,
-            fields: "mimeType",
-        });
-        const response = await drive.files.get(
-            { fileId: LOGO_FILE_ID, alt: "media" },
-            { responseType: "arraybuffer" }
-        );
-        const buffer = Buffer.from(response.data, "binary");
-        const base64 = `data:${fileMeta.data.mimeType};base64,${buffer.toString("base64")}`;
-        res.send(`<img src="${base64}" style="max-height:100px;">`);
-    } catch (err) {
-        res.send("Lỗi lấy logo: " + err.message);
-    }
 });
 
 // --- Start server ---
