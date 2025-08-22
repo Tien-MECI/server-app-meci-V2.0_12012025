@@ -125,27 +125,27 @@
 
             <h2 class="center-text">BIÊN BẢN GIAO NHẬN</h2>
             <p class="center-text">(Kiêm phiếu xuất kho số: <span class="red">
-                    <%= donHang[5] %>
+                    <%= donHang[6] %>
                 </span>)</p>
             <p>- Căn cứ hợp đồng/đơn hàng ngày … tháng … năm …</p>
             <p>Hôm nay, ngày … tháng … năm …. Tại: <span class="red">
-                    <%= donHang[23] %>
+                    <%= donHang[24] || donHang[26] || donHang[28] ||'' %>
                 </span></p>
             <br>
 
             <!-- Thông tin bên nhận -->
             <p><b>I. ĐẠI DIỆN BÊN NHẬN: </b>
-                <%= donHang[8] %>
+                <%= donHang[9] %>
             </p>
             <p>- Ông/Bà: <span class="red">
-                    <%= donHang[16] || donHang[19] %>
+                    <%= donHang[17] || donHang[20] || '' %>
                 </span> ..............................................| Chức
                 vụ:.........................................</p>
             <p>- Điện thoại: <span class="red">
-                    <%= donHang[24] || donHang[26] || donHang[28] %>
+                    <%= donHang[18] || donHang[21] || '' %>
                 </span> ..............................................
             <p>- Địa chỉ: <span class="red">
-                    <%= donHang[23] || donHang[25] || donHang[27] %>
+                    <%= donHang[24] || donHang[26] || donHang[28] %>
                 </span> ..............................................</p>
             <br>
 
@@ -160,7 +160,7 @@
             <p>- Nhân viên theo dõi hợp đồng/đơn hàng: <span class="red">
                     <%= donHang[2] %>
                 </span> | Điện thoại: <span class="red">
-                    <%= donHang[56] %>
+                    <%= donHang[52] %>
                 </span></p>
             <br>
 
