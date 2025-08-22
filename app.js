@@ -133,45 +133,28 @@ app.get("/bbgn", async (req, res) => {
         const watermarkBase64 = await loadDriveImageBase64(WATERMARK_FILE_ID);
 
         // 👉 Render NGAY cho client
-        res.render("bbgn", {
+        const renderedHtml = await ejs.renderFile(path.join(__dirname, "views", "bbgn.ejs"), {
             donHang,
             products,
             logoBase64,
             watermarkBase64,
             autoPrint: true,
             maDonHang,
-            pathToFile: "" // chưa có PDF ngay
+            pathToFile: ""
         });
 
-        // 👉 Đồng thời gọi AppScript NGẦM
-        (async () => {
-            try {
-                const payload = { orderCode: maDonHang };
-                const gasResp = await fetch(GAS_WEBAPP_URL, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(payload),
-                });
-
-                const gasText = await gasResp.text();
-                let result = {};
-                try {
-                    result = JSON.parse(gasText);
-                } catch (e) {
-                    console.error("❌ Không parse được JSON từ AppScript:", gasText);
-                    return;
-                }
-
-                if (!result.ok) {
-                    console.error("❌ AppScript báo lỗi:", result.error);
-                    return;
-                }
-
-                console.log("✔️ PDF đã được tạo ngầm:", result.pathToFile);
-            } catch (err) {
-                console.error("❌ Lỗi khi gọi AppScript ngầm:", err.message);
-            }
-        })();
+        await fetch(GAS_WEBAPP_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: new URLSearchParams({
+                orderCode: maDonHang,
+                html: renderedHtml
+            })
+        })
+            .then(res => res.json())
+            .then(data => {
+                console.log("AppScript trả về:", data);
+            });
 
     } catch (err) {
         console.error("❌ Lỗi khi xuất BBGN:", err.stack || err.message);
