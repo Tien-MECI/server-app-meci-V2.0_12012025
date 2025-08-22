@@ -120,8 +120,8 @@ app.get("/bbgn", async (req, res) => {
             .map((r, i) => ({
                 stt: i + 1,
                 tenSanPham: r[9],
-                soLuong: r[22],
-                donVi: r[23],
+                soLuong: r[23],
+                donVi: r[22],
                 tongSoLuong: r[21],
                 ghiChu: "",
             }));
