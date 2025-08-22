@@ -5,6 +5,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 import ejs from "ejs";
+import fetch from "node-fetch"; // Đảm bảo import fetch
 
 dotenv.config();
 
@@ -133,24 +134,6 @@ app.get("/bbgn", async (req, res) => {
         const logoBase64 = await loadDriveImageBase64(LOGO_FILE_ID);
         const watermarkBase64 = await loadDriveImageBase64(WATERMARK_FILE_ID);
 
-        // --- DocDefinition PDF ---
-        const bodyTable = [
-            [
-                { text: "STT", bold: true },
-                { text: "Tên sản phẩm", bold: true },
-                { text: "Số lượng", bold: true },
-                { text: "Đơn vị", bold: true },
-                { text: "Ghi chú", bold: true },
-            ],
-            ...products.map((p) => [
-                p.stt,
-                p.tenSanPham,
-                p.soLuong,
-                p.donVi,
-                p.ghiChu,
-            ]),
-        ];
-
         // Gọi AppScript để tạo PDF
         const payload = { orderCode: maDonHang };
         const gasResp = await fetch(GAS_WEBAPP_URL, {
@@ -159,7 +142,15 @@ app.get("/bbgn", async (req, res) => {
             body: JSON.stringify(payload),
         });
 
-        const result = await gasResp.json();
+        // Xử lý response từ AppScript
+        const gasText = await gasResp.text();
+        let result = {};
+        try {
+            result = JSON.parse(gasText);
+        } catch (e) {
+            console.error("❌ Không parse được JSON từ AppScript:", gasText);
+            throw new Error("Lỗi từ AppScript: " + gasText);
+        }
 
         if (!result.ok) {
             throw new Error(result.error || "Lỗi từ AppScript");
@@ -171,6 +162,8 @@ app.get("/bbgn", async (req, res) => {
         res.render("bbgn", {
             donHang,
             products,
+            logoBase64,
+            watermarkBase64,
             autoPrint: true,
             maDonHang,
             pathToFile: result.pathToFile || ""
