@@ -171,9 +171,10 @@ app.get("/bbgn", async (req, res) => {
                     .then(async data => {
                         console.log("✔️ AppScript trả về:", data);
 
-                        if (data && data.pathToFile) {
-                            const pathToFile = data.pathToFile;
+                        // Ưu tiên lấy url
+                        const pathToFile = data.url || data.pathToFile;
 
+                        if (pathToFile) {
                             // --- Ghi đường dẫn vào Sheet ---
                             await sheets.spreadsheets.values.update({
                                 spreadsheetId: SPREADSHEET_ID,
@@ -186,7 +187,7 @@ app.get("/bbgn", async (req, res) => {
 
                             console.log("✔️ Đã ghi đường dẫn:", pathToFile);
                         } else {
-                            console.warn("⚠️ AppScript không trả về pathToFile.");
+                            console.warn("⚠️ Không tìm thấy đường dẫn file trong dữ liệu AppScript.");
                         }
                     })
                     .catch(err => console.error("❌ Lỗi gọi AppScript:", err));
