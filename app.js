@@ -81,6 +81,11 @@ app.get("/", (_req, res) => res.send("🚀 Server chạy ổn! /bbgn để xuấ
 
 app.get("/bbgn", async (req, res) => {
     try {
+        console.log("▶️ Người dùng mở /bbgn, chờ 2 giây trước khi xử lý...");
+
+        // ⏳ Delay 2 giây
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
         console.log("▶️ Bắt đầu xuất BBGN ...");
 
         // --- Lấy mã đơn hàng ---
@@ -143,7 +148,7 @@ app.get("/bbgn", async (req, res) => {
             pathToFile: ""
         });
 
-        // --- Gọi AppScript NGẦM (fire-and-forget) ---
+        // --- Sau khi render xong thì gọi AppScript ngầm ---
         (async () => {
             try {
                 const renderedHtml = await ejs.renderFile(
@@ -153,47 +158,35 @@ app.get("/bbgn", async (req, res) => {
                         products,
                         logoBase64,
                         watermarkBase64,
-                        autoPrint: false, // <- tắt autoPrint khi tạo PDF
+                        autoPrint: false,
                         maDonHang,
                         pathToFile: ""
                     }
                 );
 
-                fetch(GAS_WEBAPP_URL, {
+                const resp = await fetch(GAS_WEBAPP_URL, {
                     method: "POST",
                     headers: { "Content-Type": "application/x-www-form-urlencoded" },
                     body: new URLSearchParams({
                         orderCode: maDonHang,
                         html: renderedHtml
                     })
-                })
-                    .then(r => r.json())
-                    .then(async data => {
-                        console.log("✔️ AppScript trả về:", data);
+                });
 
-                        // Ưu tiên lấy url
-                        const pathToFile = data.pathToFile;
+                const data = await resp.json();
+                console.log("✔️ AppScript trả về:", data);
 
-                        if (pathToFile) {
-                            // --- Ghi đường dẫn vào Sheet ---
-                            await sheets.spreadsheets.values.update({
-                                spreadsheetId: SPREADSHEET_ID,
-                                range: `file_BBGN_ct!D${lastRowWithData}`,
-                                valueInputOption: "RAW",
-                                requestBody: {
-                                    values: [[pathToFile]],
-                                },
-                            });
-
-                            console.log("✔️ Đã ghi đường dẫn:", pathToFile);
-                        } else {
-                            console.warn("⚠️ Không tìm thấy đường dẫn file trong dữ liệu AppScript.");
-                        }
-                    })
-                    .catch(err => console.error("❌ Lỗi gọi AppScript:", err));
+                const pathToFile = data.pathToFile || `BBGN/${data.fileName}`;
+                await sheets.spreadsheets.values.update({
+                    spreadsheetId: SPREADSHEET_ID,
+                    range: `file_BBGN_ct!D${lastRowWithData}`,
+                    valueInputOption: "RAW",
+                    requestBody: { values: [[pathToFile]] },
+                });
+                console.log("✔️ Đã ghi đường dẫn:", pathToFile);
 
             } catch (err) {
-                console.error("❌ Lỗi khi render HTML gửi sang AppScript:", err);
+                console.error("❌ Lỗi gọi AppScript:", err);
             }
         })();
 
@@ -202,6 +195,7 @@ app.get("/bbgn", async (req, res) => {
         res.status(500).send("Lỗi server: " + (err.message || err));
     }
 });
+
 
 
 
