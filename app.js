@@ -172,7 +172,7 @@ app.get("/bbgn", async (req, res) => {
                         console.log("✔️ AppScript trả về:", data);
 
                         // Ưu tiên lấy url
-                        const pathToFile = data.url || data.pathToFile;
+                        const pathToFile = data.pathToFile;
 
                         if (pathToFile) {
                             // --- Ghi đường dẫn vào Sheet ---
