@@ -168,7 +168,27 @@ app.get("/bbgn", async (req, res) => {
                     })
                 })
                     .then(r => r.json())
-                    .then(data => console.log("✔️ AppScript trả về:", data))
+                    .then(async data => {
+                        console.log("✔️ AppScript trả về:", data);
+
+                        if (data && data.pathToFile) {
+                            const pathToFile = data.pathToFile;
+
+                            // --- Ghi đường dẫn vào Sheet ---
+                            await sheets.spreadsheets.values.update({
+                                spreadsheetId: SPREADSHEET_ID,
+                                range: `file_BBGN_ct!D${lastRowWithData}`,
+                                valueInputOption: "RAW",
+                                requestBody: {
+                                    values: [[pathToFile]],
+                                },
+                            });
+
+                            console.log("✔️ Đã ghi đường dẫn:", pathToFile);
+                        } else {
+                            console.warn("⚠️ AppScript không trả về pathToFile.");
+                        }
+                    })
                     .catch(err => console.error("❌ Lỗi gọi AppScript:", err));
 
             } catch (err) {
@@ -181,6 +201,7 @@ app.get("/bbgn", async (req, res) => {
         res.status(500).send("Lỗi server: " + (err.message || err));
     }
 });
+
 
 
 
