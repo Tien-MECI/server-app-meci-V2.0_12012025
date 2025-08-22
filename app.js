@@ -132,8 +132,8 @@ app.get("/bbgn", async (req, res) => {
         const logoBase64 = await loadDriveImageBase64(LOGO_FILE_ID);
         const watermarkBase64 = await loadDriveImageBase64(WATERMARK_FILE_ID);
 
-        // 👉 Render NGAY cho client
-        const renderedHtml = await ejs.renderFile(path.join(__dirname, "views", "bbgn.ejs"), {
+        // --- Render ngay cho client ---
+        res.render("bbgn", {
             donHang,
             products,
             logoBase64,
@@ -143,24 +143,45 @@ app.get("/bbgn", async (req, res) => {
             pathToFile: ""
         });
 
-        await fetch(GAS_WEBAPP_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: new URLSearchParams({
-                orderCode: maDonHang,
-                html: renderedHtml
-            })
-        })
-            .then(res => res.json())
-            .then(data => {
-                console.log("AppScript trả về:", data);
-            });
+        // --- Gọi AppScript NGẦM (fire-and-forget) ---
+        (async () => {
+            try {
+                const renderedHtml = await ejs.renderFile(
+                    path.join(__dirname, "views", "bbgn.ejs"),
+                    {
+                        donHang,
+                        products,
+                        logoBase64,
+                        watermarkBase64,
+                        autoPrint: false, // <- tắt autoPrint khi tạo PDF
+                        maDonHang,
+                        pathToFile: ""
+                    }
+                );
+
+                fetch(GAS_WEBAPP_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                    body: new URLSearchParams({
+                        orderCode: maDonHang,
+                        html: renderedHtml
+                    })
+                })
+                    .then(r => r.json())
+                    .then(data => console.log("✔️ AppScript trả về:", data))
+                    .catch(err => console.error("❌ Lỗi gọi AppScript:", err));
+
+            } catch (err) {
+                console.error("❌ Lỗi khi render HTML gửi sang AppScript:", err);
+            }
+        })();
 
     } catch (err) {
         console.error("❌ Lỗi khi xuất BBGN:", err.stack || err.message);
         res.status(500).send("Lỗi server: " + (err.message || err));
     }
 });
+
 
 
 // --- Debug ---
