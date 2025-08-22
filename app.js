@@ -81,11 +81,6 @@ app.get("/", (_req, res) => res.send("🚀 Server chạy ổn! /bbgn để xuấ
 
 app.get("/bbgn", async (req, res) => {
     try {
-        console.log("▶️ Người dùng mở /bbgn, chờ 2 giây trước khi xử lý...");
-
-        // ⏳ Delay 2 giây
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
         console.log("▶️ Bắt đầu xuất BBGN ...");
 
         // --- Lấy mã đơn hàng ---
