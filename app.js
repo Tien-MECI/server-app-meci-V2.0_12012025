@@ -84,7 +84,7 @@ app.get("/bbgn", async (req, res) => {
         console.log("▶️ Người dùng mở /bbgn, chờ 2 giây trước khi xử lý...");
 
         // ⏳ Delay 2 giây
-        await new Promise(resolve => setTimeout(resolve, 3000));
+        await new Promise(resolve => setTimeout(resolve, 1000));
 
         console.log("▶️ Bắt đầu xuất BBGN ...");
 
