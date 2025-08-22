@@ -4,9 +4,7 @@ import { google } from "googleapis";
 import path from "path";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
-import PdfPrinter from "pdfmake";
 import ejs from "ejs";
-import fetch from "node-fetch"; // nhớ cài node-fetch nếu dùng Node < 18
 
 dotenv.config();
 
@@ -14,23 +12,6 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// --- Fonts PDF ---
-const fonts = {
-    NotoSans: {
-        normal: path.join(__dirname, "fonts/NotoSans-Regular.ttf"),
-        bold: path.join(__dirname, "fonts/NotoSans-Bold.ttf"),
-        italics: path.join(__dirname, "fonts/NotoSans-Italic.ttf"),
-        bolditalics: path.join(__dirname, "fonts/NotoSans-BoldItalic.ttf"),
-    },
-    Roboto: {
-        normal: path.join(__dirname, "fonts/Roboto-Regular.ttf"),
-        bold: path.join(__dirname, "fonts/Roboto-Bold.ttf"),
-        italics: path.join(__dirname, "fonts/Roboto-Italic.ttf"),
-        bolditalics: path.join(__dirname, "fonts/Roboto-BoldItalic.ttf"),
-    },
-};
-
-const printer = new PdfPrinter(fonts);
 
 // --- IDs file Drive ---
 const LOGO_FILE_ID = "1Rwo4pJt222dLTXN9W6knN3A5LwJ5TDIa";
@@ -77,18 +58,7 @@ const PORT = process.env.PORT || 3000;
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 
-// --- Helpers ---
-function formatDateForName(date = new Date(), tz = "Asia/Bangkok") {
-    const pad = (n) => String(n).padStart(2, "0");
-    const toTZ = new Date(date.toLocaleString("en-US", { timeZone: tz }));
-    const dd = pad(toTZ.getDate());
-    const mm = pad(toTZ.getMonth() + 1);
-    const yyyy = toTZ.getFullYear();
-    const hh = pad(toTZ.getHours());
-    const mi = pad(toTZ.getMinutes());
-    const ss = pad(toTZ.getSeconds());
-    return { ddmmyyyy: `${dd}${mm}${yyyy}`, hhmmss: `${hh}-${mi}-${ss}` };
-}
+
 
 async function loadDriveImageBase64(fileId) {
     try {
@@ -181,73 +151,30 @@ app.get("/bbgn", async (req, res) => {
             ]),
         ];
 
-        const docDefinition = {
-            content: [
-                { image: logoBase64, width: 120, alignment: "center" },
-                {
-                    text: "BIÊN BẢN GIAO NHẬN",
-                    style: "header",
-                    margin: [0, 20, 0, 20],
-                },
-                {
-                    table: { headerRows: 1, widths: ["auto", "*", "auto", "auto", "*"], body: bodyTable },
-                },
-            ],
-            styles: { header: { fontSize: 18, bold: true, alignment: "center" } },
-            defaultStyle: { font: "NotoSans", fontSize: 11 },
-            background: watermarkBase64
-                ? [
-                    {
-                        image: watermarkBase64,
-                        width: 400,
-                        absolutePosition: { x: 100, y: 200 },
-                        opacity: 0.1,
-                    },
-                ]
-                : [],
-        };
-
-        // --- Stream PDF để tránh OOM ---
-        const pdfDoc = printer.createPdfKitDocument(docDefinition);
-        const chunks = [];
-        pdfDoc.on("data", (chunk) => chunks.push(chunk));
-        pdfDoc.on("end", async () => {
-            const pdfBuffer = Buffer.concat(chunks);
-            const { ddmmyyyy, hhmmss } = formatDateForName(new Date(), "Asia/Bangkok");
-            const fileName = `BBGN - ${maDonHang} - ${ddmmyyyy} - ${hhmmss}.pdf`;
-
-            // --- Gửi sang GAS ---
-            const payload = { fileName, fileDataBase64: pdfBuffer.toString("base64") };
-            const gasResp = await fetch(GAS_WEBAPP_URL, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
-            });
-            const gasText = await gasResp.text();
-            let gasJson = {};
-            try {
-                gasJson = JSON.parse(gasText);
-            } catch {
-                throw new Error("Không nhận được JSON từ Apps Script");
-            }
-            if (!gasJson.ok) throw new Error(gasJson.error || "Apps Script báo lỗi khi lưu file.");
-
-            const folderName = gasJson.folderName || "BBGN";
-            const pathToFile = `${folderName}/${fileName}`;
-
-            // --- Ghi đường dẫn vào Sheet ---
-            await sheets.spreadsheets.values.update({
-                spreadsheetId: SPREADSHEET_ID,
-                range: `file_BBGN_ct!D${lastRowWithData}`,
-                valueInputOption: "RAW",
-                requestBody: { values: [[pathToFile]] },
-            });
-            console.log("✔️ Đã ghi đường dẫn:", pathToFile);
-
-            // --- Render trang in ---
-            res.render("bbgn", { donHang, products, logoBase64, watermarkBase64, autoPrint: true, maDonHang });
+        // Gọi AppScript để tạo PDF
+        const payload = { orderCode: maDonHang };
+        const gasResp = await fetch(GAS_WEBAPP_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
         });
-        pdfDoc.end();
+
+        const result = await gasResp.json();
+
+        if (!result.ok) {
+            throw new Error(result.error || "Lỗi từ AppScript");
+        }
+
+        console.log("✔️ PDF đã được tạo thành công");
+
+        // Render trang in
+        res.render("bbgn", {
+            donHang,
+            products,
+            autoPrint: true,
+            maDonHang,
+            pathToFile: result.pathToFile || ""
+        });
     } catch (err) {
         console.error("❌ Lỗi khi xuất BBGN:", err.stack || err.message);
         res.status(500).send("Lỗi server: " + (err.message || err));
