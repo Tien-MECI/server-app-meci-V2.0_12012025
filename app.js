@@ -92,9 +92,7 @@ app.get("/bbgn", async (req, res) => {
         const lastRowWithData = colB.length;
         const maDonHang = colB[lastRowWithData - 1];
         if (!maDonHang)
-            return res.send(
-                "⚠️ Không tìm thấy dữ liệu ở cột B sheet file_BBGN_ct."
-            );
+            return res.send("⚠️ Không tìm thấy dữ liệu ở cột B sheet file_BBGN_ct.");
 
         console.log(`✔️ Mã đơn hàng: ${maDonHang} (dòng ${lastRowWithData})`);
 
@@ -134,31 +132,7 @@ app.get("/bbgn", async (req, res) => {
         const logoBase64 = await loadDriveImageBase64(LOGO_FILE_ID);
         const watermarkBase64 = await loadDriveImageBase64(WATERMARK_FILE_ID);
 
-        // Gọi AppScript để tạo PDF
-        const payload = { orderCode: maDonHang };
-        const gasResp = await fetch(GAS_WEBAPP_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-        });
-
-        // Xử lý response từ AppScript
-        const gasText = await gasResp.text();
-        let result = {};
-        try {
-            result = JSON.parse(gasText);
-        } catch (e) {
-            console.error("❌ Không parse được JSON từ AppScript:", gasText);
-            throw new Error("Lỗi từ AppScript: " + gasText);
-        }
-
-        if (!result.ok) {
-            throw new Error(result.error || "Lỗi từ AppScript");
-        }
-
-        console.log("✔️ PDF đã được tạo thành công");
-
-        // Render trang in
+        // 👉 Render NGAY cho client
         res.render("bbgn", {
             donHang,
             products,
@@ -166,13 +140,45 @@ app.get("/bbgn", async (req, res) => {
             watermarkBase64,
             autoPrint: true,
             maDonHang,
-            pathToFile: result.pathToFile || ""
+            pathToFile: "" // chưa có PDF ngay
         });
+
+        // 👉 Đồng thời gọi AppScript NGẦM
+        (async () => {
+            try {
+                const payload = { orderCode: maDonHang };
+                const gasResp = await fetch(GAS_WEBAPP_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload),
+                });
+
+                const gasText = await gasResp.text();
+                let result = {};
+                try {
+                    result = JSON.parse(gasText);
+                } catch (e) {
+                    console.error("❌ Không parse được JSON từ AppScript:", gasText);
+                    return;
+                }
+
+                if (!result.ok) {
+                    console.error("❌ AppScript báo lỗi:", result.error);
+                    return;
+                }
+
+                console.log("✔️ PDF đã được tạo ngầm:", result.pathToFile);
+            } catch (err) {
+                console.error("❌ Lỗi khi gọi AppScript ngầm:", err.message);
+            }
+        })();
+
     } catch (err) {
         console.error("❌ Lỗi khi xuất BBGN:", err.stack || err.message);
         res.status(500).send("Lỗi server: " + (err.message || err));
     }
 });
+
 
 // --- Debug ---
 app.get("/debug", (_req, res) => {
