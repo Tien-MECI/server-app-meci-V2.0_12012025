@@ -3,91 +3,100 @@
 
 <head>
     <title>Giấy Gửi Hàng</title>
+    <meta charset="UTF-8">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            font-size: 12px;
-            width: 210mm;
-            height: 297mm;
+        /* Reset và thiết lập cơ bản */
+        * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
         }
 
-        table {
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 10px;
+            width: 210mm;
+            height: 297mm;
+            margin: 0;
+            padding: 5mm;
+        }
+
+        /* Container chính sử dụng grid */
+        .container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 5mm;
             width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 10px;
+            height: 100%;
         }
 
-        td,
-        th {
-            border: 1px solid black;
-            padding: 5px;
-            text-align: left;
+        /* Mỗi phiếu GGH */
+        .ggh-ticket {
+            border: 1px solid #000;
+            padding: 3mm;
+            page-break-inside: avoid;
+            break-inside: avoid;
+            display: flex;
+            flex-direction: column;
+            position: relative;
         }
 
-        .header {
-            text-align: center;
-            font-weight: bold;
-            font-size: 14px;
+        .ggh-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 2mm;
         }
 
         .logo {
-            text-align: left;
+            flex-shrink: 0;
         }
 
-        .header-right {
+        .logo img {
+            width: 40px;
+            height: auto;
+        }
+
+        .company-info {
             text-align: right;
+            font-weight: bold;
+            font-size: 9px;
+            flex-grow: 1;
+        }
+
+        .ggh-title {
+            text-align: center;
+            font-weight: bold;
+            font-size: 12px;
+            margin: 1mm 0;
+            text-transform: uppercase;
+        }
+
+        .order-code {
+            text-align: center;
+            font-size: 9px;
+            margin-bottom: 2mm;
         }
 
         .red {
             color: red;
         }
 
-        .center-text {
-            text-align: center;
-        }
-
-        .no-border {
-            border: none;
-        }
-
-        .container {
-            display: flex;
-            flex-wrap: wrap;
-            width: 100%;
-            height: 100%;
-        }
-
-        .box {
-            width: 49%;
-            height: 33%;
-            margin: 0.5%;
-            padding: 0.5%;
-            box-sizing: border-box;
-            border: 1px solid black;
-            page-break-inside: avoid;
-        }
-
-        .content {
-            border: 1px solid black;
-            padding: 5px;
-            margin-bottom: 5px;
-            font-size: 14px;
-            height: calc(100% - 60px);
+        .ggh-content {
+            flex-grow: 1;
+            font-size: 9px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
         }
 
-        .content p {
-            margin: 0;
-            padding: 5px;
-            border-bottom: 1px solid black;
+        .ggh-content p {
+            margin: 1mm 0;
+            line-height: 1.2;
         }
 
-        /* CSS cho in ấn */
+        /* Thiết lập in ấn */
         @media print {
             @page {
                 size: A4;
@@ -96,13 +105,25 @@
 
             body {
                 margin: 0;
-                padding: 0;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
+                padding: 5mm;
+                width: 210mm;
+                height: 297mm;
             }
 
-            .box {
-                border: 1px solid black !important;
+            .container {
+                gap: 5mm;
+            }
+
+            .ggh-ticket {
+                border: 1px solid #000;
+                padding: 3mm;
+            }
+        }
+
+        /* Ẩn tiêu đề trình duyệt khi in */
+        @media print {
+            .no-print {
+                display: none;
             }
         }
     </style>
@@ -124,19 +145,27 @@
 </head>
 
 <body>
+    <h1 class="no-print" style="text-align: center; margin-bottom: 10px;">Giấy Gửi Hàng - Xem trước khi in</h1>
+
     <div class="container">
-        <% for(let boxIndex=1; boxIndex <=6; boxIndex++) { %>
-            <div class="box">
-                <div class="logo">
-                    <img src="<%= logoBase64 %>" style="width:40px; height: auto;" />
+        <% for(let i=1; i <=6; i++) { %>
+            <div class="ggh-ticket">
+                <div class="ggh-header">
+                    <div class="logo">
+                        <img src="<%= logoBase64 %>" alt="Logo">
+                    </div>
+                    <div class="company-info">
+                        CÔNG TY CỔ PHẦN CÔNG NGHIỆP M.E.C.I
+                    </div>
                 </div>
-                <div class="header">CÔNG TY CỔ PHẦN CÔNG NGHIỆP M.E.C.I</div>
-                <h2 class="center-text">GIẤY GỬI HÀNG</h2>
-                <p class="center-text">(MÃ ĐƠN HÀNG: <span class="red">
+
+                <h2 class="ggh-title">GIẤY GỬI HÀNG</h2>
+
+                <p class="order-code">(MÃ ĐƠN HÀNG: <span class="red">
                         <%= donHang[6] %>
                     </span>)</p>
-                <br>
-                <div class="content">
+
+                <div class="ggh-content">
                     <p>- Người nhận hàng: <span class="red">
                             <%= donHang[17] || donHang[20] || '' %>
                         </span></p>
@@ -146,7 +175,6 @@
                     <p>- Địa chỉ: <span class="red">
                             <%= donHang[24] || donHang[26] || donHang[28] || '' %>
                         </span></p>
-                    <br>
                     <p>- Người gửi hàng: <span class="red">
                             <%= donHang[2] %>
                         </span></p>
@@ -154,8 +182,7 @@
                             <%= donHang[52] %>
                         </span></p>
                     <p>- Địa điểm sản xuất, kinh doanh: Số 162, đường 916, thôn La Gián, xã Đoài Phương, thành phố Hà
-                        Nội
-                    </p>
+                        Nội</p>
                 </div>
             </div>
             <% } %>
