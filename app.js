@@ -306,6 +306,101 @@ app.get("/bbnt", async (req, res) => {
     }
 });
 
+
+app.get("/ggh", async (req, res) => {
+    try {
+        console.log("▶️ Bắt đầu xuất GGH ...");
+
+        // --- Lấy mã đơn hàng ---
+        const gghRes = await sheets.spreadsheets.values.get({
+            spreadsheetId: SPREADSHEET_ID,
+            range: "File_GGH_ct!B:B",
+        });
+        const colB = gghRes.data.values ? gghRes.data.values.flat() : [];
+        const lastRowWithData = colB.length;
+        const maDonHang = colB[lastRowWithData - 1];
+        if (!maDonHang)
+            return res.send("⚠️ Không tìm thấy dữ liệu ở cột B sheet File_GGH_ct.");
+
+        console.log(`✔️ Mã đơn hàng: ${maDonHang} (dòng ${lastRowWithData})`);
+
+        // --- Lấy đơn hàng ---
+        const donHangRes = await sheets.spreadsheets.values.get({
+            spreadsheetId: SPREADSHEET_ID,
+            range: "Don_hang!A1:BJ",
+        });
+        const rows = donHangRes.data.values || [];
+        const data = rows.slice(1);
+        const donHang =
+            data.find((r) => r[5] === maDonHang) ||
+            data.find((r) => r[6] === maDonHang);
+        if (!donHang)
+            return res.send("❌ Không tìm thấy đơn hàng với mã: " + maDonHang);
+
+        // --- Logo ---
+        const logoBase64 = await loadDriveImageBase64(LOGO_FILE_ID);
+
+        // --- Render ngay cho client ---
+        res.render("ggh", {
+            donHang,
+            logoBase64,
+            autoPrint: false,
+            maDonHang,
+            pathToFile: ""
+        });
+
+        // --- Sau khi render xong thì gọi AppScript ngầm ---
+        (async () => {
+            try {
+                const renderedHtml = await renderFileAsync(
+                    path.join(__dirname, "views", "ggh.ejs"),
+                    {
+                        donHang,
+                        logoBase64,
+                        autoPrint: false,
+                        maDonHang,
+                        pathToFile: ""
+                    }
+                );
+
+                // Gọi GAS webapp tương ứng (cần thêm biến môi trường GAS_WEBAPP_URL_GGH)
+                const GAS_WEBAPP_URL_GGH = process.env.GAS_WEBAPP_URL_GGH;
+                if (GAS_WEBAPP_URL_GGH) {
+                    const resp = await fetch(GAS_WEBAPP_URL_GGH, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                        body: new URLSearchParams({
+                            orderCode: maDonHang,
+                            html: renderedHtml
+                        })
+                    });
+
+                    const data = await resp.json();
+                    console.log("✔️ AppScript trả về:", data);
+
+                    const pathToFile = data.pathToFile || `GGH/${data.fileName}`;
+                    await sheets.spreadsheets.values.update({
+                        spreadsheetId: SPREADSHEET_ID,
+                        range: `File_GGH_ct!D${lastRowWithData}`,
+                        valueInputOption: "RAW",
+                        requestBody: { values: [[pathToFile]] },
+                    });
+                    console.log("✔️ Đã ghi đường dẫn:", pathToFile);
+                } else {
+                    console.log("⚠️ Chưa cấu hình GAS_WEBAPP_URL_GGH");
+                }
+
+            } catch (err) {
+                console.error("❌ Lỗi gọi AppScript:", err);
+            }
+        })();
+
+    } catch (err) {
+        console.error("❌ Lỗi khi xuất GGH:", err.stack || err.message);
+        res.status(500).send("Lỗi server: " + (err.message || err));
+    }
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 // --- Debug ---
 app.get("/debug", (_req, res) => {
