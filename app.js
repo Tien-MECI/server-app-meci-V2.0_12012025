@@ -191,7 +191,7 @@ app.get("/bbgn", async (req, res) => {
 });
 
 
-app.get("/bbnt", async (req, res) => {
+app.get("/bbnt", async (_req, res) => {
     try {
         console.log("▶️ Bắt đầu xuất BBNT ...");
 
@@ -203,8 +203,7 @@ app.get("/bbnt", async (req, res) => {
         const colB = bbntRes.data.values ? bbntRes.data.values.flat() : [];
         const lastRowWithData = colB.length;
         const maDonHang = colB[lastRowWithData - 1];
-        if (!maDonHang)
-            return res.send("⚠️ Không tìm thấy dữ liệu ở cột B sheet File_BBNT_ct.");
+        if (!maDonHang) return res.send("⚠️ Không tìm thấy dữ liệu ở cột B sheet File_BBNT_ct.");
 
         console.log(`✔️ Mã đơn hàng: ${maDonHang} (dòng ${lastRowWithData})`);
 
@@ -215,11 +214,8 @@ app.get("/bbnt", async (req, res) => {
         });
         const rows = donHangRes.data.values || [];
         const data = rows.slice(1);
-        const donHang =
-            data.find((r) => r[5] === maDonHang) ||
-            data.find((r) => r[6] === maDonHang);
-        if (!donHang)
-            return res.send("❌ Không tìm thấy đơn hàng với mã: " + maDonHang);
+        const donHang = data.find((r) => r[5] === maDonHang) || data.find((r) => r[6] === maDonHang);
+        if (!donHang) return res.send("❌ Không tìm thấy đơn hàng với mã: " + maDonHang);
 
         // --- Chi tiết sản phẩm ---
         const ctRes = await sheets.spreadsheets.values.get({
@@ -237,12 +233,13 @@ app.get("/bbnt", async (req, res) => {
                 tongSoLuong: r[21],
                 ghiChu: "",
             }));
-
         console.log(`✔️ Tìm thấy ${products.length} sản phẩm.`);
 
-        // --- Logo & Watermark ---
-        const logoBase64 = await loadDriveImageBase64(LOGO_FILE_ID);
-        const watermarkBase64 = await loadDriveImageBase64(WATERMARK_FILE_ID);
+        // --- Logo & Watermark (tải song song để nhanh hơn) ---
+        const [logoBase64, watermarkBase64] = await Promise.all([
+            loadDriveImageBase64(LOGO_FILE_ID),
+            loadDriveImageBase64(WATERMARK_FILE_ID),
+        ]);
 
         // --- Render ngay cho client ---
         res.render("bbnt", {
@@ -255,53 +252,60 @@ app.get("/bbnt", async (req, res) => {
             pathToFile: ""
         });
 
-        // --- Sau khi render xong thì gọi AppScript ngầm ---
+        try {
+            res.render("bbnt", viewLocals);
+        } catch (renderErr) {
+            console.error("❌ Lỗi res.render bbnt:", renderErr);
+            return res.status(500).send("Lỗi render template bbnt: " + renderErr.message);
+        }
+
+        // --- Gọi AppScript ngầm để xuất PDF ---
         (async () => {
             try {
-                const renderedHtml = await ejs.renderFile(
+                const html = await renderFileAsync(
                     path.join(__dirname, "views", "bbnt.ejs"),
-                    {
-                        donHang,
-                        products,
-                        logoBase64,
-                        watermarkBase64,
-                        autoPrint: false,
-                        maDonHang,
-                        pathToFile: ""
-                    }
+                    { ...viewLocals, autoPrint: false }
                 );
+
+                // BẮT BUỘC phải có html string ở đây
+                if (!html || typeof html !== "string") {
+                    throw new Error("Render EJS không trả về HTML hợp lệ");
+                }
 
                 const resp = await fetch(GAS_WEBAPP_URL_BBNT, {
                     method: "POST",
                     headers: { "Content-Type": "application/x-www-form-urlencoded" },
                     body: new URLSearchParams({
                         orderCode: maDonHang,
-                        html: renderedHtml
-                    })
+                        html, // giờ chắc chắn có
+                    }),
                 });
 
                 const data = await resp.json();
                 console.log("✔️ AppScript trả về:", data);
 
-                const pathToFile = data.pathToFile || `BBNT/${data.fileName}`;
-                await sheets.spreadsheets.values.update({
-                    spreadsheetId: SPREADSHEET_ID,
-                    range: `File_BBNT_ct!D${lastRowWithData}`,
-                    valueInputOption: "RAW",
-                    requestBody: { values: [[pathToFile]] },
-                });
-                console.log("✔️ Đã ghi đường dẫn:", pathToFile);
-
+                if (data.ok && (data.pathToFile || data.fileName)) {
+                    const pathToFile = data.pathToFile || `BBNT/${data.fileName}`;
+                    await sheets.spreadsheets.values.update({
+                        spreadsheetId: SPREADSHEET_ID,
+                        range: `File_BBNT_ct!D${lastRowWithData}`,
+                        valueInputOption: "RAW",
+                        requestBody: { values: [[pathToFile]] },
+                    });
+                    console.log("✔️ Đã ghi đường dẫn:", pathToFile);
+                } else {
+                    console.error("❌ AppScript thất bại, không ghi đường dẫn:", data);
+                }
             } catch (err) {
-                console.error("❌ Lỗi gọi AppScript:", err);
+                console.error("❌ Lỗi gọi AppScript:", err.stack || err.message);
             }
         })();
-
     } catch (err) {
         console.error("❌ Lỗi khi xuất BBNT:", err.stack || err.message);
         res.status(500).send("Lỗi server: " + (err.message || err));
     }
 });
+
 
 
 // --- Debug ---
