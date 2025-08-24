@@ -198,13 +198,13 @@ app.get("/bbnt", async (req, res) => {
         // --- Lấy mã đơn hàng ---
         const bbntRes = await sheets.spreadsheets.values.get({
             spreadsheetId: SPREADSHEET_ID,
-            range: "file_BBNT_ct!B:B",
+            range: "File_BBNT_ct!B:B",
         });
         const colB = bbntRes.data.values ? bbntRes.data.values.flat() : [];
         const lastRowWithData = colB.length;
         const maDonHang = colB[lastRowWithData - 1];
         if (!maDonHang)
-            return res.send("⚠️ Không tìm thấy dữ liệu ở cột B sheet file_BBGN_ct.");
+            return res.send("⚠️ Không tìm thấy dữ liệu ở cột B sheet File_BBNT_ct.");
 
         console.log(`✔️ Mã đơn hàng: ${maDonHang} (dòng ${lastRowWithData})`);
 
@@ -286,7 +286,7 @@ app.get("/bbnt", async (req, res) => {
                 const pathToFile = data.pathToFile || `BBNT/${data.fileName}`;
                 await sheets.spreadsheets.values.update({
                     spreadsheetId: SPREADSHEET_ID,
-                    range: `file_BBNT_ct!D${lastRowWithData}`,
+                    range: `File_BBNT_ct!D${lastRowWithData}`,
                     valueInputOption: "RAW",
                     requestBody: { values: [[pathToFile]] },
                 });
