@@ -18,10 +18,9 @@
             height: 297mm;
             margin: 0;
             padding: 5mm;
-            font-size: 14px;
-            /* Tăng kích thước chữ tổng thể */
-            line-height: 1.3;
-            /* Giảm khoảng cách dòng */
+            font-size: 13px;
+            line-height: 1.1;
+            /* Giảm khoảng cách dòng xuống mức tối thiểu */
         }
 
         /* Container chính sử dụng grid */
@@ -30,7 +29,6 @@
             grid-template-columns: repeat(2, 1fr);
             grid-template-rows: repeat(3, 1fr);
             gap: 4mm;
-            /* Giảm khoảng cách giữa các ô */
             width: 100%;
             height: 100%;
         }
@@ -43,14 +41,14 @@
             break-inside: avoid;
             display: flex;
             flex-direction: column;
-            position: relative;
         }
 
         .ggh-header {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            margin-bottom: 2mm;
+            margin-bottom: 1mm;
+            /* Giảm khoảng cách */
         }
 
         .logo {
@@ -65,27 +63,23 @@
         .company-info {
             text-align: right;
             font-weight: bold;
-            font-size: 12px;
-            /* Tăng kích thước chữ */
+            font-size: 11px;
             flex-grow: 1;
-            line-height: 1.2;
-            /* Giảm khoảng cách dòng */
+            line-height: 1.1;
         }
 
         .ggh-title {
             text-align: center;
             font-weight: bold;
-            font-size: 16px;
-            /* Tăng kích thước tiêu đề */
+            font-size: 14px;
             margin: 1mm 0;
             text-transform: uppercase;
         }
 
         .order-code {
             text-align: center;
-            font-size: 12px;
-            /* Tăng kích thước chữ */
-            margin-bottom: 2mm;
+            font-size: 11px;
+            margin-bottom: 1mm;
         }
 
         .red {
@@ -94,18 +88,28 @@
 
         .ggh-content {
             flex-grow: 1;
-            font-size: 12px;
-            /* Tăng kích thước chữ */
+            font-size: 11px;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
         }
 
-        .ggh-content p {
-            margin: 1mm 0;
-            /* Giảm khoảng cách giữa các đoạn */
-            line-height: 1.2;
-            /* Giảm khoảng cách dòng */
+        .info-row {
+            display: flex;
+            border-bottom: 1px solid #ddd;
+            /* Đường kẻ ngang phân cách */
+            padding: 1mm 0;
+            margin: 0;
+            line-height: 1.1;
+            min-height: auto;
+        }
+
+        .info-label {
+            flex: 0 0 35%;
+            font-weight: bold;
+        }
+
+        .info-value {
+            flex: 1;
         }
 
         /* Thiết lập in ấn */
@@ -120,8 +124,8 @@
                 padding: 5mm;
                 width: 210mm;
                 height: 297mm;
-                font-size: 14px;
-                line-height: 1.3;
+                font-size: 13px;
+                line-height: 1.1;
             }
 
             .container {
@@ -163,23 +167,40 @@
                     </span>)</p>
 
                 <div class="ggh-content">
-                    <p>- Người nhận hàng: <span class="red">
+                    <div class="info-row">
+                        <div class="info-label">- Người nhận hàng:</div>
+                        <div class="info-value red">
                             <%= donHang[17] || donHang[20] || '' %>
-                        </span></p>
-                    <p>- Điện thoại: <span class="red">
+                        </div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">- Điện thoại:</div>
+                        <div class="info-value red">
                             <%= donHang[25] || donHang[27] || donHang[29] || '' %>
-                        </span></p>
-                    <p>- Địa chỉ: <span class="red">
+                        </div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">- Địa chỉ:</div>
+                        <div class="info-value red">
                             <%= donHang[24] || donHang[26] || donHang[28] || '' %>
-                        </span></p>
-                    <p>- Người gửi hàng: <span class="red">
+                        </div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">- Người gửi hàng:</div>
+                        <div class="info-value red">
                             <%= donHang[2] %>
-                        </span></p>
-                    <p>- Điện thoại: <span class="red">
+                        </div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">- Điện thoại:</div>
+                        <div class="info-value red">
                             <%= donHang[52] %>
-                        </span></p>
-                    <p>- Địa điểm sản xuất, kinh doanh: Số 162, đường 916, thôn La Gián, xã Đoài Phương, thành phố Hà
-                        Nội</p>
+                        </div>
+                    </div>
+                    <div class="info-row" style="border-bottom: none;">
+                        <div class="info-label">- Địa điểm SX, KD:</div>
+                        <div class="info-value">Số 162, đường 916, thôn La Gián, xã Đoài Phương, thành phố Hà Nội</div>
+                    </div>
                 </div>
             </div>
             <% } %>
