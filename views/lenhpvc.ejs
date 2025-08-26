@@ -2,7 +2,7 @@
 <html>
 
 <head>
-    <title>Lệnh Sản Xuất</title>
+    <title>Lệnh Sản Xuất PVC</title>
     <meta charset="UTF-8">
     <style>
         body {
@@ -127,15 +127,12 @@
             <!-- Thông tin khách hàng và lệnh sản xuất -->
             <table style="width: 100%; border-collapse: collapse;">
                 <tr>
-                    <td colspan="2" style="font-weight: bold; text-align: center;" width="60%">
-                        <b>THÔNG TIN KHÁCH HÀNG</b>
-                    </td>
+                    <td colspan="2" style="font-weight: bold; text-align: center;" width="60%"><b>THÔNG TIN KHÁCH
+                            HÀNG</b></td>
                     <td width="15%" style="font-weight: bold; text-align: center;"><b>LỆNH SẢN XUẤT</b></td>
-                    <td width="25%" style="font-weight: bold; text-align: Left;">
-                        <b>
+                    <td width="25%" style="font-weight: bold; text-align: Left;"><b>
                             <%= maDonHang %>
-                        </b>
-                    </td>
+                        </b></td>
                 </tr>
                 <tr>
                     <td width="15%" style="font-weight: bold;">Người mua hàng:</td>
@@ -206,36 +203,91 @@
             <!-- Bảng chi tiết hàng hóa -->
             <h2>BẢNG CHI TIẾT HÀNG HÓA</h2>
 
-            <% // Xác định các cột cần hiển thị var columns=[ { header: "Mã ĐH chi tiết" , key: "maDonHangChiTiet" }, {
-                header: "Tên thương mại sản phẩm" , key: "tenThuongMai" }, { header: "Dài (mm)" , key: "dai" }, {
-                header: "Rộng (mm)" , key: "rong" }, { header: "Cao (mm)" , key: "cao" }, { header: "SL - Sợi" ,
-                key: "slSoi" }, { header: "Số lượng" , key: "soLuong" }, { header: "Đơn vị tính" , key: "donViTinh" }, {
-                header: "Tổng số lượng" , key: "tongSoLuong" }, { header: "Tổng SL-Sợi" , key: "tongSLSoi" }, {
-                header: "Ghi chú sản xuất" , key: "ghiChuSanXuat" } ]; // Lọc các cột có dữ liệu var filteredColumns=[];
-                for (var i=0; i < columns.length; i++) { var col=columns[i]; var hasData=false; for (var j=0; j <
-                products.length; j++) { if (products[j][col.key]) { hasData=true; break; } } if (hasData) {
-                filteredColumns.push(col); } } %>
+            <% // Xác định cột nào có dữ liệu const showDai=products.some(p=> p.dai && p.dai.toString().trim() !== "");
+                const showRong = products.some(p => p.rong && p.rong.toString().trim() !== "");
+                const showCao = products.some(p => p.cao && p.cao.toString().trim() !== "");
+                const showSlSoi = products.some(p => p.slSoi && p.slSoi.toString().trim() !== "");
+                const showTongSLSoi = products.some(p => p.tongSLSoi && p.tongSLSoi.toString().trim() !== "");
+                %>
 
                 <table style="width: 100%; font-size: 12px;">
                     <thead>
                         <tr>
-                            <% for (var i=0; i < filteredColumns.length; i++) { %>
-                                <th>
-                                    <%= filteredColumns[i].header %>
-                                </th>
+                            <th>STT</th>
+                            <th>Mã ĐH chi tiết</th>
+                            <th>Tên thương mại sản phẩm</th>
+                            <% if (showDai) { %>
+                                <th>Dài (mm)</th>
                                 <% } %>
+                                    <% if (showRong) { %>
+                                        <th>Rộng (mm)</th>
+                                        <% } %>
+                                            <% if (showCao) { %>
+                                                <th>Cao (mm)</th>
+                                                <% } %>
+                                                    <% if (showSlSoi) { %>
+                                                        <th>SL - Sợi</th>
+                                                        <% } %>
+                                                            <th>Số lượng</th>
+                                                            <th>Đơn vị tính</th>
+                                                            <th>Tổng số lượng</th>
+                                                            <% if (showTongSLSoi) { %>
+                                                                <th>Tổng SL - Sợi</th>
+                                                                <% } %>
+                                                                    <th>Ghi chú sản xuất</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <% for (var i=0; i < products.length; i++) { %>
+                        <% products.forEach((product, index)=> { %>
                             <tr>
-                                <% for (var j=0; j < filteredColumns.length; j++) { %>
-                                    <td style="text-align: center;">
-                                        <%= products[i][filteredColumns[j].key] || '' %>
+                                <td>
+                                    <%= index + 1 %>
+                                </td>
+                                <td>
+                                    <%= product.maDonHangChiTiet || '' %>
+                                </td>
+                                <td style="text-align:left">
+                                    <%= product.tenThuongMai || '' %>
+                                </td>
+                                <% if (showDai) { %>
+                                    <td>
+                                        <%= product.dai || '' %>
                                     </td>
                                     <% } %>
+                                        <% if (showRong) { %>
+                                            <td>
+                                                <%= product.rong || '' %>
+                                            </td>
+                                            <% } %>
+                                                <% if (showCao) { %>
+                                                    <td>
+                                                        <%= product.cao || '' %>
+                                                    </td>
+                                                    <% } %>
+                                                        <% if (showSlSoi) { %>
+                                                            <td>
+                                                                <%= product.slSoi || '' %>
+                                                            </td>
+                                                            <% } %>
+                                                                <td>
+                                                                    <%= product.soLuong || '' %>
+                                                                </td>
+                                                                <td>
+                                                                    <%= product.donViTinh || '' %>
+                                                                </td>
+                                                                <td>
+                                                                    <%= product.tongSoLuong || '' %>
+                                                                </td>
+                                                                <% if (showTongSLSoi) { %>
+                                                                    <td>
+                                                                        <%= product.tongSLSoi || '' %>
+                                                                    </td>
+                                                                    <% } %>
+                                                                        <td>
+                                                                            <%= product.ghiChuSanXuat || '' %>
+                                                                        </td>
                             </tr>
-                            <% } %>
+                            <% }); %>
                     </tbody>
                 </table>
 </body>
