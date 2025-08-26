@@ -141,7 +141,9 @@
                     </td>
                     <td width="15%" style="font-weight: bold;">Ngày lập:</td>
                     <td style="text-align: left;" width="25%">
-                        <%= donHang[1] instanceof Date ? donHang[1].toLocaleDateString('vi-VN') : donHang[1] %>
+                        <% let ngayLap=donHang[1]; if (ngayLap instanceof Date) {
+                            ngayLap=ngayLap.toLocaleDateString('vi-VN'); } %>
+                            <%= ngayLap %>
                     </td>
                 </tr>
                 <tr>
@@ -161,7 +163,9 @@
                     </td>
                     <td style="font-weight: bold;" width="15%">Ngày YC TH:</td>
                     <td style="text-align: left;" width="25%">
-                        <%= donHang[45] instanceof Date ? donHang[45].toLocaleDateString('vi-VN') : donHang[45] %>
+                        <% let ngayYC=donHang[45]; if (ngayYC instanceof Date) {
+                            ngayYC=ngayYC.toLocaleDateString('vi-VN'); } %>
+                            <%= ngayYC %>
                     </td>
                 </tr>
                 <tr>
@@ -201,36 +205,34 @@
             <table style="width: 100%; font-size: 12px;">
                 <thead>
                     <tr>
-                        <% // Xác định các cột cần hiển thị const columns=[ { header: "Mã ĐH chi tiết" ,
+                        <% // Định nghĩa các cột có thể hiển thị var columns=[ { header: "Mã ĐH chi tiết" ,
                             key: "maDonHangChiTiet" }, { header: "Tên thương mại sản phẩm" , key: "tenThuongMai" }, {
                             header: "Dài (mm)" , key: "dai" }, { header: "Rộng (mm)" , key: "rong" }, {
                             header: "Cao (mm)" , key: "cao" }, { header: "SL - Sợi" , key: "slSoi" }, {
                             header: "Số lượng" , key: "soLuong" }, { header: "Đơn vị tính" , key: "donViTinh" }, {
                             header: "Tổng số lượng" , key: "tongSoLuong" }, { header: "Tổng SL-Sợi" , key: "tongSLSoi"
-                            }, { header: "Ghi chú sản xuất" , key: "ghiChuSanXuat" } ]; // Lọc các cột có dữ liệu const
-                            filteredColumns=columns.filter(col=> {
-                            return products.some(product => product[col.key]);
-                            });
-
-                            // Hiển thị tiêu đề
-                            filteredColumns.forEach(col => {
-                            %>
+                            }, { header: "Ghi chú sản xuất" , key: "ghiChuSanXuat" } ]; // Lọc các cột có dữ liệu var
+                            filteredColumns=[]; for (var i=0; i < columns.length; i++) { var col=columns[i]; var
+                            hasData=false; for (var j=0; j < products.length; j++) { if (products[j][col.key]) {
+                            hasData=true; break; } } if (hasData) { filteredColumns.push(col); } } // Hiển thị tiêu đề
+                            for (var i=0; i < filteredColumns.length; i++) { var col=filteredColumns[i]; %>
                             <th>
                                 <%= col.header %>
                             </th>
-                            <% }); %>
+                            <% } %>
                     </tr>
                 </thead>
                 <tbody>
-                    <% products.forEach(function(product) { %>
+                    <% for (var i=0; i < products.length; i++) { %>
                         <tr>
-                            <% filteredColumns.forEach(col=> { %>
+                            <% for (var j=0; j < filteredColumns.length; j++) { var col=filteredColumns[j]; var
+                                value=products[i][col.key] || '' ; %>
                                 <td style="text-align: center;">
-                                    <%= product[col.key] || '' %>
+                                    <%= value %>
                                 </td>
-                                <% }); %>
+                                <% } %>
                         </tr>
-                        <% }); %>
+                        <% } %>
                 </tbody>
             </table>
 </body>
