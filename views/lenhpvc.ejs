@@ -141,7 +141,7 @@
                     </td>
                     <td width="15%" style="font-weight: bold;">Ngày lập:</td>
                     <td style="text-align: left;" width="25%">
-                        <% let ngayLap=donHang[1]; if (ngayLap instanceof Date) {
+                        <% var ngayLap=donHang[1]; if (ngayLap instanceof Date) {
                             ngayLap=ngayLap.toLocaleDateString('vi-VN'); } %>
                             <%= ngayLap %>
                     </td>
@@ -163,7 +163,7 @@
                     </td>
                     <td style="font-weight: bold;" width="15%">Ngày YC TH:</td>
                     <td style="text-align: left;" width="25%">
-                        <% let ngayYC=donHang[45]; if (ngayYC instanceof Date) {
+                        <% var ngayYC=donHang[45]; if (ngayYC instanceof Date) {
                             ngayYC=ngayYC.toLocaleDateString('vi-VN'); } %>
                             <%= ngayYC %>
                     </td>
@@ -202,39 +202,39 @@
 
             <!-- Bảng chi tiết hàng hóa -->
             <h2>BẢNG CHI TIẾT HÀNG HÓA</h2>
-            <table style="width: 100%; font-size: 12px;">
-                <thead>
-                    <tr>
-                        <% // Định nghĩa các cột có thể hiển thị var columns=[ { header: "Mã ĐH chi tiết" ,
-                            key: "maDonHangChiTiet" }, { header: "Tên thương mại sản phẩm" , key: "tenThuongMai" }, {
-                            header: "Dài (mm)" , key: "dai" }, { header: "Rộng (mm)" , key: "rong" }, {
-                            header: "Cao (mm)" , key: "cao" }, { header: "SL - Sợi" , key: "slSoi" }, {
-                            header: "Số lượng" , key: "soLuong" }, { header: "Đơn vị tính" , key: "donViTinh" }, {
-                            header: "Tổng số lượng" , key: "tongSoLuong" }, { header: "Tổng SL-Sợi" , key: "tongSLSoi"
-                            }, { header: "Ghi chú sản xuất" , key: "ghiChuSanXuat" } ]; // Lọc các cột có dữ liệu var
-                            filteredColumns=[]; for (var i=0; i < columns.length; i++) { var col=columns[i]; var
-                            hasData=false; for (var j=0; j < products.length; j++) { if (products[j][col.key]) {
-                            hasData=true; break; } } if (hasData) { filteredColumns.push(col); } } // Hiển thị tiêu đề
-                            for (var i=0; i < filteredColumns.length; i++) { var col=filteredColumns[i]; %>
-                            <th>
-                                <%= col.header %>
-                            </th>
-                            <% } %>
-                    </tr>
-                </thead>
-                <tbody>
-                    <% for (var i=0; i < products.length; i++) { %>
+
+            <!-- Xác định các cột cần hiển thị -->
+            <% var columns=[ { header: "Mã ĐH chi tiết" , key: "maDonHangChiTiet" }, { header: "Tên thương mại sản phẩm"
+                , key: "tenThuongMai" }, { header: "Dài (mm)" , key: "dai" }, { header: "Rộng (mm)" , key: "rong" }, {
+                header: "Cao (mm)" , key: "cao" }, { header: "SL - Sợi" , key: "slSoi" }, { header: "Số lượng" ,
+                key: "soLuong" }, { header: "Đơn vị tính" , key: "donViTinh" }, { header: "Tổng số lượng" ,
+                key: "tongSoLuong" }, { header: "Tổng SL-Sợi" , key: "tongSLSoi" }, { header: "Ghi chú sản xuất" ,
+                key: "ghiChuSanXuat" } ]; // Lọc các cột có dữ liệu var filteredColumns=[]; for (var i=0; i <
+                columns.length; i++) { var col=columns[i]; var hasData=false; for (var j=0; j < products.length; j++) {
+                if (products[j][col.key]) { hasData=true; break; } } if (hasData) { filteredColumns.push(col); } } %>
+
+                <table style="width: 100%; font-size: 12px;">
+                    <thead>
                         <tr>
-                            <% for (var j=0; j < filteredColumns.length; j++) { var col=filteredColumns[j]; var
-                                value=products[i][col.key] || '' ; %>
-                                <td style="text-align: center;">
-                                    <%= value %>
-                                </td>
+                            <% for (var i=0; i < filteredColumns.length; i++) { %>
+                                <th>
+                                    <%= filteredColumns[i].header %>
+                                </th>
                                 <% } %>
                         </tr>
-                        <% } %>
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        <% for (var i=0; i < products.length; i++) { %>
+                            <tr>
+                                <% for (var j=0; j < filteredColumns.length; j++) { %>
+                                    <td style="text-align: center;">
+                                        <%= products[i][filteredColumns[j].key] || '' %>
+                                    </td>
+                                    <% } %>
+                            </tr>
+                            <% } %>
+                    </tbody>
+                </table>
 </body>
 
 </html>
