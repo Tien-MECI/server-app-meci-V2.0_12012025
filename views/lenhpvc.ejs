@@ -2,118 +2,72 @@
 <html>
 
 <head>
-    <title>Giấy Gửi Hàng</title>
+    <title>Lệnh Sản Xuất PVC</title>
     <meta charset="UTF-8">
     <style>
-        /* Reset và thiết lập cơ bản */
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
         body {
             font-family: Arial, sans-serif;
-            width: 210mm;
-            height: 297mm;
-            margin: 0;
-            padding: 5mm;
             font-size: 13px;
-            line-height: 1.1;
+            margin: 0;
+            padding: 20px;
         }
 
-        /* Container chính sử dụng grid */
-        .container {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            grid-template-rows: repeat(3, 1fr);
-            gap: 4mm;
+        table {
             width: 100%;
-            height: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
         }
 
-        /* Mỗi phiếu GGH */
-        .ggh-ticket {
-            border: 1px solid #000;
-            padding: 3mm;
-            page-break-inside: avoid;
-            break-inside: avoid;
-            display: flex;
-            flex-direction: column;
+        td,
+        th {
+            border: 1px solid black;
+            padding: 5px;
+            text-align: left;
         }
 
-        .ggh-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 1mm;
+        .header {
+            text-align: center;
+            font-weight: bold;
+            font-size: 18px;
         }
 
         .logo {
-            flex-shrink: 0;
+            text-align: left;
         }
 
-        .logo img {
-            width: 40px;
-            height: auto;
-        }
-
-        .company-info {
+        .header-right {
             text-align: right;
-            font-weight: bold;
-            font-size: 14px;
-            flex-grow: 1;
-            line-height: 1.1;
-        }
-
-        .ggh-title {
-            text-align: center;
-            font-weight: bold;
-            font-size: 14px;
-            margin: 1mm 0;
-            text-transform: uppercase;
-        }
-
-        .order-code {
-            text-align: center;
-            font-size: 13px;
-            margin-bottom: 1mm;
         }
 
         .red {
             color: red;
         }
 
-        .ggh-content {
-            flex-grow: 1;
-            font-size: 13px;
-            display: flex;
-            flex-direction: column;
+        .center-text {
+            text-align: center;
         }
 
-        .info-row {
-            display: flex;
-            border-bottom: 1px solid #ddd;
-            padding: 1mm 0;
-            margin: 0;
-            line-height: 1.1;
-            min-height: auto;
+        .no-border {
+            border: none;
         }
 
-        .info-label {
-            flex: 0 0 35%;
-            font-weight: bold;
-            padding-right: 2mm;
-            border-right: 1px solid #ddd;
-            /* Đường kẻ dọc phân cách */
+        /* Watermark */
+        .watermark {
+            position: fixed;
+            top: 35%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: -1;
+            opacity: 0.1;
+            text-align: center;
         }
 
-        .info-value {
-            flex: 1;
-            padding-left: 2mm;
+        .watermark img {
+            width: 80vw;
+            height: auto;
         }
 
-        /* Thiết lập in ấn */
+        /* CSS cho in ấn */
         @media print {
             @page {
                 size: A4;
@@ -121,100 +75,13 @@
             }
 
             body {
-                margin: 0;
-                padding: 5mm;
-                width: 210mm;
-                height: 297mm;
-                font-size: 13px;
-                line-height: 1.1;
-            }
-
-            .container {
-                gap: 4mm;
-            }
-
-            .ggh-ticket {
-                border: 1px solid #000;
-                padding: 3mm;
-            }
-
-            /* Ẩn tiêu đề trình duyệt khi in */
-            .no-print {
-                display: none;
-            }
-
-            /* Đảm bảo đường kẻ in ra rõ ràng */
-            .info-label {
-                border-right: 1px solid #000 !important;
-            }
-
-            .info-row {
-                border-bottom: 1px solid #000 !important;
+                margin: 1.5cm;
+                padding: 0;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
             }
         }
     </style>
-</head>
-
-<body>
-    <h1 class="no-print" style="text-align: center; margin-bottom: 10px;">Giấy Gửi Hàng - Xem trước khi in</h1>
-
-    <div class="container">
-        <% for(let i=1; i <=6; i++) { %>
-            <div class="ggh-ticket">
-                <div class="ggh-header">
-                    <div class="logo">
-                        <img src="<%= logoBase64 %>" alt="Logo">
-                    </div>
-                    <div class="company-info">
-                        CÔNG TY CỔ PHẦN CÔNG NGHIỆP M.E.C.I
-                    </div>
-                </div>
-
-                <h2 class="ggh-title">GIẤY GỬI HÀNG</h2>
-
-                <p class="order-code">(MÃ ĐƠN HÀNG: <span class="red">
-                        <%= donHang[6] %>
-                    </span>)</p>
-
-                <div class="ggh-content">
-                    <div class="info-row">
-                        <div class="info-label">- Người nhận hàng:</div>
-                        <div class="info-value red">
-                            <%= donHang[17] || donHang[20] || '' %>
-                        </div>
-                    </div>
-                    <div class="info-row">
-                        <div class="info-label">- Điện thoại:</div>
-                        <div class="info-value red">
-                            <%= donHang[25] || donHang[27] || donHang[29] || '' %>
-                        </div>
-                    </div>
-                    <div class="info-row">
-                        <div class="info-label">- Địa chỉ:</div>
-                        <div class="info-value red">
-                            <%= donHang[24] || donHang[26] || donHang[28] || '' %>
-                        </div>
-                    </div>
-                    <div class="info-row">
-                        <div class="info-label">- Người gửi hàng:</div>
-                        <div class="info-value red">
-                            <%= donHang[2] %>
-                        </div>
-                    </div>
-                    <div class="info-row">
-                        <div class="info-label">- Điện thoại:</div>
-                        <div class="info-value red">
-                            <%= donHang[52] %>
-                        </div>
-                    </div>
-                    <div class="info-row" style="border-bottom: none;">
-                        <div class="info-label">- Địa điểm SX, KD:</div>
-                        <div class="info-value">Số 162, đường 916, thôn La Gián, xã Đoài Phương, thành phố Hà Nội</div>
-                    </div>
-                </div>
-            </div>
-            <% } %>
-    </div>
 
     <% if (typeof autoPrint !=='undefined' && autoPrint) { %>
         <script>
@@ -230,6 +97,142 @@
             };
         </script>
         <% } %>
+</head>
+
+<body>
+    <% if (watermarkBase64) { %>
+        <div class="watermark">
+            <img src="<%= watermarkBase64 %>" />
+        </div>
+        <% } %>
+
+            <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                    <td class="no-border">
+                        <img class="logo" src="<%= logoBase64 %>" style="width: 80px; height: 40px;" />
+                    </td>
+                    <td class="no-border" style="text-align: right;">
+                        <strong>CÔNG TY CỔ PHẦN CÔNG NGHIỆP MECI</strong>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="2" style="border: none; padding: 0;">
+                        <div style="border-top: 3px double black; margin: -1px 0 0 0;"></div>
+                    </td>
+                </tr>
+            </table>
+
+            <h2 class="center-text">LỆNH THỰC HIỆN (<%= lenhValue %>)</h2>
+
+            <!-- Thông tin khách hàng và lệnh sản xuất -->
+            <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                    <td colspan="2" style="font-weight: bold; text-align: center;" width="60%"><b>THÔNG TIN KHÁCH
+                            HÀNG</b></td>
+                    <td width="15%" style="font-weight: bold; text-align: center;"><b>LỆNH SẢN XUẤT</b></td>
+                    <td width="25%" style="font-weight: bold; text-align: Left;"><b>
+                            <%= maDonHang %>
+                        </b></td>
+                </tr>
+                <tr>
+                    <td width="15%" style="font-weight: bold;">Người mua hàng:</td>
+                    <td style="text-align: left;" width="45%">
+                        <%= donHang[17] || donHang[20] || '' %>
+                    </td>
+                    <td width="15%" style="font-weight: bold;">Ngày lập:</td>
+                    <td style="text-align: left;" width="25%">
+                        <%= donHang[1] instanceof Date ? donHang[1].toLocaleDateString('vi-VN') : donHang[1] %>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="font-weight: bold;" width="15%">Tên công ty:</td>
+                    <td style="text-align: left;" width="45%">
+                        <%= donHang[9] || '' %>
+                    </td>
+                    <td style="font-weight: bold;" width="15%">Người lập:</td>
+                    <td style="text-align: left;" width="25%">
+                        <%= donHang[2] || '' %>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="font-weight: bold;" width="15%">Địa chỉ TH:</td>
+                    <td style="text-align: left;" width="45%">
+                        <%= donHang[24] || donHang[26] || donHang[28] || '' %>
+                    </td>
+                    <td style="font-weight: bold;" width="15%">Ngày YC TH:</td>
+                    <td style="text-align: left;" width="25%">
+                        <%= donHang[45] instanceof Date ? donHang[45].toLocaleDateString('vi-VN') : donHang[45] %>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="font-weight: bold;" width="15%">phone người nhận:</td>
+                    <td style="text-align: left;" width="45%">
+                        <%= donHang[25] || donHang[27] || donHang[29] || '' %>
+                    </td>
+                    <td style="font-weight: bold;" width="15%">phone/Zalo/Face:</td>
+                    <td style="text-align: left;" width="25%">
+                        <%= donHang[52] || '' %>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="font-weight: bold;" width="15%">Loại yêu cầu:</td>
+                    <td style="text-align: left;" width="45%">
+                        <%= donHang[36] || '' %>
+                    </td>
+                    <td style="font-weight: bold;" width="15%">Yêu cầu gửi nhà xe:</td>
+                    <td style="text-align: left;" width="25%">
+                        <%= donHang[38] || '' %>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="font-weight: bold;" width="15%">Nhóm SP YC:</td>
+                    <td style="text-align: left;" width="45%">
+                        <%= donHang[34] || '' %>
+                    </td>
+                    <td style="font-weight: bold;" width="15%">Ghi chú thực hiện:</td>
+                    <td style="text-align: left;" width="25%">
+                        <%= donHang[37] || '' %>
+                    </td>
+                </tr>
+            </table>
+
+            <!-- Bảng chi tiết hàng hóa -->
+            <h2>BẢNG CHI TIẾT HÀNG HÓA</h2>
+            <table style="width: 100%; font-size: 12px;">
+                <thead>
+                    <tr>
+                        <% // Xác định các cột cần hiển thị const columns=[ { header: "Mã ĐH chi tiết" ,
+                            key: "maDonHangChiTiet" }, { header: "Tên thương mại sản phẩm" , key: "tenThuongMai" }, {
+                            header: "Dài (mm)" , key: "dai" }, { header: "Rộng (mm)" , key: "rong" }, {
+                            header: "Cao (mm)" , key: "cao" }, { header: "SL - Sợi" , key: "slSoi" }, {
+                            header: "Số lượng" , key: "soLuong" }, { header: "Đơn vị tính" , key: "donViTinh" }, {
+                            header: "Tổng số lượng" , key: "tongSoLuong" }, { header: "Tổng SL-Sợi" , key: "tongSLSoi"
+                            }, { header: "Ghi chú sản xuất" , key: "ghiChuSanXuat" } ]; // Lọc các cột có dữ liệu const
+                            filteredColumns=columns.filter(col=> {
+                            return products.some(product => product[col.key]);
+                            });
+
+                            // Hiển thị tiêu đề
+                            filteredColumns.forEach(col => {
+                            %>
+                            <th>
+                                <%= col.header %>
+                            </th>
+                            <% }); %>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% products.forEach(function(product) { %>
+                        <tr>
+                            <% filteredColumns.forEach(col=> { %>
+                                <td style="text-align: center;">
+                                    <%= product[col.key] || '' %>
+                                </td>
+                                <% }); %>
+                        </tr>
+                        <% }); %>
+                </tbody>
+            </table>
 </body>
 
 </html>
