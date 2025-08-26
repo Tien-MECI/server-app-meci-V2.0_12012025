@@ -2,7 +2,7 @@
 <html>
 
 <head>
-    <title>Lệnh Sản Xuất PVC</title>
+    <title>Lệnh Sản Xuất</title>
     <meta charset="UTF-8">
     <style>
         body {
@@ -127,12 +127,15 @@
             <!-- Thông tin khách hàng và lệnh sản xuất -->
             <table style="width: 100%; border-collapse: collapse;">
                 <tr>
-                    <td colspan="2" style="font-weight: bold; text-align: center;" width="60%"><b>THÔNG TIN KHÁCH
-                            HÀNG</b></td>
+                    <td colspan="2" style="font-weight: bold; text-align: center;" width="60%">
+                        <b>THÔNG TIN KHÁCH HÀNG</b>
+                    </td>
                     <td width="15%" style="font-weight: bold; text-align: center;"><b>LỆNH SẢN XUẤT</b></td>
-                    <td width="25%" style="font-weight: bold; text-align: Left;"><b>
+                    <td width="25%" style="font-weight: bold; text-align: Left;">
+                        <b>
                             <%= maDonHang %>
-                        </b></td>
+                        </b>
+                    </td>
                 </tr>
                 <tr>
                     <td width="15%" style="font-weight: bold;">Người mua hàng:</td>
@@ -203,15 +206,15 @@
             <!-- Bảng chi tiết hàng hóa -->
             <h2>BẢNG CHI TIẾT HÀNG HÓA</h2>
 
-            <!-- Xác định các cột cần hiển thị -->
-            <% var columns=[ { header: "Mã ĐH chi tiết" , key: "maDonHangChiTiet" }, { header: "Tên thương mại sản phẩm"
-                , key: "tenThuongMai" }, { header: "Dài (mm)" , key: "dai" }, { header: "Rộng (mm)" , key: "rong" }, {
-                header: "Cao (mm)" , key: "cao" }, { header: "SL - Sợi" , key: "slSoi" }, { header: "Số lượng" ,
-                key: "soLuong" }, { header: "Đơn vị tính" , key: "donViTinh" }, { header: "Tổng số lượng" ,
-                key: "tongSoLuong" }, { header: "Tổng SL-Sợi" , key: "tongSLSoi" }, { header: "Ghi chú sản xuất" ,
-                key: "ghiChuSanXuat" } ]; // Lọc các cột có dữ liệu var filteredColumns=[]; for (var i=0; i <
-                columns.length; i++) { var col=columns[i]; var hasData=false; for (var j=0; j < products.length; j++) {
-                if (products[j][col.key]) { hasData=true; break; } } if (hasData) { filteredColumns.push(col); } } %>
+            <% // Xác định các cột cần hiển thị var columns=[ { header: "Mã ĐH chi tiết" , key: "maDonHangChiTiet" }, {
+                header: "Tên thương mại sản phẩm" , key: "tenThuongMai" }, { header: "Dài (mm)" , key: "dai" }, {
+                header: "Rộng (mm)" , key: "rong" }, { header: "Cao (mm)" , key: "cao" }, { header: "SL - Sợi" ,
+                key: "slSoi" }, { header: "Số lượng" , key: "soLuong" }, { header: "Đơn vị tính" , key: "donViTinh" }, {
+                header: "Tổng số lượng" , key: "tongSoLuong" }, { header: "Tổng SL-Sợi" , key: "tongSLSoi" }, {
+                header: "Ghi chú sản xuất" , key: "ghiChuSanXuat" } ]; // Lọc các cột có dữ liệu var filteredColumns=[];
+                for (var i=0; i < columns.length; i++) { var col=columns[i]; var hasData=false; for (var j=0; j <
+                products.length; j++) { if (products[j][col.key]) { hasData=true; break; } } if (hasData) {
+                filteredColumns.push(col); } } %>
 
                 <table style="width: 100%; font-size: 12px;">
                     <thead>
