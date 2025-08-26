@@ -282,17 +282,19 @@
                                                                 <td>
                                                                     <%= product.donViTinh || '' %>
                                                                 </td>
-                                                                <td>
-                                                                    <%= product.tongSoLuong || '' %>
-                                                                </td>
-                                                                <% if (showTongSLSoi) { %>
+                                                                <% if (showTongSL) { %>
                                                                     <td>
-                                                                        <%= product.tongSLSoi || '' %>
+                                                                        <%= product.tongSoLuong || '' %>
                                                                     </td>
                                                                     <% } %>
-                                                                        <td>
-                                                                            <%= product.ghiChuSanXuat || '' %>
-                                                                        </td>
+                                                                        <% if (showTongSLSoi) { %>
+                                                                            <td>
+                                                                                <%= product.tongSLSoi || '' %>
+                                                                            </td>
+                                                                            <% } %>
+                                                                                <td>
+                                                                                    <%= product.ghiChuSanXuat || '' %>
+                                                                                </td>
                             </tr>
                             <% }); %>
                     </tbody>
