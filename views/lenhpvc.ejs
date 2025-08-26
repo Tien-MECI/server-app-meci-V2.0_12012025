@@ -211,6 +211,7 @@
                 const showRong = hasData("rong");
                 const showCao = hasData("cao");
                 const showSlSoi = hasData("slSoi");
+                const showTongSL = hasData("tongSoLuong");
                 const showTongSLSoi = hasData("tongSLSoi");
                 %>
 
@@ -234,11 +235,13 @@
                                                         <% } %>
                                                             <th>Số lượng</th>
                                                             <th>Đơn vị tính</th>
-                                                            <th>Tổng số lượng</th>
-                                                            <% if (showTongSLSoi) { %>
-                                                                <th>Tổng SL - Sợi</th>
+                                                            <% if (showTongSL) { %>
+                                                                <th>Tổng số lượng</th>
                                                                 <% } %>
-                                                                    <th>Ghi chú sản xuất</th>
+                                                                    <% if (showTongSLSoi) { %>
+                                                                        <th>Tổng SL - Sợi</th>
+                                                                        <% } %>
+                                                                            <th>Ghi chú sản xuất</th>
                         </tr>
                     </thead>
                     <tbody>
