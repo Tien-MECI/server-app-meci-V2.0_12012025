@@ -443,17 +443,17 @@ app.get("/lenhpvc", async (req, res) => {
         const products = ctRows
             .filter((r) => r[1] === maDonHang)
             .map((r, i) => ({
-                maDonHangChiTiet: r[3],
+                maDonHangChiTiet: r[2],
                 tenThuongMai: r[9],
-                dai: r[17],
-                rong: r[18],
-                cao: r[19],
-                slSoi: r[20],
-                soLuong: r[22],
-                donViTinh: r[23],
-                tongSoLuong: r[21],
-                tongSLSoi: r[24],
-                ghiChuSanXuat: r[29]
+                dai: r[16],
+                rong: r[17],
+                cao: r[18],
+                slSoi: r[19],
+                soLuong: r[21],
+                donViTinh: r[22],
+                tongSoLuong: r[20],
+                tongSLSoi: r[23],
+                ghiChuSanXuat: r[28]
             }));
 
         console.log(`✔️ Tìm thấy ${products.length} sản phẩm.`);
