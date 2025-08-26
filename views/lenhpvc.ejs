@@ -203,93 +203,97 @@
             <!-- Bảng chi tiết hàng hóa -->
             <h2>BẢNG CHI TIẾT HÀNG HÓA</h2>
 
-            <% // Xác định cột nào có dữ liệu const showDai=products.some(p=> p.dai && p.dai.toString().trim() !== "");
-                const showRong = products.some(p => p.rong && p.rong.toString().trim() !== "");
-                const showCao = products.some(p => p.cao && p.cao.toString().trim() !== "");
-                const showSlSoi = products.some(p => p.slSoi && p.slSoi.toString().trim() !== "");
-                const showTongSLSoi = products.some(p => p.tongSLSoi && p.tongSLSoi.toString().trim() !== "");
-                %>
+            <body>
+                <% // Xác định cột nào có dữ liệu const showDai=products && products.some(p=> p.dai &&
+                    p.dai.toString().trim() !== "");
+                    const showRong = products && products.some(p => p.rong && p.rong.toString().trim() !== "");
+                    const showCao = products && products.some(p => p.cao && p.cao.toString().trim() !== "");
+                    const showSlSoi = products && products.some(p => p.slSoi && p.slSoi.toString().trim() !== "");
+                    const showTongSLSoi = products && products.some(p => p.tongSLSoi && p.tongSLSoi.toString().trim()
+                    !== "");
+                    %>
 
-                <table style="width: 100%; font-size: 12px;">
-                    <thead>
-                        <tr>
-                            <th>STT</th>
-                            <th>Mã ĐH chi tiết</th>
-                            <th>Tên thương mại sản phẩm</th>
-                            <% if (showDai) { %>
-                                <th>Dài (mm)</th>
-                                <% } %>
-                                    <% if (showRong) { %>
-                                        <th>Rộng (mm)</th>
-                                        <% } %>
-                                            <% if (showCao) { %>
-                                                <th>Cao (mm)</th>
-                                                <% } %>
-                                                    <% if (showSlSoi) { %>
-                                                        <th>SL - Sợi</th>
-                                                        <% } %>
-                                                            <th>Số lượng</th>
-                                                            <th>Đơn vị tính</th>
-                                                            <th>Tổng số lượng</th>
-                                                            <% if (showTongSLSoi) { %>
-                                                                <th>Tổng SL - Sợi</th>
-                                                                <% } %>
-                                                                    <th>Ghi chú sản xuất</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <% products.forEach((product, index)=> { %>
+
+                    <table style="width: 100%; font-size: 12px;">
+                        <thead>
                             <tr>
-                                <td>
-                                    <%= index + 1 %>
-                                </td>
-                                <td>
-                                    <%= product.maDonHangChiTiet || '' %>
-                                </td>
-                                <td style="text-align:left">
-                                    <%= product.tenThuongMai || '' %>
-                                </td>
+                                <th>STT</th>
+                                <th>Mã ĐH chi tiết</th>
+                                <th>Tên thương mại sản phẩm</th>
                                 <% if (showDai) { %>
-                                    <td>
-                                        <%= product.dai || '' %>
-                                    </td>
+                                    <th>Dài (mm)</th>
                                     <% } %>
                                         <% if (showRong) { %>
-                                            <td>
-                                                <%= product.rong || '' %>
-                                            </td>
+                                            <th>Rộng (mm)</th>
                                             <% } %>
                                                 <% if (showCao) { %>
-                                                    <td>
-                                                        <%= product.cao || '' %>
-                                                    </td>
+                                                    <th>Cao (mm)</th>
                                                     <% } %>
                                                         <% if (showSlSoi) { %>
-                                                            <td>
-                                                                <%= product.slSoi || '' %>
-                                                            </td>
+                                                            <th>SL - Sợi</th>
                                                             <% } %>
-                                                                <td>
-                                                                    <%= product.soLuong || '' %>
-                                                                </td>
-                                                                <td>
-                                                                    <%= product.donViTinh || '' %>
-                                                                </td>
-                                                                <td>
-                                                                    <%= product.tongSoLuong || '' %>
-                                                                </td>
+                                                                <th>Số lượng</th>
+                                                                <th>Đơn vị tính</th>
+                                                                <th>Tổng số lượng</th>
                                                                 <% if (showTongSLSoi) { %>
-                                                                    <td>
-                                                                        <%= product.tongSLSoi || '' %>
-                                                                    </td>
+                                                                    <th>Tổng SL - Sợi</th>
                                                                     <% } %>
-                                                                        <td>
-                                                                            <%= product.ghiChuSanXuat || '' %>
-                                                                        </td>
+                                                                        <th>Ghi chú sản xuất</th>
                             </tr>
-                            <% }); %>
-                    </tbody>
-                </table>
-</body>
+                        </thead>
+                        <tbody>
+                            <% products.forEach((product, index)=> { %>
+                                <tr>
+                                    <td>
+                                        <%= index + 1 %>
+                                    </td>
+                                    <td>
+                                        <%= product.maDonHangChiTiet || '' %>
+                                    </td>
+                                    <td style="text-align:left">
+                                        <%= product.tenThuongMai || '' %>
+                                    </td>
+                                    <% if (showDai) { %>
+                                        <td>
+                                            <%= product.dai || '' %>
+                                        </td>
+                                        <% } %>
+                                            <% if (showRong) { %>
+                                                <td>
+                                                    <%= product.rong || '' %>
+                                                </td>
+                                                <% } %>
+                                                    <% if (showCao) { %>
+                                                        <td>
+                                                            <%= product.cao || '' %>
+                                                        </td>
+                                                        <% } %>
+                                                            <% if (showSlSoi) { %>
+                                                                <td>
+                                                                    <%= product.slSoi || '' %>
+                                                                </td>
+                                                                <% } %>
+                                                                    <td>
+                                                                        <%= product.soLuong || '' %>
+                                                                    </td>
+                                                                    <td>
+                                                                        <%= product.donViTinh || '' %>
+                                                                    </td>
+                                                                    <td>
+                                                                        <%= product.tongSoLuong || '' %>
+                                                                    </td>
+                                                                    <% if (showTongSLSoi) { %>
+                                                                        <td>
+                                                                            <%= product.tongSLSoi || '' %>
+                                                                        </td>
+                                                                        <% } %>
+                                                                            <td>
+                                                                                <%= product.ghiChuSanXuat || '' %>
+                                                                            </td>
+                                </tr>
+                                <% }); %>
+                        </tbody>
+                    </table>
+            </body>
 
 </html>
