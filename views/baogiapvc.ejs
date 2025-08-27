@@ -189,8 +189,8 @@
                                 var value = products[i][filteredColumns[j].key] || '';
                                 if (['donGia', 'thanhTien'].includes(filteredColumns[j].key) && value) {
                                     value = new Intl.NumberFormat('vi-VN').format(value);
-                                } else if (filteredColumns[j].key === 'vat' && value) {
-                                    value = (value * 100) + '%';
+                                } else if (filteredColumns[j].key === 'vat' && value !== null) {
+                                    value = value + '%';
                                 }
                             %>
                             <td style="text-align: center;"><%= value %></td>
