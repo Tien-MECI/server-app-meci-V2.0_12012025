@@ -616,7 +616,9 @@ app.get("/baogiapvc", async (req, res) => {
             chietKhau,
             tamUng,
             tongThanhTien,
+            numberToWords,
             pathToFile: ""
+            
         });
 
         // --- Sau khi render xong thì gọi AppScript ngầm ---
@@ -635,6 +637,7 @@ app.get("/baogiapvc", async (req, res) => {
                         chietKhau,
                         tamUng,
                         tongThanhTien,
+                        numberToWords,
                         pathToFile: ""
                     }
                 );
