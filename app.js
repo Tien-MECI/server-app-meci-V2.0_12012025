@@ -573,18 +573,18 @@ app.get("/baogiapvc", async (req, res) => {
         const products = ctRows
             .filter((r) => r[1] === maDonHang)
             .map((r) => ({
-                maDonHangChiTiet: r[3],
-                tenHangHoa: r[10],
-                quyCach: r[11],
-                dai: r[17],
-                rong: r[18],
-                cao: r[19],
-                soLuong: r[22],
-                donViTinh: r[23],
-                tongSoLuong: r[21],
-                donGia: r[26],
-                vat: r[27],
-                thanhTien: r[28]
+                maDonHangChiTiet: r[2],
+                tenHangHoa: r[9],
+                quyCach: r[10],
+                dai: r[16],
+                rong: r[17],
+                cao: r[18],
+                soLuong: r[21],
+                donViTinh: r[22],
+                tongSoLuong: r[20],
+                donGia: r[25],
+                vat: r[26],
+                thanhTien: r[27]
             }));
 
         console.log(`✔️ Tìm thấy ${products.length} sản phẩm.`);
