@@ -532,6 +532,151 @@ app.get("/lenhpvc", async (req, res) => {
     }
 });
 
+app.get("/baogiapvc", async (req, res) => {
+    try {
+        console.log("▶️ Bắt đầu xuất Báo Giá PVC ...");
+
+        // --- Lấy mã đơn hàng ---
+        const baoGiaRes = await sheets.spreadsheets.values.get({
+            spreadsheetId: SPREADSHEET_ID,
+            range: "File_bao_gia_ct!B:B",
+        });
+        const colB = baoGiaRes.data.values ? baoGiaRes.data.values.flat() : [];
+        const lastRowWithData = colB.length;
+        const maDonHang = colB[lastRowWithData - 1];
+        if (!maDonHang)
+            return res.send("⚠️ Không tìm thấy dữ liệu ở cột B sheet File_bao_gia_ct.");
+
+        console.log(`✔️ Mã đơn hàng: ${maDonHang} (dòng ${lastRowWithData})`);
+
+        // --- Lấy đơn hàng ---
+        const donHangRes = await sheets.spreadsheets.values.get({
+            spreadsheetId: SPREADSHEET_ID,
+            range: "Don_hang!A1:BJ",
+        });
+        const rows = donHangRes.data.values || [];
+        const data = rows.slice(1);
+        const donHang =
+            data.find((r) => r[5] === maDonHang) ||
+            data.find((r) => r[6] === maDonHang);
+        if (!donHang)
+            return res.send("❌ Không tìm thấy đơn hàng với mã: " + maDonHang);
+
+        // --- Lấy chi tiết sản phẩm PVC ---
+        const ctRes = await sheets.spreadsheets.values.get({
+            spreadsheetId: SPREADSHEET_ID,
+            range: "Don_hang_PVC_ct!A1:AC",
+        });
+        const ctRows = (ctRes.data.values || []).slice(1);
+
+        // Lọc và map dữ liệu theo cấu trúc của báo giá
+        const products = ctRows
+            .filter((r) => r[1] === maDonHang)
+            .map((r) => ({
+                maDonHangChiTiet: r[3],
+                tenHangHoa: r[10],
+                quyCach: r[11],
+                dai: r[17],
+                rong: r[18],
+                cao: r[19],
+                soLuong: r[22],
+                donViTinh: r[23],
+                tongSoLuong: r[21],
+                donGia: r[26],
+                vat: r[27],
+                thanhTien: r[28]
+            }));
+
+        console.log(`✔️ Tìm thấy ${products.length} sản phẩm.`);
+
+        // --- Tính tổng các giá trị ---
+        let tongTien = 0;
+        let chietKhau = parseFloat(donHang[40]) || 0;
+        let tamUng = parseFloat(donHang[41]) || 0;
+
+        products.forEach(product => {
+            tongTien += parseFloat(product.thanhTien) || 0;
+        });
+
+        let tongThanhTien = tongTien - chietKhau - tamUng;
+
+        // --- Logo & Watermark ---
+        const logoBase64 = await loadDriveImageBase64(LOGO_FILE_ID);
+        const watermarkBase64 = await loadDriveImageBase64(WATERMARK_FILE_ID);
+
+        // --- Render ngay cho client ---
+        res.render("baogiapvc", {
+            donHang,
+            products,
+            logoBase64,
+            watermarkBase64,
+            autoPrint: true,
+            maDonHang,
+            tongTien,
+            chietKhau,
+            tamUng,
+            tongThanhTien,
+            pathToFile: ""
+        });
+
+        // --- Sau khi render xong thì gọi AppScript ngầm ---
+        (async () => {
+            try {
+                const renderedHtml = await renderFileAsync(
+                    path.join(__dirname, "views", "baogiapvc.ejs"),
+                    {
+                        donHang,
+                        products,
+                        logoBase64,
+                        watermarkBase64,
+                        autoPrint: false,
+                        maDonHang,
+                        tongTien,
+                        chietKhau,
+                        tamUng,
+                        tongThanhTien,
+                        pathToFile: ""
+                    }
+                );
+
+                // Gọi GAS webapp tương ứng (cần thêm biến môi trường GAS_WEBAPP_URL_BAOGIA)
+                const GAS_WEBAPP_URL_BAOGIAPVC = process.env.GAS_WEBAPP_URL_BAOGIAPVC;
+                if (GAS_WEBAPP_URL_BAOGIAPVC) {
+                    const resp = await fetch(GAS_WEBAPP_URL_BAOGIAPVC, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                        body: new URLSearchParams({
+                            orderCode: maDonHang,
+                            html: renderedHtml
+                        })
+                    });
+
+                    const data = await resp.json();
+                    console.log("✔️ AppScript trả về:", data);
+
+                    const pathToFile = data.pathToFile || `BAO_GIA_PVC/${data.fileName}`;
+                    await sheets.spreadsheets.values.update({
+                        spreadsheetId: SPREADSHEET_ID,
+                        range: `File_bao_gia_ct!D${lastRowWithData}`,
+                        valueInputOption: "RAW",
+                        requestBody: { values: [[pathToFile]] },
+                    });
+                    console.log("✔️ Đã ghi đường dẫn:", pathToFile);
+                } else {
+                    console.log("⚠️ Chưa cấu hình GAS_WEBAPP_URL_BAOGIA");
+                }
+
+            } catch (err) {
+                console.error("❌ Lỗi gọi AppScript:", err);
+            }
+        })();
+
+    } catch (err) {
+        console.error("❌ Lỗi khi xuất Báo Giá PVC:", err.stack || err.message);
+        res.status(500).send("Lỗi server: " + (err.message || err));
+    }
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 // --- Debug ---
 app.get("/debug", (_req, res) => {
@@ -540,3 +685,67 @@ app.get("/debug", (_req, res) => {
 
 // --- Start server ---
 app.listen(PORT, () => console.log(`✅ Server is running on port ${PORT}`));
+
+
+// Hàm chuyển số thành chữ (thêm vào app.js)
+function numberToWords(number) {
+    const ones = ['', 'một', 'hai', 'ba', 'bốn', 'năm', 'sáu', 'bảy', 'tám', 'chín'];
+    const groups = ['', 'nghìn', 'triệu', 'tỷ'];
+
+    if (number === 0) return 'không';
+
+    let words = [];
+    let chunk = 0;
+
+    while (number > 0) {
+        const triplet = number % 1000;
+        if (triplet > 0) {
+            const hundreds = Math.floor(triplet / 100);
+            const tens = Math.floor((triplet % 100) / 10);
+            const onesDigit = triplet % 10;
+
+            let part = '';
+
+            // Trăm
+            if (hundreds > 0) {
+                part += ones[hundreds] + ' trăm ';
+            } else if (hundreds === 0 && chunk > 0 && triplet > 0) {
+                part += 'không trăm ';
+            }
+
+            // Chục
+            if (tens > 1) {
+                part += ones[tens] + ' mươi ';
+                if (onesDigit === 1) {
+                    part += 'mốt ';
+                } else if (onesDigit === 5) {
+                    part += 'lăm ';
+                } else if (onesDigit > 0) {
+                    part += ones[onesDigit] + ' ';
+                }
+            } else if (tens === 1) {
+                part += 'mười ';
+                if (onesDigit === 5) {
+                    part += 'lăm ';
+                } else if (onesDigit > 0) {
+                    part += ones[onesDigit] + ' ';
+                }
+            } else if (tens === 0 && onesDigit > 0) {
+                if (hundreds > 0) part += 'lẻ ';
+                if (onesDigit === 5 && triplet > 5) {
+                    part += 'lăm ';
+                } else {
+                    part += ones[onesDigit] + ' ';
+                }
+            }
+
+            part += groups[chunk];
+            words.unshift(part.trim());
+        }
+
+        number = Math.floor(number / 1000);
+        chunk++;
+    }
+
+    return words.join(' ').replace(/\s+/g, ' ').trim();
+}
