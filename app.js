@@ -583,7 +583,7 @@ app.get("/baogiapvc", async (req, res) => {
                 donViTinh: r[22],
                 tongSoLuong: r[20],
                 donGia: r[25],
-                vat: r[26],
+                vat: r[26] ? parseFloat(r[26]) : null,
                 thanhTien: r[27]
             }));
 
@@ -610,7 +610,7 @@ app.get("/baogiapvc", async (req, res) => {
             products,
             logoBase64,
             watermarkBase64,
-            autoPrint: true,
+            autoPrint: false,
             maDonHang,
             tongTien,
             chietKhau,
@@ -676,6 +676,169 @@ app.get("/baogiapvc", async (req, res) => {
 
     } catch (err) {
         console.error("❌ Lỗi khi xuất Báo Giá PVC:", err.stack || err.message);
+        res.status(500).send("Lỗi server: " + (err.message || err));
+    }
+});
+
+app.get("/baogiank", async (req, res) => {
+    try {
+        console.log("▶️ Bắt đầu xuất Báo Giá Nhôm Kính ...");
+
+        // --- Lấy mã đơn hàng ---
+        const baoGiaRes = await sheets.spreadsheets.values.get({
+            spreadsheetId: SPREADSHEET_ID,
+            range: "File_bao_gia_ct!B:B",
+        });
+        const colB = baoGiaRes.data.values ? baoGiaRes.data.values.flat() : [];
+        const lastRowWithData = colB.length;
+        const maDonHang = colB[lastRowWithData - 1];
+        if (!maDonHang)
+            return res.send("⚠️ Không tìm thấy dữ liệu ở cột B sheet File_bao_gia_ct.");
+
+        console.log(`✔️ Mã đơn hàng: ${maDonHang} (dòng ${lastRowWithData})`);
+
+        // --- Lấy đơn hàng ---
+        const donHangRes = await sheets.spreadsheets.values.get({
+            spreadsheetId: SPREADSHEET_ID,
+            range: "Don_hang!A1:BW", // Mở rộng đến cột BW
+        });
+        const rows = donHangRes.data.values || [];
+        const data = rows.slice(1);
+        const donHang =
+            data.find((r) => r[5] === maDonHang) ||
+            data.find((r) => r[6] === maDonHang);
+        if (!donHang)
+            return res.send("❌ Không tìm thấy đơn hàng với mã: " + maDonHang);
+
+        // --- Lấy chi tiết sản phẩm Nhôm Kính ---
+        const ctRes = await sheets.spreadsheets.values.get({
+            spreadsheetId: SPREADSHEET_ID,
+            range: "Don_hang_nk_ct!A1:U", // Mở rộng đến cột U
+        });
+        const ctRows = (ctRes.data.values || []).slice(1);
+        
+        // Lọc và map dữ liệu theo cấu trúc của báo giá nhôm kính
+        const products = ctRows
+            .filter((r) => r[1] === maDonHang)
+            .map((r) => ({
+                kyHieu: r[6],
+                tenHangHoa: r[9],
+                dai: r[10],
+                rong: r[11],
+                cao: r[12],
+                dienTich: r[13],
+                soLuong: r[15],
+                donViTinh: r[14],
+                donGia: r[18],
+                giaPK: r[17],
+                thanhTien: r[20]
+            }));
+
+        console.log(`✔️ Tìm thấy ${products.length} sản phẩm.`);
+
+        // --- Tính tổng các giá trị ---
+        let tongTien = 0;
+        let chietKhau = parseFloat(donHang[40]) || 0; // Cột AN
+        let tamUng = parseFloat(donHang[41]) || 0; // Cột AO
+        
+        products.forEach(product => {
+            tongTien += parseFloat(product.thanhTien) || 0;
+        });
+
+        let tongThanhTien = tongTien - chietKhau - tamUng;
+
+        // Tính tổng diện tích và số lượng
+        let tongDienTich = 0;
+        let tongSoLuong = 0;
+        
+        products.forEach(product => {
+            const dienTich = parseFloat(product.dienTich) || 0;
+            const soLuong = parseFloat(product.soLuong) || 0;
+            tongDienTich += dienTich * soLuong;
+            tongSoLuong += soLuong;
+        });
+
+        tongDienTich = parseFloat(tongDienTich.toFixed(2));
+
+        // --- Logo & Watermark ---
+        const logoBase64 = await loadDriveImageBase64(LOGO_FILE_ID);
+        const watermarkBase64 = await loadDriveImageBase64('1766zFeBWPEmjTGQGrrtM34QFbV8fHryb'); // Watermark ID từ code GAS
+
+        // --- Render ngay cho client ---
+        res.render("baogiank", {
+            donHang,
+            products,
+            logoBase64,
+            watermarkBase64,
+            autoPrint: true,
+            maDonHang,
+            tongTien,
+            chietKhau,
+            tamUng,
+            tongThanhTien,
+            tongDienTich,
+            tongSoLuong,
+            numberToWords,
+            pathToFile: ""
+        });
+
+        // --- Sau khi render xong thì gọi AppScript ngầm ---
+        (async () => {
+            try {
+                const renderedHtml = await renderFileAsync(
+                    path.join(__dirname, "views", "baogiank.ejs"),
+                    {
+                        donHang,
+                        products,
+                        logoBase64,
+                        watermarkBase64,
+                        autoPrint: false,
+                        maDonHang,
+                        tongTien,
+                        chietKhau,
+                        tamUng,
+                        tongThanhTien,
+                        tongDienTich,
+                        tongSoLuong,
+                        numberToWords,
+                        pathToFile: ""
+                    }
+                );
+
+                // Gọi GAS webapp tương ứng (cần thêm biến môi trường GAS_WEBAPP_URL_BAOGIANK)
+                const GAS_WEBAPP_URL_BAOGIANK = process.env.GAS_WEBAPP_URL_BAOGIANK;
+                if (GAS_WEBAPP_URL_BAOGIANK) {
+                    const resp = await fetch(GAS_WEBAPP_URL_BAOGIANK, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                        body: new URLSearchParams({
+                            orderCode: maDonHang,
+                            html: renderedHtml
+                        })
+                    });
+
+                    const data = await resp.json();
+                    console.log("✔️ AppScript trả về:", data);
+
+                    const pathToFile = data.pathToFile || `BAO_GIA_NK/${data.fileName}`;
+                    await sheets.spreadsheets.values.update({
+                        spreadsheetId: SPREADSHEET_ID,
+                        range: `File_bao_gia_ct!D${lastRowWithData}`,
+                        valueInputOption: "RAW",
+                        requestBody: { values: [[pathToFile]] },
+                    });
+                    console.log("✔️ Đã ghi đường dẫn:", pathToFile);
+                } else {
+                    console.log("⚠️ Chưa cấu hình GAS_WEBAPP_URL_BAOGIANK");
+                }
+
+            } catch (err) {
+                console.error("❌ Lỗi gọi AppScript:", err);
+            }
+        })();
+
+    } catch (err) {
+        console.error("❌ Lỗi khi xuất Báo Giá Nhôm Kính:", err.stack || err.message);
         res.status(500).send("Lỗi server: " + (err.message || err));
     }
 });
