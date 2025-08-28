@@ -843,6 +843,135 @@ app.get("/baogiank", async (req, res) => {
     }
 });
 
+app.get("/lenhnk", async (req, res) => {
+    try {
+        console.log("▶️ Bắt đầu xuất Lệnh Nhôm Kính ...");
+
+        // --- Lấy mã đơn hàng ---
+        const lenhRes = await sheets.spreadsheets.values.get({
+            spreadsheetId: SPREADSHEET_ID,
+            range: "File_lenh_ct!B:B",
+        });
+        const colB = lenhRes.data.values ? lenhRes.data.values.flat() : [];
+        const lastRowWithData = colB.length;
+        const maDonHang = colB[lastRowWithData - 1];
+        if (!maDonHang)
+            return res.send("⚠️ Không tìm thấy dữ liệu ở cột B sheet File_lenh_ct.");
+
+        console.log(`✔️ Mã đơn hàng: ${maDonHang} (dòng ${lastRowWithData})`);
+
+        // --- Lấy đơn hàng ---
+        const donHangRes = await sheets.spreadsheets.values.get({
+            spreadsheetId: SPREADSHEET_ID,
+            range: "Don_hang!A1:BJ",
+        });
+        const rows = donHangRes.data.values || [];
+        const data = rows.slice(1);
+        const donHang =
+            data.find((r) => r[5] === maDonHang) ||
+            data.find((r) => r[6] === maDonHang);
+        if (!donHang)
+            return res.send("❌ Không tìm thấy đơn hàng với mã: " + maDonHang);
+
+        // --- Lấy chi tiết sản phẩm Nhôm Kính ---
+        const ctRes = await sheets.spreadsheets.values.get({
+            spreadsheetId: SPREADSHEET_ID,
+            range: "Don_hang_nk_ct!A1:U",
+        });
+        const ctRows = (ctRes.data.values || []).slice(1);
+        
+        // Lọc và map dữ liệu theo cấu trúc của lệnh sản xuất nhôm kính
+        const products = ctRows
+            .filter((r) => r[1] === maDonHang)
+            .map((r, i) => ({
+                maDonHangChiTiet: r[2],
+                tenThuongMai: r[7],
+                dai: r[9],
+                rong: r[10],
+                cao: r[11],
+                dienTich: r[12],
+                donViTinh: r[13],
+                slBo: r[14],
+                tongSoLuong: r[15],
+                ghiChuSanXuat: r[20]
+            }));
+
+        console.log(`✔️ Tìm thấy ${products.length} sản phẩm.`);
+
+        // --- Logo & Watermark ---
+        const logoBase64 = await loadDriveImageBase64(LOGO_FILE_ID);
+        const watermarkBase64 = await loadDriveImageBase64(WATERMARK_FILE_ID);
+
+        // --- Xác định loại lệnh từ cột S (index 36) ---
+        const lenhValue = donHang[36] || '';
+
+        // --- Render ngay cho client ---
+        res.render("lenhnk", {
+            donHang,
+            products,
+            logoBase64,
+            watermarkBase64,
+            autoPrint: true,
+            maDonHang,
+            lenhValue,
+            pathToFile: ""
+        });
+
+        // --- Sau khi render xong thì gọi AppScript ngầm ---
+        (async () => {
+            try {
+                const renderedHtml = await renderFileAsync(
+                    path.join(__dirname, "views", "lenhnk.ejs"),
+                    {
+                        donHang,
+                        products,
+                        logoBase64,
+                        watermarkBase64,
+                        autoPrint: false,
+                        maDonHang,
+                        lenhValue,
+                        pathToFile: ""
+                    }
+                );
+
+                // Gọi GAS webapp tương ứng (cần thêm biến môi trường GAS_WEBAPP_URL_LENHNK)
+                const GAS_WEBAPP_URL_LENHNK = process.env.GAS_WEBAPP_URL_LENHNK;
+                if (GAS_WEBAPP_URL_LENHNK) {
+                    const resp = await fetch(GAS_WEBAPP_URL_LENHNK, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                        body: new URLSearchParams({
+                            orderCode: maDonHang,
+                            html: renderedHtml
+                        })
+                    });
+
+                    const data = await resp.json();
+                    console.log("✔️ AppScript trả về:", data);
+
+                    const pathToFile = data.pathToFile || `LENH_NK/${data.fileName}`;
+                    await sheets.spreadsheets.values.update({
+                        spreadsheetId: SPREADSHEET_ID,
+                        range: `File_lenh_ct!D${lastRowWithData}`,
+                        valueInputOption: "RAW",
+                        requestBody: { values: [[pathToFile]] },
+                    });
+                    console.log("✔️ Đã ghi đường dẫn:", pathToFile);
+                } else {
+                    console.log("⚠️ Chưa cấu hình GAS_WEBAPP_URL_LENHNK");
+                }
+
+            } catch (err) {
+                console.error("❌ Lỗi gọi AppScript:", err);
+            }
+        })();
+
+    } catch (err) {
+        console.error("❌ Lỗi khi xuất Lệnh Nhôm Kính:", err.stack || err.message);
+        res.status(500).send("Lỗi server: " + (err.message || err));
+    }
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 // --- Debug ---
 app.get("/debug", (_req, res) => {
