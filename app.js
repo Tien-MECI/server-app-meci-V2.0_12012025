@@ -972,6 +972,124 @@ app.get("/lenhnk", async (req, res) => {
     }
 });
 
+
+app.get("/bbgnnk", async (req, res) => {
+    try {
+        console.log("▶️ Bắt đầu xuất BBGN NK ...");
+
+        // --- Lấy mã đơn hàng ---
+        const bbgnnkRes = await sheets.spreadsheets.values.get({
+            spreadsheetId: SPREADSHEET_ID,
+            range: "file_BBGN_ct!B:B",
+        });
+        const colB = bbgnnkRes.data.values ? bbgnnkRes.data.values.flat() : [];
+        const lastRowWithData = colB.length;
+        const maDonHang = colB[lastRowWithData - 1];
+        if (!maDonHang) {
+            return res.send("⚠️ Không tìm thấy dữ liệu ở cột B sheet file_BBGN_ct.");
+        }
+
+        console.log(`✔️ Mã đơn hàng: ${maDonHang} (dòng ${lastRowWithData})`);
+
+        // --- Lấy đơn hàng ---
+        const donHangRes = await sheets.spreadsheets.values.get({
+            spreadsheetId: SPREADSHEET_ID,
+            range: "Don_hang!A1:BJ",
+        });
+        const rows = donHangRes.data.values || [];
+        const data = rows.slice(1);
+        const donHang =
+            data.find((r) => r[5] === maDonHang) ||
+            data.find((r) => r[6] === maDonHang);
+        if (!donHang) {
+            return res.send("❌ Không tìm thấy đơn hàng với mã: " + maDonHang);
+        }
+
+        // --- Chi tiết sản phẩm ---
+        const ctRes = await sheets.spreadsheets.values.get({
+            spreadsheetId: SPREADSHEET_ID,
+            range: "Don_hang_nk_ct!A1:AC",
+        });
+        const ctRows = (ctRes.data.values || []).slice(1);
+        const products = ctRows
+            .filter((r) => r[1] === maDonHang)
+            .map((r, i) => ({
+                stt: i + 1,
+                tenSanPham: r[8],
+                soLuong: r[14],
+                donVi: r[13],
+                tongSoLuong: r[15],
+                ghiChu: " ",
+            }));
+
+        console.log(`✔️ Tìm thấy ${products.length} sản phẩm.`);
+
+        // --- Logo & Watermark ---
+        const logoBase64 = await loadDriveImageBase64(LOGO_FILE_ID);
+        const watermarkBase64 = await loadDriveImageBase64(WATERMARK_FILE_ID);
+
+        // --- Render ngay cho client ---
+        res.render("bbgnnk", {
+            donHang,
+            products,
+            logoBase64,
+            watermarkBase64,
+            autoPrint: true,
+            maDonHang,
+            pathToFile: "",
+        });
+
+        // --- Sau khi render xong thì gọi AppScript ngầm ---
+        (async () => {
+            try {
+                const renderedHtml = await renderFileAsync(
+                    path.join(__dirname, "views", "bbgnnk.ejs"),
+                    {
+                        donHang,
+                        products,
+                        logoBase64,
+                        watermarkBase64,
+                        autoPrint: false,
+                        maDonHang,
+                        pathToFile: "",
+                    }
+                );
+
+                const GAS_WEBAPP_URL_BBGNNK = process.env.GAS_WEBAPP_URL_BBGNNK;
+                if (GAS_WEBAPP_URL_BBGNNK) {
+                    const resp = await fetch(GAS_WEBAPP_URL_BBGNNK, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                        body: new URLSearchParams({
+                            orderCode: maDonHang,
+                            html: renderedHtml,
+                        }),
+                    });
+
+                    const data = await resp.json();
+                    console.log("✔️ AppScript trả về:", data);
+
+                    const pathToFile = data.pathToFile || `BBGNNK/${data.fileName}`;
+                    await sheets.spreadsheets.values.update({
+                        spreadsheetId: SPREADSHEET_ID,
+                        range: `file_BBGN_ct!D${lastRowWithData}`,
+                        valueInputOption: "RAW",
+                        requestBody: { values: [[pathToFile]] },
+                    });
+                    console.log("✔️ Đã ghi đường dẫn:", pathToFile);
+                }
+            } catch (err) {
+                console.error("❌ Lỗi gọi AppScript:", err);
+            }
+        })();
+
+    } catch (err) {
+        console.error("❌ Lỗi khi xuất BBGN NK:", err.stack || err.message);
+        res.status(500).send("Lỗi server: " + (err.message || err));
+    }
+});
+
+
 app.use(express.static(path.join(__dirname, 'public')));
 // --- Debug ---
 app.get("/debug", (_req, res) => {
