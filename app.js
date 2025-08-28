@@ -721,17 +721,17 @@ app.get("/baogiank", async (req, res) => {
         const products = ctRows
             .filter((r) => r[1] === maDonHang)
             .map((r) => ({
-                kyHieu: r[6],
-                tenHangHoa: r[9],
-                dai: r[10],
-                rong: r[11],
-                cao: r[12],
-                dienTich: r[13],
-                soLuong: r[15],
-                donViTinh: r[14],
-                donGia: r[18],
-                giaPK: r[17],
-                thanhTien: r[20]
+                kyHieu: r[5],
+                tenHangHoa: r[8],
+                dai: r[9],
+                rong: r[10],
+                cao: r[11],
+                dienTich: r[12],
+                soLuong: r[14],
+                donViTinh: r[13],
+                donGia: r[17],
+                giaPK: r[16],
+                thanhTien: r[19]
             }));
 
         console.log(`✔️ Tìm thấy ${products.length} sản phẩm.`);
