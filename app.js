@@ -1089,6 +1089,117 @@ app.get("/bbgnnk", async (req, res) => {
     }
 });
 
+app.get("/bbntnk", async (req, res) => {
+  try {
+    console.log("▶️ Bắt đầu xuất BBNTNK ...");
+
+    // 1. Lấy mã đơn hàng từ sheet file_BBNT_ct
+    const bbntRes = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: "file_BBNT_ct!B:B",
+    });
+    const colB = bbntRes.data.values ? bbntRes.data.values.flat() : [];
+    const lastRowWithData = colB.length;
+    const maDonHang = colB[lastRowWithData - 1];
+    if (!maDonHang) return res.send("⚠️ Không tìm thấy dữ liệu ở cột B sheet file_BBNT_ct.");
+
+    console.log(`✔️ Mã đơn hàng: ${maDonHang} (dòng ${lastRowWithData})`);
+
+    // 2. Lấy đơn hàng
+    const donHangRes = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: "Don_hang!A1:BJ",
+    });
+    const rows = donHangRes.data.values || [];
+    const data = rows.slice(1);
+    const donHang =
+      data.find((r) => r[5] === maDonHang) || data.find((r) => r[6] === maDonHang);
+    if (!donHang) return res.send("❌ Không tìm thấy đơn hàng với mã: " + maDonHang);
+
+    // 3. Lấy chi tiết sản phẩm
+    const ctRes = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: "Don_hang_nk_ct!A1:AC",
+    });
+    const ctRows = (ctRes.data.values || []).slice(1);
+    const products = ctRows
+      .filter((r) => r[1] === maDonHang)
+      .map((r, i) => ({
+        stt: i + 1,
+        tenSanPham: r[8],
+        soLuong: r[14],
+        donVi: r[13],
+        tongSoLuong: r[15],
+        ghiChu: "",
+      }));
+
+    console.log(`✔️ Tìm thấy ${products.length} sản phẩm.`);
+
+    // 4. Logo & watermark
+    const logoBase64 = await loadDriveImageBase64(LOGO_FILE_ID);
+    const watermarkBase64 = await loadDriveImageBase64(WATERMARK_FILE_ID);
+
+    // 5. Render ngay
+    res.render("bbntnk", {
+      donHang,
+      products,
+      logoBase64,
+      watermarkBase64,
+      autoPrint: true,
+      maDonHang,
+      pathToFile: "",
+    });
+
+    // 6. Gọi AppScript lưu HTML
+    (async () => {
+      try {
+        const renderedHtml = await renderFileAsync(
+          path.join(__dirname, "views", "bbntnk.ejs"),
+          {
+            donHang,
+            products,
+            logoBase64,
+            watermarkBase64,
+            autoPrint: false,
+            maDonHang,
+            pathToFile: "",
+          }
+        );
+
+        const GAS_WEBAPP_URL_BBNTNK = process.env.GAS_WEBAPP_URL_BBNTNK;
+        if (GAS_WEBAPP_URL_BBNTNK) {
+          const resp = await fetch(GAS_WEBAPP_URL_BBNTNK, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: new URLSearchParams({
+              orderCode: maDonHang,
+              html: renderedHtml,
+            }),
+          });
+
+          const data = await resp.json();
+          console.log("✔️ AppScript trả về:", data);
+
+          const pathToFile = data.pathToFile || `BBNTNK/${data.fileName}`;
+          await sheets.spreadsheets.values.update({
+            spreadsheetId: SPREADSHEET_ID,
+            range: `file_BBNT_ct!D${lastRowWithData}`,
+            valueInputOption: "RAW",
+            requestBody: { values: [[pathToFile]] },
+          });
+          console.log("✔️ Đã ghi đường dẫn:", pathToFile);
+        }
+      } catch (err) {
+        console.error("❌ Lỗi gọi AppScript BBNTNK:", err);
+      }
+    })();
+  } catch (err) {
+    console.error("❌ Lỗi khi xuất BBNTNK:", err.stack || err.message);
+    res.status(500).send("Lỗi server: " + (err.message || err));
+  }
+});
+
+
 
 app.use(express.static(path.join(__dirname, 'public')));
 // --- Debug ---
