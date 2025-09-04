@@ -1199,6 +1199,8 @@ app.get("/bbntnk", async (req, res) => {
   }
 });
 
+
+
 app.get("/gghnk", async (req, res) => {
     try {
         console.log("▶️ Bắt đầu xuất GGHNK ...");
@@ -1292,6 +1294,57 @@ app.get("/gghnk", async (req, res) => {
         res.status(500).send("Lỗi server: " + (err.message || err));
     }
 });
+
+
+// --- Route /dntu-<ma> ---
+app.get("/dntu-:ma", async (req, res) => {
+  try {
+    const maTamUng = req.params.ma;
+    console.log("▶️ Xuất giấy đề nghị tạm ứng:", maTamUng);
+
+    // Lấy dữ liệu sheet
+    const resp = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: "data_tam_ung_thanh_toan!A1:Z",
+    });
+    const rows = resp.data.values || [];
+    const data = rows.slice(1);
+
+    // Tìm dòng có cột H (index 7) == maTamUng
+    const record = data.find((r) => r[7] === maTamUng);
+    if (!record) {
+      return res.send("❌ Không tìm thấy mã tạm ứng: " + maTamUng);
+    }
+
+    // Map dữ liệu theo form
+    const formData = {
+      maTamUng: record[7],     // H
+      ngayTamUng: record[4],   // E
+      ten: record[2],          // C
+      boPhan: record[3],       // D
+      soTien: record[9],       // J
+      soTienChu: numberToWords(record[9]),
+      lyDo: record[8],         // I
+      thoiHan: record[12],     // M
+    };
+
+    // Logo + watermark
+    const logoBase64 = await loadDriveImageBase64(LOGO_FILE_ID);
+    const watermarkBase64 = await loadDriveImageBase64(WATERMARK_FILE_ID);
+
+    // Render EJS
+    res.render("dntu", {
+      formData,
+      logoBase64,
+      watermarkBase64,
+      autoPrint: true,
+    });
+  } catch (err) {
+    console.error("❌ Lỗi DNTU:", err.stack || err.message);
+    res.status(500).send("Lỗi server: " + (err.message || err));
+  }
+});
+
 
 app.use(express.static(path.join(__dirname, 'public')));
 // --- Debug ---
