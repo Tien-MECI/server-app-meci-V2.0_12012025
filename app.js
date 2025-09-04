@@ -1305,7 +1305,7 @@ app.get("/dntu-:ma", async (req, res) => {
     // Lấy dữ liệu sheet
     const resp = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
-      range: "data_tam_ung_thanh_toan!A1:Z",
+      range: "data_tam_ung_thanh_toan!A:Z",
     });
     const rows = resp.data.values || [];
     const data = rows.slice(1);
