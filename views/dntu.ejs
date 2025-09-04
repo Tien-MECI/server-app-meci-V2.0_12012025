@@ -10,6 +10,7 @@
     .header { font-weight: bold; font-size: 14px; text-align: center; }
     .red { color: red; }
     .signature { text-align: center; padding-top: 30px; }
+    .center { text-align: center; }
     .watermark {
       position: absolute;
       top: 40%;
@@ -27,22 +28,42 @@
       <td style="width:20%"><img src="<%= logoBase64 %>" style="width:80px;" /></td>
       <td class="header">GIẤY ĐỀ NGHỊ TẠM ỨNG</td>
       <td style="text-align:right;font-size:10px;">
-        Mã số: BM.TC.DNTU03<br/>
-        Phiên bản: 1.0<br/>
-        Ngày ban hành: 05/03/2021<br/>
-        Trang 1 / 1
+        <div class="center">
+          Mã số: BM.TC.DNTU03<br/>
+          Phiên bản: 1.0<br/>
+          Ngày ban hành: 05/03/2021<br/>
+          Trang 1 / 1
+        </div>
       </td>
     </tr>
   </table>
-  <p>Mã: <span class="red"><%= formData.maTamUng %></span></p>
-  <p>Ngày: <%= formData.ngayTamUng %></p>
 
-  <p><i>Kính gửi:</i> BAN GIÁM ĐỐC CÔNG TY</p>
+  <p>Mã: <span class="red"><%= formData.maTamUng %></span></p>
+
+  <!-- Ngày hiển thị theo kiểu: ngày 04 tháng 09 năm 2025 -->
+  <%
+    function formatVietnameseDate(dateStr) {
+      try {
+        const d = new Date(dateStr);
+        if (isNaN(d)) return dateStr; // Nếu không parse được thì trả nguyên
+        const day = ("0" + d.getDate()).slice(-2);
+        const month = ("0" + (d.getMonth() + 1)).slice(-2);
+        const year = d.getFullYear();
+        return `ngày ${day} tháng ${month} năm ${year}`;
+      } catch (e) {
+        return dateStr;
+      }
+    }
+  %>
+  <p class="center">Ngày: <%= formatVietnameseDate(formData.ngayTamUng) %></p>
+
+  <p class="center"><i>Kính gửi:</i> BAN GIÁM ĐỐC CÔNG TY</p>
   <p>Tên tôi là: <%= formData.ten %></p>
   <p>Bộ phận (địa chỉ): <%= formData.boPhan %></p>
   <p>Đề nghị tạm ứng số tiền: <span class="red"><%= formData.soTien %></span></p>
   <p>Viết bằng chữ: <%= formData.soTienChu %></p>
   <p>Lý do tạm ứng: <%= formData.lyDo %></p>
+  <p>Tài khoản nhận tiền: <%= formData.taikhoannhantu %></p>
   <p>Thời hạn thanh toán: <%= formData.thoiHan %></p>
 
   <table style="margin-top:40px;">
