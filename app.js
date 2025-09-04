@@ -1320,14 +1320,14 @@ app.get("/dntu-:ma", async (req, res) => {
     // Map dữ liệu theo form
     const formData = {
       maTamUng: record[7],     // H
-      ngayTamUng: record[4],   // E
+      ngayTamUng: formatVietnameseDate(record[4]),   // E
       ten: record[2],          // C
       boPhan: record[3],       // D
       soTien: record[9],       // J
       soTienChu: numberToWords(record[9]),
       lyDo: record[8],         // I
-      thoiHan: record[12],     // M
       taikhoannhantu: record[11], //J
+      thoiHan: record[12],     // M
     };
 
     // Logo + watermark
@@ -1420,3 +1420,16 @@ function numberToWords(number) {
 
     return words.join(' ').replace(/\s+/g, ' ').trim();
 }
+// Hàm chuyển định dạng ngày tháng năm
+function formatVietnameseDate(dateStr) {
+      try {
+        const d = new Date(dateStr);
+        if (isNaN(d)) return dateStr; // Nếu không parse được thì trả nguyên
+        const day = ("0" + d.getDate()).slice(-2);
+        const month = ("0" + (d.getMonth() + 1)).slice(-2);
+        const year = d.getFullYear();
+        return `Ngày ${day} tháng ${month} năm ${year}`;
+      } catch (e) {
+        return dateStr;
+      }
+    }
