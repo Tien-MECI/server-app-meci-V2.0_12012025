@@ -2,15 +2,19 @@
 <html>
 <head>
   <meta charset="UTF-8" />
-  <title>Giấy đề nghị tạm ứng</title>
+  <title>GIẤY ĐỀ NGHỊ TẠM ỨNG</title>
   <style>
-    body { font-family: Arial, sans-serif; font-size: 12px; width: 148mm; height: 210mm; margin: 0 auto; padding: 20px; position: relative; }
+    body { font-family: "Times New Roman", serif; font-size: 13px; width: 148mm; height: 210mm; margin: 0 auto; padding: 10px; position: relative; }
     table { width: 100%; border-collapse: collapse; }
-    td { padding: 4px; vertical-align: top; }
-    .header { font-weight: bold; font-size: 14px; text-align: center; }
-    .red { color: red; }
-    .signature { text-align: center; padding-top: 30px; }
-    .center { text-align: center; }
+    td { vertical-align: top; }
+    .header-title { font-weight: bold; font-size: 16px; text-align: center; }
+    .right-box { font-size: 11px; border: 1px solid #000; padding: 4px; }
+    .content p { margin: 4px 0; }
+    .label { display: inline-block; min-width: 140px; }
+    .dots { border-bottom: 1px dotted #000; display: inline-block; width: 400px; }
+    .signature td { text-align: center; font-weight: bold; padding-top: 30px; }
+    .red { color: red; font-weight: bold; }
+    .italic { font-style: italic; font-weight: bold; }
     .watermark {
       position: absolute;
       top: 40%;
@@ -23,56 +27,55 @@
 </head>
 <body onload="<%= autoPrint ? 'window.print()' : '' %>">
   <img src="<%= watermarkBase64 %>" class="watermark" width="400" />
-  <table>
+
+  <!-- Header -->
+  <table style="width:100%; border-collapse:collapse;">
+  <tr>
+    <!-- Logo bên trái -->
+    <td style="width:20%; text-align:left;">
+      <img src="<%= logoBase64 %>" style="width:90px;" />
+    </td>
+
+    <!-- Tiêu đề ở giữa -->
+    <td style="text-align:center; font-family:'Times New Roman', serif;">
+      <div style="font-weight:bold; font-size:16px;">GIẤY ĐỀ NGHỊ TẠM ỨNG</div>
+      <div style="margin-top:4px;">Mã: <span class="red"><%= formData.maTamUng %></span></div>
+      <div style="margin-top:4px;">
+        Ngày <%= formatVietnameseDate(formData.ngayTamUng) %>
+      </div>
+    </td>
+
+    <!-- Hộp thông tin bên phải -->
+    <td style="width:25%; border:1px solid #000; font-size:11px; padding:4px; vertical-align:top;">
+      Mã số: BM.TC.DNTU03<br/>
+      Phiên bản: 1.0<br/>
+      Ngày ban hành: 05/03/2021<br/>
+      Trang <span><%= currentPage || 1 %></span> / <span><%= totalPages || 1 %></span>
+    </td>
+  </tr>
+</table>
+
+
+  <!-- Nội dung -->
+  <div class="content" style="margin-top:15px;">
+    <p class="italic" style="text-align:center;">Kính gửi: BAN GIÁM ĐỐC CÔNG TY</p>
+
+    <p><span class="label">Tên tôi là</span>: <%= formData.ten %> ............................................................</p>
+    <p><span class="label">Bộ phận (địa chỉ)</span>: <%= formData.boPhan %> ....................................................</p>
+    <p><span class="label">Đề nghị tạm ứng số tiền</span>: <%= formData.soTien %> ....................................................</p>
+    <p><span class="label">Viết bằng chữ</span>: <%= formData.soTienChu %> ....................................................</p>
+    <p><span class="label">Lý do tạm ứng</span>: <%= formData.lyDo %> ....................................................</p>
+    p><span class="label">Tài khoản nhận tiền</span>: <%= formData.taikhoannhantu %> ....................................................</p>
+    <p><span class="label">Thời hạn thanh toán</span>: <%= formData.thoiHan %> ....................................................</p>
+  </div>
+
+  <!-- Chữ ký -->
+  <table class="signature" style="margin-top:40px; width:100%;">
     <tr>
-      <td style="width:20%"><img src="<%= logoBase64 %>" style="width:80px;" /></td>
-      <td class="header">GIẤY ĐỀ NGHỊ TẠM ỨNG</td>
-      <td style="text-align:right;font-size:10px;">
-        <div class="center">
-          Mã số: BM.TC.DNTU03<br/>
-          Phiên bản: 1.0<br/>
-          Ngày ban hành: 05/03/2021<br/>
-          Trang 1 / 1
-        </div>
-      </td>
-    </tr>
-  </table>
-
- <p class="center">Mã: <span class="red"><%= formData.maTamUng %></span></p>
-
-
-  <!-- Ngày hiển thị theo kiểu: ngày 04 tháng 09 năm 2025 -->
-  <%
-    function formatVietnameseDate(dateStr) {
-      try {
-        const d = new Date(dateStr);
-        if (isNaN(d)) return dateStr; // Nếu không parse được thì trả nguyên
-        const day = ("0" + d.getDate()).slice(-2);
-        const month = ("0" + (d.getMonth() + 1)).slice(-2);
-        const year = d.getFullYear();
-        return `Ngày ${day} tháng ${month} năm ${year}`;
-      } catch (e) {
-        return dateStr;
-      }
-    }
-  %>
-  <p class="left"><%= formatVietnameseDate(formData.ngayTamUng) %></p>
-
-  <p class="center"><i>Kính gửi:</i> BAN GIÁM ĐỐC CÔNG TY</p>
-  <p>Tên tôi là: <%= formData.ten %></p>
-  <p>Bộ phận (địa chỉ): <%= formData.boPhan %></p>
-  <p>Đề nghị tạm ứng số tiền: <span class="red"><%= formData.soTien %></span></p>
-  <p>Viết bằng chữ: <%= formData.soTienChu %></p>
-  <p>Lý do tạm ứng: <%= formData.lyDo %></p>
-  <p>Tài khoản nhận tiền: <%= formData.taikhoannhantu %></p>
-  <p>Thời hạn thanh toán: <%= formData.thoiHan %></p>
-
-  <table style="margin-top:40px;">
-    <tr>
-      <td class="signature">PHÊ DUYỆT BGĐ</td>
-      <td class="signature">PT. KẾ TOÁN</td>
-      <td class="signature">PT. BỘ PHẬN</td>
-      <td class="signature">NGƯỜI ĐỀ NGHỊ</td>
+      <td>PHÊ DUYỆT BGĐ</td>
+      <td>PT. KẾ TOÁN</td>
+      <td>PT. BỘ PHẬN</td>
+      <td>NGƯỜI ĐỀ NGHỊ</td>
     </tr>
   </table>
 </body>
