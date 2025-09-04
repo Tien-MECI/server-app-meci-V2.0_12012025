@@ -23,13 +23,14 @@ const WATERMARK_FILE_ID = "1fNROb-dRtRl2RCCDCxGPozU3oHMSIkHr";
 
 // --- ENV ---
 const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
+const SPREADSHEET_HC_ID = process.env.SPREADSHEET_HC_ID;
 const GAS_WEBAPP_URL = process.env.GAS_WEBAPP_URL;
 const GAS_WEBAPP_URL_BBNT = process.env.GAS_WEBAPP_URL_BBNT;
 const GOOGLE_CREDENTIALS_B64 = process.env.GOOGLE_CREDENTIALS_B64;
 
-if (!SPREADSHEET_ID || !GAS_WEBAPP_URL || !GAS_WEBAPP_URL_BBNT || !GOOGLE_CREDENTIALS_B64) {
+if (!SPREADSHEET_ID || !SPREADSHEET_HC_ID ||!GAS_WEBAPP_URL || !GAS_WEBAPP_URL_BBNT || !GOOGLE_CREDENTIALS_B64) {
     console.error(
-        "❌ Thiếu biến môi trường: SPREADSHEET_ID / GAS_WEBAPP_URL / GAS_WEBAPP_URL_BBNT / GOOGLE_CREDENTIALS_B64"
+        "❌ Thiếu biến môi trường: SPREADSHEET_ID / SPREADSHEET_HC_ID / GAS_WEBAPP_URL / GAS_WEBAPP_URL_BBNT / GOOGLE_CREDENTIALS_B64"
     );
     process.exit(1);
 }
@@ -1304,7 +1305,7 @@ app.get("/dntu-:ma", async (req, res) => {
 
     // Lấy dữ liệu sheet
     const resp = await sheets.spreadsheets.values.get({
-      spreadsheetId: SPREADSHEET_ID,
+      spreadsheetId: SPREADSHEET_HC_ID,
       range: "data_tam_ung_thanh_toan!A:Z",
     });
     const rows = resp.data.values || [];
