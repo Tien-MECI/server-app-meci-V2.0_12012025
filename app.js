@@ -5,7 +5,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 import ejs from "ejs";
-import fetch from "node-fetch"; // Đảm bảo import fetch
+import fetch from "node-fetch";
 import { promisify } from "util";
 const renderFileAsync = promisify(ejs.renderFile);
 
@@ -1327,6 +1327,7 @@ app.get("/dntu-:ma", async (req, res) => {
       soTienChu: numberToWords(record[9]),
       lyDo: record[8],         // I
       thoiHan: record[12],     // M
+      taikhoannhantu: record[11], //J
     };
 
     // Logo + watermark
