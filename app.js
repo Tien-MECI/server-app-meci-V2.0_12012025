@@ -1323,7 +1323,7 @@ app.get("/dntu-:ma", async (req, res) => {
       ngayTamUng: formatVietnameseDate(record[4]),   // E
       ten: record[2],          // C
       boPhan: record[3],       // D
-      soTien: record[9],       // J
+      soTien: formatNumber(record[9]),       // J
       soTienChu: numberToWords(record[9]),
       lyDo: record[8],         // I
       taikhoannhantu: record[11], //J
@@ -1381,7 +1381,7 @@ function numberToWords(number) {
             if (hundreds > 0) {
                 part += ones[hundreds] + ' trăm ';
             } else if (hundreds === 0 && chunk > 0 && triplet > 0) {
-                part += 'không trăm ';
+                part += '';
             }
 
             // Chục
@@ -1420,6 +1420,13 @@ function numberToWords(number) {
 
     return words.join(' ').replace(/\s+/g, ' ').trim();
 }
+
+
+function formatNumber(num) {
+  if (!num) return "0";
+  return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+}
+
 // Hàm chuyển định dạng ngày tháng năm
 function formatVietnameseDate(dateStr) {
       try {
