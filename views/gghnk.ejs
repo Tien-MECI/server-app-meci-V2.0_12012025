@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Giấy Gửi Hàng</title>
+    <meta charset="UTF-8">
+    <style>
+        /* Reset và thiết lập cơ bản */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            width: 210mm;
+            height: 297mm;
+            margin: 0;
+            padding: 5mm;
+            font-size: 13px;
+            line-height: 1.1;
+        }
+
+        /* Container chính sử dụng grid */
+        .container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 4mm;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Mỗi phiếu GGH */
+        .ggh-ticket {
+            border: 1px solid #000;
+            padding: 3mm;
+            page-break-inside: avoid;
+            break-inside: avoid;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .ggh-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1mm;
+        }
+
+        .logo {
+            flex-shrink: 0;
+        }
+
+        .logo img {
+            width: 40px;
+            height: auto;
+        }
+
+        .company-info {
+            text-align: right;
+            font-weight: bold;
+            font-size: 14px;
+            flex-grow: 1;
+            line-height: 1.1;
+        }
+
+        .ggh-title {
+            text-align: center;
+            font-weight: bold;
+            font-size: 14px;
+            margin: 1mm 0;
+            text-transform: uppercase;
+        }
+
+        .order-code {
+            text-align: center;
+            font-size: 13px;
+            margin-bottom: 1mm;
+        }
+
+        .red {
+            color: red;
+        }
+
+        .ggh-content {
+            flex-grow: 1;
+            font-size: 13px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .info-row {
+            display: flex;
+            border-bottom: 1px solid #ddd;
+            padding: 1mm 0;
+            margin: 0;
+            line-height: 1.1;
+            min-height: auto;
+        }
+
+        .info-label {
+            flex: 0 0 35%;
+            font-weight: bold;
+            padding-right: 2mm;
+            border-right: 1px solid #ddd;
+            /* Đường kẻ dọc phân cách */
+        }
+
+        .info-value {
+            flex: 1;
+            padding-left: 2mm;
+        }
+
+        /* Thiết lập in ấn */
+        @media print {
+            @page {
+                size: A4;
+                margin: 0;
+            }
+
+            body {
+                margin: 0;
+                padding: 5mm;
+                width: 210mm;
+                height: 297mm;
+                font-size: 13px;
+                line-height: 1.1;
+            }
+
+            .container {
+                gap: 4mm;
+            }
+
+            .ggh-ticket {
+                border: 1px solid #000;
+                padding: 3mm;
+            }
+
+            /* Ẩn tiêu đề trình duyệt khi in */
+            .no-print {
+                display: none;
+            }
+
+            /* Đảm bảo đường kẻ in ra rõ ràng */
+            .info-label {
+                border-right: 1px solid #000 !important;
+            }
+
+            .info-row {
+                border-bottom: 1px solid #000 !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <h1 class="no-print" style="text-align: center; margin-bottom: 10px;">Giấy Gửi Hàng - Xem trước khi in</h1>
+
+    <div class="container">
+        <% for(let i=1; i <=6; i++) { %>
+            <div class="ggh-ticket">
+                <div class="ggh-header">
+                    <div class="logo">
+                        <img src="<%= logoBase64 %>" alt="Logo">
+                    </div>
+                    <div class="company-info">
+                        CÔNG TY CỔ PHẦN CÔNG NGHIỆP M.E.C.I
+                    </div>
+                </div>
+
+                <h2 class="ggh-title">GIẤY GỬI HÀNG</h2>
+
+                <p class="order-code">(MÃ ĐƠN HÀNG: <span class="red">
+                        <%= donHang[6] %>
+                    </span>)</p>
+
+                <div class="ggh-content">
+                    <div class="info-row">
+                        <div class="info-label">- Người nhận hàng:</div>
+                        <div class="info-value red">
+                            <%= donHang[17] || donHang[20] || '' %>
+                        </div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">- Điện thoại:</div>
+                        <div class="info-value red">
+                            <%= donHang[25] || donHang[27] || donHang[29] || '' %>
+                        </div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">- Địa chỉ:</div>
+                        <div class="info-value red">
+                            <%= donHang[24] || donHang[26] || donHang[28] || '' %>
+                        </div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">- Người gửi hàng:</div>
+                        <div class="info-value red">
+                            <%= donHang[2] %>
+                        </div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">- Điện thoại:</div>
+                        <div class="info-value red">
+                            <%= donHang[52] %>
+                        </div>
+                    </div>
+                    <div class="info-row" style="border-bottom: none;">
+                        <div class="info-label">- Địa điểm SX, KD:</div>
+                        <div class="info-value">Số 162, đường 916, thôn La Gián, xã Đoài Phương, thành phố Hà Nội</div>
+                    </div>
+                </div>
+            </div>
+            <% } %>
+    </div>
+
+    <% if (typeof autoPrint !=='undefined' && autoPrint) { %>
+        <script>
+            window.onload = function () {
+                setTimeout(function () {
+                    window.print();
+                    setTimeout(function () {
+                        if (window.opener) {
+                            window.close();
+                        }
+                    }, 500);
+                }, 1000);
+            };
+        </script>
+        <% } %>
+</body>
+
+</html>
