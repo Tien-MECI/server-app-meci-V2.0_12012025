@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8" />
-  <title>GIẤY ĐỀ NGHỊ TẠM ỨNG</title>
+  <title>GIẤY ĐỀ NGHỊ HOÀN ỨNG</title>
   <style>
     body { font-family: "Arial", serif; font-size: 13px; width: 148mm; height: 210mm; margin: 0 auto; padding: 10px; position: relative; }
     table { width: 100%; border-collapse: collapse; }
@@ -35,10 +35,10 @@
         <img src="<%= logoBase64 %>" style="width:90px;" />
       </td>
       <td class="header-title">
-        GIẤY ĐỀ NGHỊ TẠM ỨNG <br/>
+        GIẤY ĐỀ NGHỊ HOÀN ỨNG <br/>
         <div style="font-size:12px; font-weight:normal; margin-top:5px;">
           Mã: <span class="red"><%= formData.maTamUng %></span><br/>
-          <%= formData.ngayTamUng %>
+          <%= formData.ngayhoanUng %>
         </div>
       </td>
       <td style="width:25%">
@@ -77,19 +77,11 @@
     <td>Lý do tạm ứng</td>
     <td>: <%= formData.lyDo %></td>
   </tr>
-  <tr>
-    <td>Tài khoản nhận tiền</td>
-    <td>: <%= formData.taikhoannhantu %></td>
-  </tr>
-  <tr>
-    <td>Thời hạn thanh toán</td>
-    <td>: <%= formData.thoiHan %></td>
-  </tr>
 </table>
   </div>
 
   <!-- Chữ ký lala-->
-  <table class="signature" style="margin-top:30px; width:100%;">
+  <table class="signature" style="margin-top:40px; width:100%;">
     <tr>
       <td>PHÊ DUYỆT BGĐ</td>
       <td>PT. KẾ TOÁN</td>
