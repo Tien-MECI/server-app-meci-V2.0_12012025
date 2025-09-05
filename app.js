@@ -1461,58 +1461,63 @@ app.listen(PORT, () => console.log(`✅ Server is running on port ${PORT}`));
 
 // Hàm chuyển số thành chữ (thêm vào app.js)
 function numberToWords(number) {
-            const units = ['', 'một', 'hai', 'ba', 'bốn', 'năm', 'sáu', 'bảy', 'tám', 'chín'];
-            const positions = ['', 'nghìn', 'triệu', 'tỷ', 'nghìn tỷ', 'triệu tỷ'];
-            
-            if (number === 0) return 'không';
-            
-            let words = '';
-            let position = 0;
-            
-            do {
-                const block = number % 1000;
-                if (block !== 0) {
-                    words = readBlock(block) + (position > 0 ? ' ' + positions[position] + ' ' : '') + words;
-                }
-                position++;
-                number = Math.floor(number / 1000);
-            } while (number > 0);
-            
-            return words.trim() + ' đồng';
-            
-            function readBlock(number) {
-                let str = '';
-                const hundreds = Math.floor(number / 100);
-                const tens = Math.floor((number % 100) / 10);
-                const ones = number % 10;
-                
-                if (hundreds > 0) {
-                    str += units[hundreds] + ' trăm ';
-                }
-                
-                if (tens === 0) {
-                    if (ones > 0 && hundreds > 0) {
-                        str += 'lẻ ';
-                    }
-                } else if (tens === 1) {
-                    str += 'mười ';
-                } else {
-                    str += units[tens] + ' mươi ';
-                }
-                
-                if (ones > 0) {
-                    if (tens > 1 && ones === 1) {
-                        str += 'mốt';
-                    } else if (tens > 0 && ones === 5) {
-                        str += 'lăm';
-                    } else {
-                        str += units[ones];
-                    }
-                }
-                
-                return str;
+    const units = ['', 'một', 'hai', 'ba', 'bốn', 'năm', 'sáu', 'bảy', 'tám', 'chín'];
+    const positions = ['', 'nghìn', 'triệu', 'tỷ', 'nghìn tỷ', 'triệu tỷ'];
+
+    if (number === 0) return 'không đồng';
+
+    let words = '';
+    let position = 0;
+
+    do {
+        const block = number % 1000;
+        if (block !== 0) {
+            let blockWords = readBlock(block).trim();
+            if (positions[position]) {
+                blockWords += ' ' + positions[position];
             }
+            words = blockWords + ' ' + words;
+        }
+        position++;
+        number = Math.floor(number / 1000);
+    } while (number > 0);
+
+    return words.trim() + ' đồng';
+
+    function readBlock(number) {
+        let str = '';
+        const hundreds = Math.floor(number / 100);
+        const tens = Math.floor((number % 100) / 10);
+        const ones = number % 10;
+
+        if (hundreds > 0) {
+            str += units[hundreds] + ' trăm ';
+        }
+
+        if (tens === 0) {
+            if (ones > 0 && hundreds > 0) {
+                str += 'lẻ ';
+            }
+        } else if (tens === 1) {
+            str += 'mười ';
+        } else {
+            str += units[tens] + ' mươi ';
+        }
+
+        if (ones > 0) {
+            if (tens > 1 && ones === 1) {
+                str += 'mốt';
+            } else if (tens > 0 && ones === 5) {
+                str += 'lăm';
+            } else {
+                str += units[ones];
+            }
+        }
+
+        return str;
+    }
 }
+
 
 
 function formatNumber(num) {
