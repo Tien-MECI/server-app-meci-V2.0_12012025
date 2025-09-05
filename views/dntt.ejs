@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>GIẤY ĐỀ NGHỊ THANH TOÁN</title>
+  <style>
+    body { font-family: "Arial", serif; font-size: 13px; width: 148mm; height: 210mm; margin: 0 auto; padding: 10px; position: relative; }
+    table { width: 100%; border-collapse: collapse; }
+    td { vertical-align: top; }
+    .header-title { font-weight: bold; font-size: 16px; text-align: center; }
+    .right-box { font-size: 11px; border: 1px solid #000; padding: 4px; }
+    .content p { margin: 4px 0; }
+    .label { display: inline-block; min-width: 140px; }
+    .dots { border-bottom: 1px dotted #000; display: inline-block; width: 400px; }
+    .signature td { text-align: center; font-weight: bold; padding-top: 30px; }
+    .red { color: red; font-weight: bold; }
+    .italic { font-style: italic; font-weight: bold; }
+    .watermark {
+      position: absolute;
+      top: 25%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      opacity: 0.1;
+      z-index: -1;
+    }
+  </style>
+</head>
+<body onload="<%= autoPrint ? 'window.print()' : '' %>">
+  <img src="<%= watermarkBase64 %>" class="watermark" width="400" />
+
+  <!-- Header -->
+  <table>
+    <tr>
+      <td style="width:20%">
+        <img src="<%= logoBase64 %>" style="width:90px;" />
+      </td>
+      <td class="header-title">
+        GIẤY ĐỀ NGHỊ THANH <br/>
+        <div style="font-size:12px; font-weight:normal; margin-top:5px;">
+          Mã: <span class="red"><%= formData.maTamUng %></span><br/>
+          <%= formData.ngayhoanUng %>
+        </div>
+      </td>
+      <td style="width:25%">
+        <div class="right-box">
+          Mã số: BM.TC.DNTU03<br/>
+          Phiên bản: 1.0<br/>
+          Ngày ban hành: 05/03/2021<br/>
+          Trang 1 / 1
+        </div>
+      </td>
+    </tr>
+  </table>
+
+  <!-- Nội dung -->
+  <div class="content" style="margin-top:15px;">
+    <p class="italic" style="text-align:center;">Kính gửi: BAN GIÁM ĐỐC CÔNG TY</p>
+
+    <table style="width:100%; border-collapse: collapse; margin-top: 10px; line-height: 2.2;">
+  <tr>
+    <td style="width:150px;">Tên tôi là</td>
+    <td>: <%= formData.ten %></td>
+  </tr>
+  <tr>
+    <td>Bộ phận (địa chỉ)</td>
+    <td>: <%= formData.boPhan %></td>
+  </tr>
+  <tr>
+    <td>Số tiền đã tạm ứng</td>
+    <td>: <%= formData.soTientu %></td>
+  </tr>
+  <tr>
+    <td>Viết bằng chữ</td>
+    <td>: <%= formData.soTientuChu %></td>
+  </tr>
+  <tr>
+    <tr>
+    <td>Số tiền thực chi</td>
+    <td>: <%= formData.soTienthucchi %></td>
+  </tr>
+  <tr>
+    <td>Viết bằng chữ</td>
+    <td>: <%= formData.soTienthucchiChu %></td>
+  </tr>
+  <tr>
+    <td>Số tiền đề nghị thanh toán</td>
+    <td>: <%= formData.soTienthanhtoan %></td>
+  </tr>
+  <tr>
+    <td>Viết bằng chữ</td>
+    <td>: <%= formData.soTienthanhtoanChu %></td>
+  </tr>
+  <tr>
+    <td>Lý do hoàn ứng</td>
+    <td>: <%= formData.lyDo %></td>
+  </tr>
+  <tr>
+    <td>Số tài khoản nhận tiền thanh toán</td>
+    <td>: <%= formData.sotknhantien %></td>
+  </tr>
+</table>
+  </div>
+
+  <!-- Chữ ký lala-->
+  <table class="signature" style="margin-top:40px; width:100%;">
+    <tr>
+      <td>PHÊ DUYỆT BGĐ</td>
+      <td>PT. KẾ TOÁN</td>
+      <td>PT. BỘ PHẬN</td>
+      <td>NGƯỜI ĐỀ NGHỊ</td>
+    </tr>
+  </table>
+</body>
+</html>

@@ -1347,7 +1347,7 @@ app.get("/dntu-:ma", async (req, res) => {
   }
 });
 
-// --- Route /dntu-<ma> ---
+// --- Route /dnhu-<ma> ---
 app.get("/dnhu-:ma", async (req, res) => {
   try {
     const maTamUng = req.params.ma;
@@ -1395,6 +1395,59 @@ app.get("/dnhu-:ma", async (req, res) => {
   }
 });
 
+
+// --- Route /dntt-<ma> ---
+app.get("/dntt-:ma", async (req, res) => {
+  try {
+    const maTamUng = req.params.ma;
+    console.log("▶️ Xuất giấy đề nghị thanh toán:", maTamUng);
+
+    // Lấy dữ liệu sheet
+    const resp = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_HC_ID,
+      range: "data_tam_ung_thanh_toan!A:AF",
+    });
+    const rows = resp.data.values || [];
+    const data = rows.slice(1);
+
+    // Tìm dòng có cột H (index 7) == maTamUng
+    const record = data.find((r) => r[7] === maTamUng);
+    if (!record) {
+      return res.send("❌ Không tìm thấy mã tạm ứng: " + maTamUng);
+    }
+
+    // Map dữ liệu theo form
+    const formData = {
+      maTamUng: record[7],     // H
+      ngayhoanUng: formatVietnameseDate(record[23]),   // E
+      ten: record[27],          // C
+      boPhan: record[3],       // D
+      soTientu: formatNumber(record[9]),       // J
+      soTientuChu: numberToWords(record[9]),
+      soTienthucchi: formatNumber(record[24]),       // J
+      soTienthucchiChu: numberToWords(record[24]),
+      soTienthanhtoan: formatNumber(record[29]),       // J
+      soTienthanhtoanChu: numberToWords(record[29]),
+      lyDo: record[22],        // I
+      sotknhantien: record[28],
+    };
+
+    // Logo + watermark
+    const logoBase64 = await loadDriveImageBase64(LOGO_FILE_ID);
+    const watermarkBase64 = await loadDriveImageBase64(WATERMARK_FILE_ID);
+
+    // Render EJS
+    res.render("dntt", {
+      formData,
+      logoBase64,
+      watermarkBase64,
+      autoPrint: true,
+    });
+  } catch (err) {
+    console.error("❌ Lỗi DNTT:", err.stack || err.message);
+    res.status(500).send("Lỗi server: " + (err.message || err));
+  }
+});
 
 app.use(express.static(path.join(__dirname, 'public')));
 // --- Debug ---
