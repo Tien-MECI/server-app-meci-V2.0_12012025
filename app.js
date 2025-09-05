@@ -1383,14 +1383,14 @@ app.get("/dnhu-:ma", async (req, res) => {
     const watermarkBase64 = await loadDriveImageBase64(WATERMARK_FILE_ID);
 
     // Render EJS
-    res.render("dntu", {
+    res.render("dnhu", {
       formData,
       logoBase64,
       watermarkBase64,
       autoPrint: true,
     });
   } catch (err) {
-    console.error("❌ Lỗi DNTU:", err.stack || err.message);
+    console.error("❌ Lỗi DNHU:", err.stack || err.message);
     res.status(500).send("Lỗi server: " + (err.message || err));
   }
 });
