@@ -1517,6 +1517,7 @@ function numberToWords(number) {
 
 function formatNumber(num) {
   if (!num) return "0";
+  num = Math.abs(num); // luôn lấy giá trị dương
   return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 }
 
