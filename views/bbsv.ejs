@@ -95,12 +95,15 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="watermark">CÔNG TY</div>
+    <% if (watermarkBase64) { %>
+        <div class="watermark">
+            <img src="<%= watermarkBase64 %>" />
+        </div>
+        <% } %>
         
         <div class="header">
             <div class="logo">
-                <img src="data:image/png;base64,<%= logoBase64 %>" style="width:100px;">
+                <img class="logo" src="<%= logoBase64 %>" style="width: 80px; height: 40px;" />
             </div>
             <div class="company-name">
                 CÔNG TY CỔ PHẦN CÔNG NGHIỆP M.E.C.I
@@ -143,15 +146,5 @@
             <div>NGƯỜI LIÊN QUAN<br>(Ký và ghi rõ họ tên)</div>
         </div>
     </div>
-
-    <button class="print-button" onclick="window.print()">In Biên Bản</button>
-
-    <% if (autoPrint) { %>
-    <script>
-        window.onload = function() {
-            window.print();
-        }
-    </script>
-    <% } %>
 </body>
 </html>
