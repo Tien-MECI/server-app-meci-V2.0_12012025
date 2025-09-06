@@ -1449,6 +1449,155 @@ app.get("/dntt-:ma", async (req, res) => {
   }
 });
 
+// --- Route /bbsv ---
+app.get("/bbsv", async (req, res) => {
+    try {
+        console.log("▶️ Bắt đầu xuất BBSV ...");
+
+        // --- Lấy mã biên bản sự việc từ sheet Bien_ban_su_viec ---
+        const bbsvRes = await sheets.spreadsheets.values.get({
+            spreadsheetId: SPREADSHEET_ID,
+            range: "Bien_ban_su_viec!B:B",
+        });
+        const colB = bbsvRes.data.values ? bbsvRes.data.values.flat() : [];
+        const lastRowWithData = colB.length;
+        const maBBSV = colB[lastRowWithData - 1];
+        
+        if (!maBBSV)
+            return res.send("⚠️ Không tìm thấy dữ liệu ở cột B sheet Bien_ban_su_viec.");
+
+        console.log(`✔️ Mã biên bản sự việc: ${maBBSV} (dòng ${lastRowWithData})`);
+
+        // --- Lấy dữ liệu từ sheet Bien_ban_su_viec ---
+        const bbsvDetailRes = await sheets.spreadsheets.values.get({
+            spreadsheetId: SPREADSHEET_ID,
+            range: "Bien_ban_su_viec!A:Z",
+        });
+        const bbsvRows = bbsvDetailRes.data.values || [];
+        const bbsvData = bbsvRows.slice(1);
+        const bbsvRecord = bbsvData.find((r) => r[1] === maBBSV);
+        
+        if (!bbsvRecord)
+            return res.send("❌ Không tìm thấy biên bản sự việc với mã: " + maBBSV);
+
+        // --- Lấy dữ liệu từ sheet Don_hang ---
+        const donHangRes = await sheets.spreadsheets.values.get({
+            spreadsheetId: SPREADSHEET_ID,
+            range: "Don_hang!A:Z",
+        });
+        const donHangRows = donHangRes.data.values || [];
+        const donHangData = donHangRows.slice(1);
+        const donHangRecord = donHangData.find((r) => r[5] === maBBSV || r[6] === maBBSV);
+
+        // Xử lý ngày lập biên bản
+        let ngayLapBB = bbsvRecord[9] || ''; // Cột J (index 9)
+        if (ngayLapBB) {
+            if (typeof ngayLapBB === 'string' && ngayLapBB.includes('/')) {
+                const parts = ngayLapBB.split('/');
+                if (parts.length === 3) {
+                    ngayLapBB = `ngày ${parts[0]} tháng ${parts[1]} năm ${parts[2]}`;
+                }
+            } else if (ngayLapBB instanceof Date) {
+                // Format date object if needed
+                ngayLapBB = `ngày ${ngayLapBB.getDate()} tháng ${ngayLapBB.getMonth() + 1} năm ${ngayLapBB.getFullYear()}`;
+            }
+        }
+
+        // Xử lý ngày yêu cầu xử lý
+        let ngayYeuCauXuLy = bbsvRecord[8] || ''; // Cột I (index 8)
+        if (ngayYeuCauXuLy) {
+            if (typeof ngayYeuCauXuLy === 'string' && ngayYeuCauXuLy.includes('/')) {
+                // Giữ nguyên định dạng dd/mm/yyyy
+            } else if (ngayYeuCauXuLy instanceof Date) {
+                // Format date object to dd/mm/yyyy
+                const day = String(ngayYeuCauXuLy.getDate()).padStart(2, '0');
+                const month = String(ngayYeuCauXuLy.getMonth() + 1).padStart(2, '0');
+                const year = ngayYeuCauXuLy.getFullYear();
+                ngayYeuCauXuLy = `${day}/${month}/${year}`;
+            }
+        }
+
+        // Tách danh sách người liên quan
+        const nguoiLienQuanList = (bbsvRecord[5] || '').split(',').map(name => name.trim());
+
+        // Logo & Watermark
+        const logoBase64 = await loadDriveImageBase64(LOGO_FILE_ID);
+        const watermarkBase64 = await loadDriveImageBase64(WATERMARK_FILE_ID);
+
+        // Render ngay cho client
+        res.render("bbsv", {
+            maBBSV,
+            ngayLapBB,
+            donHang: donHangRecord ? donHangRecord[6] : '', // Cột G (index 6)
+            nguoiLapBB: bbsvRecord[3] || '', // Cột D (index 3)
+            boPhanLienQuan: bbsvRecord[4] || '', // Cột E (index 4)
+            nguoiLienQuanList,
+            suViec: bbsvRecord[6] || '', // Cột G (index 6)
+            xuLy: bbsvRecord[7] || '', // Cột H (index 7)
+            ngayYeuCauXuLy,
+            logoBase64,
+            watermarkBase64,
+            autoPrint: true,
+            pathToFile: ""
+        });
+
+        // Sau khi render xong thì gọi AppScript ngầm
+        (async () => {
+            try {
+                const renderedHtml = await renderFileAsync(
+                    path.join(__dirname, "views", "bbsv.ejs"),
+                    {
+                        maBBSV,
+                        ngayLapBB,
+                        donHang: donHangRecord ? donHangRecord[6] : '',
+                        nguoiLapBB: bbsvRecord[3] || '',
+                        boPhanLienQuan: bbsvRecord[4] || '',
+                        nguoiLienQuanList,
+                        suViec: bbsvRecord[6] || '',
+                        xuLy: bbsvRecord[7] || '',
+                        ngayYeuCauXuLy,
+                        logoBase64,
+                        watermarkBase64,
+                        autoPrint: false,
+                        pathToFile: ""
+                    }
+                );
+
+                // Gọi Google Apps Script web app để tạo PDF
+                const resp = await fetch(GAS_WEBAPP_URL_BBSV, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                    body: new URLSearchParams({
+                        maBBSV: maBBSV,
+                        html: renderedHtml
+                    })
+                });
+
+                const data = await resp.json();
+                console.log("✔️ AppScript trả về:", data);
+
+                // Cập nhật đường dẫn file vào sheet
+                const pathToFile = data.pathToFile || `BBSV/${data.fileName}`;
+                await sheets.spreadsheets.values.update({
+                    spreadsheetId: SPREADSHEET_ID,
+                    range: `Bien_ban_su_viec!K${lastRowWithData}`,
+                    valueInputOption: "RAW",
+                    requestBody: { values: [[pathToFile]] },
+                });
+                console.log("✔️ Đã ghi đường dẫn:", pathToFile);
+
+            } catch (err) {
+                console.error("❌ Lỗi gọi AppScript:", err);
+            }
+        })();
+
+    } catch (err) {
+        console.error("❌ Lỗi khi xuất BBSV:", err.stack || err.message);
+        res.status(500).send("Lỗi server: " + (err.message || err));
+    }
+});
+
+
 app.use(express.static(path.join(__dirname, 'public')));
 // --- Debug ---
 app.get("/debug", (_req, res) => {

@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biên Bản Sự Việc</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 0;
+        }
+        body {
+            font-family: 'Times New Roman', serif;
+            margin: 0;
+            padding: 15px;
+            width: 210mm;
+            height: 297mm;
+            position: relative;
+            box-sizing: border-box;
+            background-color: #fff;
+            font-size: 14px;
+        }
+        .watermark {
+            position: absolute;
+            opacity: 0.1;
+            font-size: 80px;
+            transform: rotate(-45deg);
+            top: 40%;
+            left: 10%;
+            z-index: -1;
+            color: #004d99;
+            font-weight: bold;
+        }
+        .container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 3px double black;
+            padding-bottom: 10px;
+        }
+        .logo {
+            width: 100px;
+        }
+        .company-name {
+            text-align: right;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        h2 {
+            text-align: center;
+            text-transform: uppercase;
+            margin: 10px 0;
+        }
+        .red {
+            color: red;
+        }
+        .content {
+            margin: 20px 0;
+        }
+        .signature {
+            margin-top: 40px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .signature div {
+            text-align: center;
+            width: 30%;
+        }
+        .print-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background-color: #004d99;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .print-button:hover {
+            background-color: #003366;
+        }
+        @media print {
+            .print-button {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="watermark">CÔNG TY</div>
+        
+        <div class="header">
+            <div class="logo">
+                <img src="data:image/png;base64,<%= logoBase64 %>" style="width:100px;">
+            </div>
+            <div class="company-name">
+                CÔNG TY CỔ PHẦN CÔNG NGHIỆP M.E.C.I
+            </div>
+        </div>
+
+        <h2>BIÊN BẢN SỰ VIỆC</h2>
+        <p style="text-align: center;">(Mã biên bản: <span class="red"><%= maBBSV %></span>)</p>
+        
+        <div class="content">
+            <p>- Căn cứ sự việc/thông tin thu thập <%= ngayLapBB %></p>
+            <p>Hôm nay, ngày … tháng … năm …. Tại: Công ty cổ phần công nghiệp M.E.C.I</p>
+            <p>Chúng tôi gồm:</p>
+            
+            <p><b>I. NGƯỜI LẬP BIÊN BẢN: </b></p>
+            <p>- Ông/Bà: <span class="red"><%= nguoiLapBB %></span>..............................................| Chức vụ:.........................................</p>
+            
+            <p><b>II. NGƯỜI CHỨNG KIẾN: </b></p>
+            <p>- Ông/Bà:..............................................| Chức vụ:.........................................</p>
+            
+            <p><b>III. BỘ PHẬN LIÊN QUAN: </b><%= boPhanLienQuan %></p>
+            
+            <% nguoiLienQuanList.forEach(function(person) { %>
+                <p>- Ông/Bà: <span class="red"><%= person %></span>..............................................| Chức vụ:..........................................</p>
+            <% }); %>
+            
+            <p>- Tiến hành lập biên bản sự vụ sau đây:</p>
+            <p><span class="red"><%= suViec %></span></p>
+            
+            <p>- Yêu cầu xử lý:</p>
+            <p><span class="red"><%= xuLy %></span></p>
+            
+            <p>- Ngày yêu cầu xử lý:</p>
+            <p><span class="red"><%= ngayYeuCauXuLy %></span></p>
+        </div>
+        
+        <div class="signature">
+            <div>NGƯỜI LẬP BIÊN BẢN<br>(Ký và ghi rõ họ tên)</div>
+            <div>NGƯỜI CHỨNG KIẾN<br>(Ký và ghi rõ họ tên)</div>
+            <div>NGƯỜI LIÊN QUAN<br>(Ký và ghi rõ họ tên)</div>
+        </div>
+    </div>
+
+    <button class="print-button" onclick="window.print()">In Biên Bản</button>
+
+    <% if (autoPrint) { %>
+    <script>
+        window.onload = function() {
+            window.print();
+        }
+    </script>
+    <% } %>
+</body>
+</html>
