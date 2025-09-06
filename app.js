@@ -28,10 +28,11 @@ const GAS_WEBAPP_URL = process.env.GAS_WEBAPP_URL;
 const GAS_WEBAPP_URL_BBNT = process.env.GAS_WEBAPP_URL_BBNT;
 const GOOGLE_CREDENTIALS_B64 = process.env.GOOGLE_CREDENTIALS_B64;
 const GAS_WEBAPP_URL_BBSV = process.env.GAS_WEBAPP_URL_BBSV;
+const GAS_WEBAPP_URL_DNC = process.env.GAS_WEBAPP_URL_DNC;
 
-if (!SPREADSHEET_ID || !SPREADSHEET_HC_ID ||!GAS_WEBAPP_URL || !GAS_WEBAPP_URL_BBNT || !GOOGLE_CREDENTIALS_B64 || !GAS_WEBAPP_URL_BBSV) {
+if (!SPREADSHEET_ID || !SPREADSHEET_HC_ID ||!GAS_WEBAPP_URL || !GAS_WEBAPP_URL_BBNT || !GOOGLE_CREDENTIALS_B64 || !GAS_WEBAPP_URL_BBSV || !GAS_WEBAPP_URL_DNC) {
     console.error(
-        "❌ Thiếu biến môi trường: SPREADSHEET_ID / SPREADSHEET_HC_ID / GAS_WEBAPP_URL / GAS_WEBAPP_URL_BBNT / GOOGLE_CREDENTIALS_B64 / GAS_WEBAPP_URL_BBSV"
+        "❌ Thiếu biến môi trường: SPREADSHEET_ID / SPREADSHEET_HC_ID / GAS_WEBAPP_URL / GAS_WEBAPP_URL_BBNT / GOOGLE_CREDENTIALS_B64 / GAS_WEBAPP_URL_BBSV / GAS_WEBAPP_URL_DNC"
     );
     process.exit(1);
 }
@@ -1597,6 +1598,164 @@ app.get("/bbsv", async (req, res) => {
         res.status(500).send("Lỗi server: " + (err.message || err));
     }
 });
+
+
+
+// --- Route /dnc ---
+app.get("/dnc", async (req, res) => {
+    try {
+        console.log("▶️ Bắt đầu xuất Đề Nghị Chung ...");
+
+        // --- Lấy mã đơn hàng từ sheet De_nghi_chung ---
+        const dncRes = await sheets.spreadsheets.values.get({
+            spreadsheetId: SPREADSHEET_ID,
+            range: "De_nghi_chung!B:B",
+        });
+        const colB = dncRes.data.values ? dncRes.data.values.flat() : [];
+        const lastRowWithData = colB.length;
+        const maDonHang = colB[lastRowWithData - 1];
+        
+        if (!maDonHang)
+            return res.send("⚠️ Không tìm thấy dữ liệu ở cột B sheet De_nghi_chung.");
+
+        console.log(`✔️ Mã đơn hàng: ${maDonHang} (dòng ${lastRowWithData})`);
+
+        // --- Lấy dữ liệu từ sheet De_nghi_chung ---
+        const dncDetailRes = await sheets.spreadsheets.values.get({
+            spreadsheetId: SPREADSHEET_ID,
+            range: "De_nghi_chung!A:Z",
+        });
+        const dncRows = dncDetailRes.data.values || [];
+        const dncData = dncRows.slice(1);
+        const dncRecords = dncData.filter((r) => r[1] === maDonHang);
+        
+        if (dncRecords.length === 0)
+            return res.send("❌ Không tìm thấy đề nghị chung với mã: " + maDonHang);
+
+        // --- Lấy dữ liệu từ sheet Don_hang ---
+        const donHangRes = await sheets.spreadsheets.values.get({
+            spreadsheetId: SPREADSHEET_ID,
+            range: "Don_hang!A:Z",
+        });
+        const donHangRows = donHangRes.data.values || [];
+        const donHangData = donHangRows.slice(1);
+        const donHangRecord = donHangData.find((r) => r[6] === maDonHang);
+
+        if (!donHangRecord)
+            return res.send("❌ Không tìm thấy đơn hàng với mã: " + maDonHang);
+
+        // Xử lý ngày lập
+        let ngayLap = donHangRecord[1] || ''; // Cột B (index 1)
+        if (ngayLap && ngayLap instanceof Date) {
+            ngayLap = Utilities.formatDate(ngayLap, Session.getScriptTimeZone(), 'dd/MM/yyyy');
+        }
+
+        // Xử lý ngày yêu cầu thực hiện
+        let ngayYeuCauThucHien = '';
+        for (const record of dncRecords) {
+            if (record[9]) { // Cột J (index 9)
+                ngayYeuCauThucHien = record[9];
+                if (ngayYeuCauThucHien instanceof Date) {
+                    ngayYeuCauThucHien = Utilities.formatDate(ngayYeuCauThucHien, Session.getScriptTimeZone(), 'dd/MM/yyyy');
+                }
+                break;
+            }
+        }
+
+        // Xác định các cột có dữ liệu
+        const columns = [5, 6, 7, 8, 14, 9, 11]; // Cột F, G, H, I, O, J, L
+        const headers = [
+            "Mã ĐH chi tiết", "Tên sản phẩm nhập lại", "Số lượng nhập lại", "Đơn vị tính",
+            "Lý do hủy", "Địa điểm lấy hàng", "Hình thức xử lý sau nhập kho"
+        ];
+
+        // Lọc các cột có dữ liệu
+        const filteredColumns = [];
+        const filteredHeaders = [];
+        
+        for (let i = 0; i < columns.length; i++) {
+            const colIndex = columns[i];
+            const hasData = dncRecords.some(record => record[colIndex - 1] && record[colIndex - 1] !== '');
+            
+            if (hasData) {
+                filteredColumns.push(colIndex);
+                filteredHeaders.push(headers[i]);
+            }
+        }
+
+        // Logo & Watermark
+        const logoBase64 = await loadDriveImageBase64(LOGO_FILE_ID);
+        const watermarkBase64 = await loadDriveImageBase64(WATERMARK_FILE_ID);
+
+        // Render ngay cho client
+        res.render("dnc", {
+            maDonHang,
+            donHangRecord,
+            dncRecords,
+            filteredColumns,
+            filteredHeaders,
+            ngayLap,
+            ngayYeuCauThucHien,
+            logoBase64,
+            watermarkBase64,
+            autoPrint: true,
+            pathToFile: ""
+        });
+
+        // Sau khi render xong thì gọi AppScript ngầm
+        (async () => {
+            try {
+                const renderedHtml = await renderFileAsync(
+                    path.join(__dirname, "views", "dnc.ejs"),
+                    {
+                        maDonHang,
+                        donHangRecord,
+                        dncRecords,
+                        filteredColumns,
+                        filteredHeaders,
+                        ngayLap,
+                        ngayYeuCauThucHien,
+                        logoBase64,
+                        watermarkBase64,
+                        autoPrint: false,
+                        pathToFile: ""
+                    }
+                );
+
+                // Gọi Google Apps Script web app để tạo PDF
+                const resp = await fetch(GAS_WEBAPP_URL_DNC, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                    body: new URLSearchParams({
+                        orderCode: maDonHang,
+                        html: renderedHtml
+                    })
+                });
+
+                const data = await resp.json();
+                console.log("✔️ AppScript trả về:", data);
+
+                // Cập nhật đường dẫn file vào sheet
+                const pathToFile = data.pathToFile || `DNC/${data.fileName}`;
+                await sheets.spreadsheets.values.update({
+                    spreadsheetId: SPREADSHEET_ID,
+                    range: `De_nghi_chung!O${lastRowWithData}`,
+                    valueInputOption: "RAW",
+                    requestBody: { values: [[pathToFile]] },
+                });
+                console.log("✔️ Đã ghi đường dẫn:", pathToFile);
+
+            } catch (err) {
+                console.error("❌ Lỗi gọi AppScript:", err);
+            }
+        })();
+
+    } catch (err) {
+        console.error("❌ Lỗi khi xuất Đề Nghị Chung:", err.stack || err.message);
+        res.status(500).send("Lỗi server: " + (err.message || err));
+    }
+});
+
 
 
 app.use(express.static(path.join(__dirname, 'public')));
