@@ -1,7 +1,8 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html>
+
 <head>
-    <title>Biên Bản Sự Việc</title>
+    <title>Đề Nghị Chung</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -62,10 +63,8 @@
 
         .watermark img {
             width: 80vw;
-            /* chiếm 80% chiều rộng trang */
             height: auto;
         }
-
 
         /* CSS cho in ấn */
         @media print {
@@ -82,62 +81,104 @@
             }
         }
     </style>
+
+    <% if (typeof autoPrint !=='undefined' && autoPrint) { %>
+        <script>
+            window.onload = function () {
+                setTimeout(function () {
+                    window.print();
+                    setTimeout(function () {
+                        if (window.opener) {
+                            window.close();
+                        }
+                    }, 500);
+                }, 1000);
+            };
+        </script>
+        <% } %>
 </head>
+
 <body>
     <% if (watermarkBase64) { %>
         <div class="watermark">
-            <img src="<%= watermarkBase64 %>" />
+            <img src="data:image/png;base64,<%= watermarkBase64 %>" />
         </div>
         <% } %>
-        
-        <div class="header">
-            <div class="logo">
-                <img class="logo" src="<%= logoBase64 %>" style="width: 80px; height: 40px;" />
-            </div>
-            <div class="company-name">
-                CÔNG TY CỔ PHẦN CÔNG NGHIỆP M.E.C.I
-            </div>
-        </div>
 
-        <h2 class="center-text">BIÊN BẢN SỰ VIỆC</h2>
-        <p style="text-align: center;">(Mã biên bản: <span class="red"><%= maBBSV %></span>)</p>
-        
-        <div class="content">
-            <p>- Căn cứ sự việc/thông tin thu thập <%= ngayLapBB %></p>
-            <p>Hôm nay, ngày … tháng … năm …. Tại: Công ty cổ phần công nghiệp M.E.C.I</p>
-            <p>Chúng tôi gồm:</p>
+            <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                    <td class="no-border">
+                        <img class="logo" src="data:image/png;base64,<%= logoBase64 %>" style="width: 80px; height: 40px;" />
+                    </td>
+                    <td class="no-border" style="text-align: right;">
+                        <strong>CÔNG TY CỔ PHẦN CÔNG NGHIỆP MECI</strong>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="2" style="border: none; padding: 0;">
+                        <div style="border-top: 3px double black; margin: -1px 0 0 0;"></div>
+                    </td>
+                </tr>
+            </table>
+
+            <h2 class="center-text">ĐỀ NGHỊ CHUNG</h2>
             
-            <p><b>I. NGƯỜI LẬP BIÊN BẢN: </b></p>
-            <p>- Ông/Bà: <span class="red"><%= nguoiLapBB %></span>..............................................| Chức vụ:.........................................</p>
+            <!-- Thông tin đơn hàng -->
+            <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                    <td colspan="2" style="font-weight: bold; text-align: center; font-size: 14px;" width="55%"><b>THÔNG TIN KHÁCH HÀNG</b></td>
+                    <td width="15%" style="font-weight: bold; text-align: center; font-size: 14px;"><b>ĐNC CỦA ĐH</b></td>
+                    <td width="30%" style="font-weight: bold; text-align: center; font-size: 14px;"><b><%= maDonHang %></b></td>
+                </tr>
+                <tr>
+                    <td width="15%" style="font-weight: bold; font-size: 14px;">Tên KH (Người mua hàng):</td>
+                    <td style="text-align: left; font-size: 14px;" width="40%"><%= donHangRecord[17] || donHangRecord[20] || '' %></td>
+                    <td width="15%" style="font-weight: bold; font-size: 14px;">Ngày lập:</td>
+                    <td style="text-align: left; font-size: 14px;" width="30%"><%= ngayLap %></td>
+                </tr>
+                <tr>
+                    <td style="font-weight: bold; font-size: 14px;" width="15%">Tên công ty:</td>
+                    <td style="text-align: left; font-size: 14px;" width="40%"><%= donHangRecord[9] %></td>
+                    <td style="font-weight: bold; font-size: 14px;" width="15%">Người lập:</td>
+                    <td style="text-align: left; font-size: 14px;" width="30%"><%= donHangRecord[2] %></td>
+                </tr>
+                <tr>
+                    <td style="font-weight: bold; font-size: 14px;" width="15%">Địa chỉ thực hiện:</td>
+                    <td style="text-align: left; font-size: 14px;" width="40%"><%= donHangRecord[24] || donHangRecord[26] || donHangRecord[28] || '' %></td>
+                    <td style="font-weight: bold; font-size: 14px;" width="15%">Ngày YC thực hiện:</td>
+                    <td style="text-align: left; font-size: 14px;" width="30%"><%= ngayYeuCauThucHien %></td>
+                </tr>
+                <tr>
+                    <td style="font-weight: bold; font-size: 14px;" width="15%">Điện thoại (Người nhận hàng):</td>
+                    <td style="text-align: left; font-size: 14px;" width="40%"><%= donHangRecord[25] || donHangRecord[27] || donHangRecord[29] || '' %></td>
+                    <td style="font-weight: bold; font-size: 14px;" width="15%">Điện thoại/Zalo/Face:</td>
+                    <td style="text-align: left; font-size: 14px;" width="30%"><%= donHangRecord[52] %></td>
+                </tr>
+            </table>
+
+            <h2>BẢNG CHI TIẾT HÀNG HÓA</h2>
             
-            <p><b>II. NGƯỜI CHỨNG KIẾN: </b></p>
-            <p>- Ông/Bà:..............................................| Chức vụ:.........................................</p>
-            
-            <p><b>III. BỘ PHẬN LIÊN QUAN: </b><%= boPhanLienQuan %></p>
-            
-            <% nguoiLienQuanList.forEach(function(person) { %>
-                <p>- Ông/Bà: <span class="red"><%= person %></span>..............................................| Chức vụ:..........................................</p>
-            <% }); %>
-            
-            <p>- Tiến hành lập biên bản sự vụ sau đây:</p>
-            <p><span class="red"><%= suViec %></span></p>
-            
-            <p>- Yêu cầu xử lý:</p>
-            <p><span class="red"><%= xuLy %></span></p>
-            
-            <p>- Ngày yêu cầu xử lý:</p>
-            <p><span class="red"><%= ngayYeuCauXuLy %></span></p>
-        </div>
-        
-        <table class="no-border">
-            <tr>
-                <td style="text-align: center; border: none;">NGƯỜI LẬP BIÊN BẢN<br>(Ký và ghi rõ họ tên)</td>
-                <td style="text-align: center; border: none;">NGƯỜI CHỨNG KIẾN<br>(Ký và ghi rõ họ tên)</td>
-                <td style="text-align: center; border: none;">NGƯỜI LIÊN QUAN<br>(Ký và ghi rõ họ tên)</td>
-            </tr>
-        
-        </table>
-    </div>
+            <!-- Bảng chi tiết hàng hóa -->
+            <table style="width: 100%; font-size: 13px; border-collapse: collapse;">
+                <thead>
+                    <tr>
+                        <% filteredHeaders.forEach(function(header) { %>
+                            <th style="text-align: center;"><%= header %></th>
+                        <% }); %>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% dncRecords.forEach(function(record) { %>
+                        <tr>
+                            <% filteredColumns.forEach(function(colIndex) { %>
+                                <td style="text-align: left; word-wrap: break-word; font-size: 13px;">
+                                    <%= record[colIndex - 1] %>
+                                </td>
+                            <% }); %>
+                        </tr>
+                    <% }); %>
+                </tbody>
+            </table>
 </body>
+
 </html>
-           
