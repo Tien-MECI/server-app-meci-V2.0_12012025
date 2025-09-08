@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Yêu Cầu Vật Tư</title>
+    <meta charset="UTF-8">
+    <style>
+        @page { size: A4 portrait; margin: 1cm; }
+        body { font-family: Arial, sans-serif; font-size: 12px; margin: 0; padding: 15px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 12px; }
+        th, td { border: 1px solid black; padding: 4px; text-align: center; }
+        .center-text { text-align: center; }
+        .bold { font-weight: bold; }
+        .yellow { background: #FFFF00; }
+        .no-border { border: none; }
+        .watermark {
+            position: fixed;
+            top: 35%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: -1;
+            opacity: 0.1;
+            text-align: center;
+        }
+        .watermark img { width: 80vw; height: auto; }
+        @media print {
+            body { margin: 0; padding: 15px; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        }
+        <% if (!hasDataE) { %> .col-e { display: none; } <% } %>
+        <% if (!hasDataI) { %> .col-i { display: none; } <% } %>
+        <% if (!hasDataJ) { %> .col-j { display: none; } <% } %>
+    </style>
+    <% if (autoPrint) { %>
+        <script>
+            window.onload = function () {
+                setTimeout(function () {
+                    window.print();
+                    setTimeout(function () {
+                        if (window.opener) window.close();
+                    }, 500);
+                }, 1000);
+            };
+        </script>
+    <% } %>
+</head>
+<body>
+    <% if (watermarkBase64) { %>
+        <div class="watermark">
+            <img src="<%= watermarkBase64 %>" />
+        </div>
+    <% } %>
+
+    <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+            <td class="no-border">
+                <img src="<%= logoBase64 %>" style="width: 80px; height: 40px;" />
+            </td>
+            <td class="no-border" style="text-align: right;">
+                <strong>CÔNG TY CỔ PHẦN CÔNG NGHIỆP M.E.C.I</strong>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="2" style="border: none; padding: 0;">
+                <div style="border-top: 3px double black; margin: -1px 0 0 0;"></div>
+            </td>
+        </tr>
+    </table>
+
+    <h1 class="center-text bold">YÊU CẦU VẬT TƯ</h1>
+    <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+            <td width="15%" class="bold">Mã đơn hàng:</td>
+            <td width="35%"><%= d4Value || 'N/A' %></td>
+            <td width="15%" class="bold">Khách hàng:</td>
+            <td width="35%"><%= l4Value || 'N/A' %></td>
+        </tr>
+        <tr>
+            <td class="bold">Ngày lập:</td>
+            <td><%= d3 || 'N/A' %></td>
+            <td class="bold">Ghi chú:</td>
+            <td><%= h6Values || 'N/A' %></td>
+        </tr>
+        <tr>
+            <td class="bold">Loại yêu cầu:</td>
+            <td><%= h5Values || 'N/A' %></td>
+            <td class="bold">Ngày yêu cầu:</td>
+            <td><%= d6Values || 'N/A' %></td>
+        </tr>
+        <tr>
+            <td class="bold">Thông tin bổ sung:</td>
+            <td colspan="3"><%= d5Values || 'N/A' %></td>
+        </tr>
+    </table>
+
+    <h2 class="center-text bold">BẢNG CHI TIẾT VẬT TƯ</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>STT</th>
+                <th>Mã SP</th>
+                <th>Mã vật tư</th>
+                <th>Mô tả</th>
+                <th class="col-e">Số lượng</th>
+                <th>Cân nặng</th>
+                <th>Dài</th>
+                <th>Rộng</th>
+                <th>Cao</th>
+                <th>Tổng SL</th>
+                <th class="col-i">Tổng m2</th>
+                <th class="col-j">Đơn vị</th>
+                <th>Ghi chú</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% tableData.forEach(item => { %>
+                <tr>
+                    <td><%= item.stt %></td>
+                    <% item.row.forEach((cell, i) => { %>
+                        <td class="<%= i === 4 ? 'col-e' : i === 8 ? 'col-i' : i === 9 ? 'col-j' : '' %>">
+                            <%= cell || '' %>
+                        </td>
+                    <% }) %>
+                </tr>
+            <% }) %>
+        </tbody>
+    </table>
+
+    <h2 class="center-text yellow bold">BẢNG TỔNG HỢP VẬT TƯ - SẢN PHẨM CHO ĐƠN HÀNG DÀNH CHO KHO</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>STT</th>
+                <th>Mã SP</th>
+                <th>Mã vật tư</th>
+                <th>Mô tả</th>
+                <th>Tổng số lượng</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% summaryDataB.forEach(item => { %>
+                <tr>
+                    <td><%= item.stt %></td>
+                    <td><%= item.b %></td>
+                    <td></td>
+                    <td><%= item.desc %></td>
+                    <td><%= item.sum %></td>
+                </tr>
+            <% }) %>
+            <% summaryDataC.forEach(item => { %>
+                <tr>
+                    <td><%= item.stt %></td>
+                    <td></td>
+                    <td><%= item.c %></td>
+                    <td><%= item.desc %></td>
+                    <td><%= item.sum %></td>
+                </tr>
+            <% }) %>
+        </tbody>
+    </table>
+
+    <div style="font-family: Arial; font-size: 11px;">
+        <p><b>Ghi chú:</b></p>
+        <ul>
+            <li>Thông tin chi tiết xin vui lòng liên hệ: <b>Phòng kinh doanh - Cty CP Công Nghiệp M.E.C.I</b></li>
+            <li>Hotline: 0902.227.007</li>
+            <li>Địa chỉ trụ sở chính: Số 164, đường Nguyễn Trãi, phường Thanh Xuân, thành phố Hà Nội</li>
+            <li>Địa điểm sản xuất, kinh doanh: Số 162, đường 916, thôn La Gián, xã Đoài Phương, thành phố Hà Nội</li>
+            <li>Email: sale@meci.vn - Website: www.meci.vn</li>
+        </ul>
+    </div>
+</body>
+</html>

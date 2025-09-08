@@ -1757,6 +1757,65 @@ app.get("/dnc", async (req, res) => {
 });
 
 
+//---YCVT-BOM---
+
+app.get('/ycvt', async (req, res) => {
+    try {
+        const ss1Id = '1U4kLQn1MgBtDzHoH30-KDHOM5xeb2Tsk_An0OLL22WM';
+        const ss2Id = '17t_aITOHTQEEQj9ngeaOd_nIzfEPyfEfZGiDPCrW2hY';
+        const logoBase64 = 'data:image/png;base64,...'; // Thay bằng base64 thực tế
+        const watermarkBase64 = 'data:image/png;base64,...'; // Thay bằng base64 thực tế
+
+        // Chuẩn bị dữ liệu
+        const data = await prepareYcvtData(auth, ss1Id, ss2Id, logoBase64, watermarkBase64);
+
+        // Render HTML từ ycvt.ejs
+        const renderedHtml = await renderFileAsync(path.join(__dirname, 'views', 'ycvt.ejs'), {
+            ...data,
+            autoPrint: false,
+            pathToFile: ''
+        });
+
+        // Gọi Google Apps Script để tạo PDF
+        const resp = await fetch(GAS_WEBAPP_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+                orderCode: data.d4Value,
+                html: renderedHtml
+            })
+        });
+
+        const result = await resp.json();
+        if (!result.ok) {
+            throw new Error(result.error || 'Lỗi khi gọi Apps Script');
+        }
+
+        // Cập nhật sheet File_BOM_ct với đường dẫn file
+        const sheets = google.sheets({ version: 'v4', auth });
+        const rowIndex = data5.findIndex(row => row[1] === data.d4Value) + 1;
+        if (rowIndex > 0) {
+            await sheets.spreadsheets.values.update({
+                spreadsheetId: ss1Id,
+                range: `File_BOM_ct!D${rowIndex}`,
+                valueInputOption: 'RAW',
+                resource: { values: [[result.pathToFile]] }
+            });
+        }
+
+        // Gửi PDF về client
+        res.set({
+            'Content-Type': 'application/pdf',
+            'Content-Disposition': `attachment; filename=${result.fileName}`
+        });
+        const pdfBlob = await fetch(result.url).then(r => r.buffer());
+        res.send(pdfBlob);
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).send(`Lỗi: ${error.message}`);
+    }
+});
+
 
 app.use(express.static(path.join(__dirname, 'public')));
 // --- Debug ---
