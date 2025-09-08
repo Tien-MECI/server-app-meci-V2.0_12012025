@@ -4,14 +4,39 @@
     <title>Yêu Cầu Vật Tư</title>
     <meta charset="UTF-8">
     <style>
-        @page { size: A4 portrait; margin: 1cm; }
-        body { font-family: Arial, sans-serif; font-size: 12px; margin: 0; padding: 15px; }
-        table { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 12px; }
-        th, td { border: 1px solid black; padding: 4px; text-align: center; }
-        .center-text { text-align: center; }
-        .bold { font-weight: bold; }
-        .yellow { background: #FFFF00; }
-        .no-border { border: none; }
+        @page { 
+            size: A4 portrait; 
+            margin: 1cm; 
+        }
+        body { 
+            font-family: Arial, sans-serif; 
+            font-size: 12px; 
+            margin: 0; 
+            padding: 15px; 
+        }
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-bottom: 10px; 
+            font-size: 12px; 
+        }
+        th, td { 
+            border: 1px solid black; 
+            padding: 4px; 
+            text-align: center; 
+        }
+        .center-text { 
+            text-align: center; 
+        }
+        .bold { 
+            font-weight: bold; 
+        }
+        .yellow { 
+            background: #FFFF00; 
+        }
+        .no-border { 
+            border: none; 
+        }
         .watermark {
             position: fixed;
             top: 35%;
@@ -21,13 +46,29 @@
             opacity: 0.1;
             text-align: center;
         }
-        .watermark img { width: 80vw; height: auto; }
-        @media print {
-            body { margin: 0; padding: 15px; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        .watermark img { 
+            width: 80vw; 
+            height: auto; 
         }
-        <% if (!hasDataE) { %> .col-e { display: none; } <% } %>
-        <% if (!hasDataI) { %> .col-i { display: none; } <% } %>
-        <% if (!hasDataJ) { %> .col-j { display: none; } <% } %>
+        @media print {
+            body { 
+                margin: 0; 
+                padding: 15px; 
+                -webkit-print-color-adjust: exact !important; 
+                print-color-adjust: exact !important; 
+            }
+        }
+        /* Ẩn các cột không có dữ liệu */
+        <%- !hasDataE ? '.col-e { display: none; }' : '' %>
+        <%- !hasDataI ? '.col-i { display: none; }' : '' %>
+        <%- !hasDataJ ? '.col-j { display: none; }' : '' %>
+        
+        /* Đảm bảo các cột hiển thị đúng cách khi in */
+        @media print {
+            <%- !hasDataE ? '.col-e { display: none !important; }' : '' %>
+            <%- !hasDataI ? '.col-i { display: none !important; }' : '' %>
+            <%- !hasDataJ ? '.col-j { display: none !important; }' : '' %>
+        }
     </style>
     <% if (autoPrint) { %>
         <script>
@@ -45,14 +86,14 @@
 <body>
     <% if (watermarkBase64) { %>
         <div class="watermark">
-            <img src="<%= watermarkBase64 %>" />
+            <img src="data:image/png;base64,<%= watermarkBase64 %>" alt="Watermark" />
         </div>
     <% } %>
 
     <table style="width: 100%; border-collapse: collapse;">
         <tr>
             <td class="no-border">
-                <img src="<%= logoBase64 %>" style="width: 80px; height: 40px;" />
+                <img src="data:image/png;base64,<%= logoBase64 %>" style="width: 80px; height: 40px;" alt="Logo" />
             </td>
             <td class="no-border" style="text-align: right;">
                 <strong>CÔNG TY CỔ PHẦN CÔNG NGHIỆP M.E.C.I</strong>
@@ -83,7 +124,7 @@
             <td class="bold">Loại yêu cầu:</td>
             <td><%= h5Values || 'N/A' %></td>
             <td class="bold">Ngày yêu cầu:</td>
-            <td><%= d6Values || 'N/A' %></td>
+            <td><%- d6Values || 'N/A' %></td>
         </tr>
         <tr>
             <td class="bold">Thông tin bổ sung:</td>
@@ -111,19 +152,30 @@
             </tr>
         </thead>
         <tbody>
-            <% tableData.forEach(item => { %>
+            <% tableData.forEach((item, index) => { %>
                 <tr>
-                    <td><%= item.stt %></td>
-                    <% item.row.forEach((cell, i) => { %>
-                        <td class="<%= i === 4 ? 'col-e' : i === 8 ? 'col-i' : i === 9 ? 'col-j' : '' %>">
-                            <%= cell || '' %>
+                    <td><%= item.stt || (index + 1) %></td>
+                    <% 
+                    // Hiển thị các cột từ row (bỏ qua cột đầu tiên nếu có)
+                    for (let i = 1; i <= 13; i++) { 
+                        const cellValue = item.row[i] || '';
+                        let cellClass = '';
+                        
+                        // Ánh xạ cột với class tương ứng
+                        if (i === 4) cellClass = 'col-e';
+                        else if (i === 8) cellClass = 'col-i';
+                        else if (i === 9) cellClass = 'col-j';
+                    %>
+                        <td class="<%= cellClass %>">
+                            <%= cellValue %>
                         </td>
-                    <% }) %>
+                    <% } %>
                 </tr>
             <% }) %>
         </tbody>
     </table>
 
+    <% if (summaryDataB.length > 0 || summaryDataC.length > 0) { %>
     <h2 class="center-text yellow bold">BẢNG TỔNG HỢP VẬT TƯ - SẢN PHẨM CHO ĐƠN HÀNG DÀNH CHO KHO</h2>
     <table>
         <thead>
@@ -156,10 +208,11 @@
             <% }) %>
         </tbody>
     </table>
+    <% } %>
 
-    <div style="font-family: Arial; font-size: 11px;">
+    <div style="font-family: Arial; font-size: 11px; margin-top: 20px;">
         <p><b>Ghi chú:</b></p>
-        <ul>
+        <ul style="margin-top: 5px; padding-left: 15px;">
             <li>Thông tin chi tiết xin vui lòng liên hệ: <b>Phòng kinh doanh - Cty CP Công Nghiệp M.E.C.I</b></li>
             <li>Hotline: 0902.227.007</li>
             <li>Địa chỉ trụ sở chính: Số 164, đường Nguyễn Trãi, phường Thanh Xuân, thành phố Hà Nội</li>
