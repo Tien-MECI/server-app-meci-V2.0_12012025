@@ -2,14 +2,14 @@ import { google } from 'googleapis';
 
 console.log('🚀 Đang load module ycvt.js...');
 
-async function prepareYcvtData(auth, spreadsheetId, spreadsheetHcId) {
+async function prepareYcvtData(auth, spreadsheetId, spreadsheetBomId) {
     console.log('▶️ Bắt đầu chuẩn bị dữ liệu cho YCVT...');
     const sheets = google.sheets({ version: 'v4', auth });
     try {
         const [data1Res, data2Res, data3Res, data5Res] = await Promise.all([
             sheets.spreadsheets.values.get({ spreadsheetId, range: 'Don_hang_PVC_ct!A1:AE' }),
             sheets.spreadsheets.values.get({ spreadsheetId, range: 'Don_hang!A1:CF' }),
-            sheets.spreadsheets.values.get({ spreadsheetId: spreadsheetHcId, range: 'Data_bom!A1:P' }),
+            sheets.spreadsheets.values.get({ spreadsheetId: spreadsheetBomId, range: 'Data_bom!A1:P' }),
             sheets.spreadsheets.values.get({ spreadsheetId, range: 'File_BOM_ct!A1:D' })
         ]);
 
@@ -50,7 +50,7 @@ async function prepareYcvtData(auth, spreadsheetId, spreadsheetHcId) {
                     row: [...row]
                 })));
             } else {
-                let z = data3.findIndex(row => row[1] === hValue);
+                let z = data3.findIndex(row => row[0] === hValue);
                 if (z === -1) {
                     console.warn(`⚠️ Không tìm thấy hValue ${hValue} trong Data_bom`);
                     return;
