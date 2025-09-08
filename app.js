@@ -7,6 +7,7 @@ import { dirname } from "path";
 import ejs from "ejs";
 import fetch from "node-fetch";
 import { promisify } from "util";
+import { prepareYcvtData } from './ycvt.js';
 const renderFileAsync = promisify(ejs.renderFile);
 
 
@@ -24,11 +25,13 @@ const WATERMARK_FILE_ID = "1fNROb-dRtRl2RCCDCxGPozU3oHMSIkHr";
 // --- ENV ---
 const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
 const SPREADSHEET_HC_ID = process.env.SPREADSHEET_HC_ID;
+const SPREADSHEET_BOM_ID = process.env.SPREADSHEET_BOM_ID;
 const GAS_WEBAPP_URL = process.env.GAS_WEBAPP_URL;
 const GAS_WEBAPP_URL_BBNT = process.env.GAS_WEBAPP_URL_BBNT;
 const GOOGLE_CREDENTIALS_B64 = process.env.GOOGLE_CREDENTIALS_B64;
 const GAS_WEBAPP_URL_BBSV = process.env.GAS_WEBAPP_URL_BBSV;
 const GAS_WEBAPP_URL_DNC = process.env.GAS_WEBAPP_URL_DNC;
+const GAS_WEBAPP_URL_PYCVT = process.env.GAS_WEBAPP_URL_PYCVT;
 
 if (!SPREADSHEET_ID || !SPREADSHEET_HC_ID ||!GAS_WEBAPP_URL || !GAS_WEBAPP_URL_BBNT || !GOOGLE_CREDENTIALS_B64 || !GAS_WEBAPP_URL_BBSV || !GAS_WEBAPP_URL_DNC) {
     console.error(
@@ -1761,58 +1764,74 @@ app.get("/dnc", async (req, res) => {
 
 app.get('/ycvt', async (req, res) => {
     try {
-        const ss1Id = '1U4kLQn1MgBtDzHoH30-KDHOM5xeb2Tsk_An0OLL22WM';
-        const ss2Id = '17t_aITOHTQEEQj9ngeaOd_nIzfEPyfEfZGiDPCrW2hY';
-        const logoBase64 = 'data:image/png;base64,...'; // Thay bằng base64 thực tế
-        const watermarkBase64 = 'data:image/png;base64,...'; // Thay bằng base64 thực tế
+        console.log('▶️ Bắt đầu xuất YCVT ...');
+
+        // Lấy logo và watermark
+        const [logoBase64, watermarkBase64] = await Promise.all([
+            loadDriveImageBase64(LOGO_FILE_ID),
+            loadDriveImageBase64(WATERMARK_FILE_ID)
+        ]);
 
         // Chuẩn bị dữ liệu
-        const data = await prepareYcvtData(auth, ss1Id, ss2Id, logoBase64, watermarkBase64);
+        const data = await prepareYcvtData(auth, SPREADSHEET_ID, SPREADSHEET_BOM_ID);
+        const { d4Value, lastRowWithData } = data;
 
-        // Render HTML từ ycvt.ejs
-        const renderedHtml = await renderFileAsync(path.join(__dirname, 'views', 'ycvt.ejs'), {
+        // Render cho client
+        res.render('ycvt', {
             ...data,
-            autoPrint: false,
+            logoBase64,
+            watermarkBase64,
+            autoPrint: true,
+            maDonHang: d4Value,
             pathToFile: ''
         });
 
-        // Gọi Google Apps Script để tạo PDF
-        const resp = await fetch(GAS_WEBAPP_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({
-                orderCode: data.d4Value,
-                html: renderedHtml
-            })
-        });
+        // Gọi Apps Script ngầm
+        (async () => {
+            try {
+                const renderedHtml = await renderFileAsync(
+                    path.join(__dirname, 'views', 'ycvt.ejs'),
+                    {
+                        ...data,
+                        logoBase64,
+                        watermarkBase64,
+                        autoPrint: false,
+                        maDonHang: d4Value,
+                        pathToFile: ''
+                    }
+                );
 
-        const result = await resp.json();
-        if (!result.ok) {
-            throw new Error(result.error || 'Lỗi khi gọi Apps Script');
-        }
+                const resp = await fetch(GAS_WEBAPP_URL_PYCVT, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({
+                        orderCode: d4Value,
+                        html: renderedHtml
+                    })
+                });
 
-        // Cập nhật sheet File_BOM_ct với đường dẫn file
-        const sheets = google.sheets({ version: 'v4', auth });
-        const rowIndex = data5.findIndex(row => row[1] === data.d4Value) + 1;
-        if (rowIndex > 0) {
-            await sheets.spreadsheets.values.update({
-                spreadsheetId: ss1Id,
-                range: `File_BOM_ct!D${rowIndex}`,
-                valueInputOption: 'RAW',
-                resource: { values: [[result.pathToFile]] }
-            });
-        }
+                const result = await resp.json();
+                console.log('✔️ AppScript trả về:', result);
 
-        // Gửi PDF về client
-        res.set({
-            'Content-Type': 'application/pdf',
-            'Content-Disposition': `attachment; filename=${result.fileName}`
-        });
-        const pdfBlob = await fetch(result.url).then(r => r.buffer());
-        res.send(pdfBlob);
-    } catch (error) {
-        console.error('Error:', error);
-        res.status(500).send(`Lỗi: ${error.message}`);
+                if (!result.ok) {
+                    throw new Error(result.error || 'Lỗi khi gọi Apps Script');
+                }
+
+                const pathToFile = result.pathToFile || `YCVT/${result.fileName}`;
+                await sheets.spreadsheets.values.update({
+                    spreadsheetId: SPREADSHEET_ID,
+                    range: `File_BOM_ct!D${lastRowWithData}`,
+                    valueInputOption: 'RAW',
+                    requestBody: { values: [[pathToFile]] }
+                });
+                console.log('✔️ Đã ghi đường dẫn:', pathToFile);
+            } catch (err) {
+                console.error('❌ Lỗi gọi AppScript:', err);
+            }
+        })();
+    } catch (err) {
+        console.error('❌ Lỗi khi xuất YCVT:', err.stack || err.message);
+        res.status(500).send('Lỗi server: ' + (err.message || err));
     }
 });
 
