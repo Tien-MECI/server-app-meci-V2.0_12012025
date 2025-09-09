@@ -51,7 +51,7 @@ async function prepareYcvtData(auth, spreadsheetId, spreadsheetHcId) {
                     let newRow = [...dataFromBN];
 
                     // Chỉ paste columnsToCopyBase vào row có cột C = hValue (row chính)
-                    if (!isMainRowProcessed && newRow[2] === hValue) {
+                    if (!isMainRowProcessed && newRow[1] === hValue) {
                         const targetValues = columnsToCopyBase.map(i => hObj.rowData[i - 1] || '');
                         newRow.splice(4, 9, ...targetValues); // Ghép vào từ cột E (index 4), thay 9 ô
                         isMainRowProcessed = true;
