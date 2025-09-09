@@ -103,7 +103,7 @@
             <!-- Hiển thị 13 cột B -> N; giữ nguyên class mapping cũ (idx tính từ 0 = cột B) -->
             <% item.row.slice(1, 14).forEach((cell, i) => { %>
                 <td class="<%= i === 3 ? 'col-e' : i === 8 ? 'col-j' : i === 9 ? 'col-i' : i === 10 ? 'col-j' : '' %>">
-                    <!-- <%= cell || '' %> -->
+                    <%= cell || '' %>
                 </td>
             <% }) %>
         </tr>
@@ -113,7 +113,7 @@
     </table>
 
     <h2 class="center-text yellow bold" style="font-size: 22px;">BẢNG TỔNG HỢP VẬT TƯ - SẢN PHẨM CHO ĐƠN HÀNG DÀNH CHO KHO</h2>
-    <table style="font-size: 18px;">
+    <table style="font-size: 12px;">
         <thead>
             <tr>
                 <th>STT</th>
