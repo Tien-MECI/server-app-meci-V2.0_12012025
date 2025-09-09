@@ -45,31 +45,28 @@ async function prepareYcvtData(auth, spreadsheetId, spreadsheetHcId) {
             const hValue = hObj.hValue;
             const matchingRows = data3.filter(row => row[0] === hValue); // Tìm tất cả row có column A = hValue
             if (matchingRows.length > 0) {
+                let isMainRowProcessed = false; // Cờ để chỉ paste columnsToCopyBase vào row chính (cột C = hValue)
                 matchingRows.forEach((matchingRow, index) => {
                     let dataFromBN = matchingRow.slice(1, 14); // B:N (index 1 đến 13)
                     let newRow = [...dataFromBN];
 
-                    // Ghép columnsToCopyBase vào từ cột E (index 4), thay 9 ô
-                    const targetValues = columnsToCopyBase.map(i => hObj.rowData[i - 1] || '');
-                    newRow.splice(4, 9, ...targetValues);
+                    // Chỉ paste columnsToCopyBase vào row có cột C = hValue (row chính)
+                    if (!isMainRowProcessed && newRow[2] === hValue) {
+                        const targetValues = columnsToCopyBase.map(i => hObj.rowData[i - 1] || '');
+                        newRow.splice(4, 9, ...targetValues); // Ghép vào từ cột E (index 4), thay 9 ô
+                        isMainRowProcessed = true;
 
-                    // Tính công thức giống Sheets dựa trên dữ liệu mẫu
-                    const rong = parseFloat(newRow[5] || 0); // F: Rộng (mm)
-                    const cao = parseFloat(newRow[6] || 0); // G: Cao (mm)
-                    const sl_soi = parseFloat(newRow[7] || 0); // H: SL sợi
-                    const sl_bo = parseFloat(newRow[9] || 0); // J: SL bộ
+                        // Tính công thức giống Sheets
+                        const rong = parseFloat(newRow[5] || 0); // F: Rộng
+                        const cao = parseFloat(newRow[6] || 0); // G: Cao
+                        const sl_soi = parseFloat(newRow[7] || 0); // H: SL sợi
+                        const sl_bo = parseFloat(newRow[9] || 0); // J: SL bộ
 
-                    // Công thức cho cột I: SL = (Cao / 1000) * SL bộ (dựa trên mẫu =(H2/1000)*M2, nhưng M2 là SL bộ)
-                    newRow[8] = (cao / 1000) * sl_bo; // I: Số lượng
-
-                    // Công thức cho cột L: Tổng SL sợi = (Rộng / 1000) * SL bộ (dựa trên =G2/1000)
-                    newRow[11] = (rong / 1000) * sl_bo; // L: Tổng SL sợi
-
-                    // Công thức cho cột K: Tổng m2 = (Rộng * Cao * SL sợi / 1000000) * SL
-                    newRow[10] = (rong * cao * sl_soi / 1000000) * newRow[8]; // K: Tổng m2
-
-                    // Cột M: Ghi chú (từ targetValues hoặc giữ nguyên)
-                    newRow[12] = targetValues[8] || newRow[12] || ''; // M: Ghi chú
+                        newRow[8] = (cao / 1000) * sl_bo; // I: Số lượng
+                        newRow[11] = (rong / 1000) * sl_bo; // L: Tổng SL sợi
+                        newRow[10] = (rong * cao * sl_soi / 1000000) * newRow[8]; // K: Tổng m2
+                        newRow[12] = targetValues[8] || newRow[12] || ''; // M: Ghi chú
+                    }
 
                     tableData.push({
                         stt: hObj.stt,
