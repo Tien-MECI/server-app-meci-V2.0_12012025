@@ -45,27 +45,15 @@ async function prepareYcvtData(auth, spreadsheetId, spreadsheetHcId) {
             const hValue = hObj.hValue;
             const matchingRows = data3.filter(row => row[0] === hValue); // Tìm tất cả row có column A = hValue
             if (matchingRows.length > 0) {
-                let isMainRowProcessed = false; // Cờ để chỉ paste columnsToCopyBase vào row chính (cột C = hValue)
+                let isMainRowProcessed = false; 
                 matchingRows.forEach((matchingRow, index) => {
-                    let dataFromBN = matchingRow.slice(1, 13); // B:N (index 1 đến 13)
+                    let dataFromBN = matchingRow.slice(1, 14); // B:N (index 1 đến 13)
                     let newRow = [...dataFromBN];
 
-                    // Chỉ paste columnsToCopyBase vào row có cột C = hValue (row chính)
                     if (!isMainRowProcessed && newRow[1] === hValue) {
                         const targetValues = columnsToCopyBase.map(i => hObj.rowData[i - 1] || '');
-                        newRow.splice(4, 9, ...targetValues); // Ghép vào từ cột E (index 4), thay 9 ô
+                        newRow.splice(4, 9, ...targetValues); 
                         isMainRowProcessed = true;
-
-                        // Tính công thức giống Sheets
-                        //const rong = parseFloat(newRow[5] || 0); // F: Rộng
-                       // const cao = parseFloat(newRow[6] || 0); // G: Cao
-                       // const sl_soi = parseFloat(newRow[7] || 0); // H: SL sợi
-                        //const sl_bo = parseFloat(newRow[9] || 0); // J: SL bộ
-
-                        //newRow[8] = (cao / 1000) * sl_bo; // I: Số lượng
-                        //newRow[11] = (rong / 1000) * sl_bo; // L: Tổng SL sợi
-                        //newRow[10] = (rong * cao * sl_soi / 1000000) * newRow[8]; // K: Tổng m2
-                        //newRow[12] = targetValues[8] || newRow[12] || ''; // M: Ghi chú
                     }
 
                     tableData.push({
@@ -91,25 +79,23 @@ async function prepareYcvtData(auth, spreadsheetId, spreadsheetHcId) {
             .filter(v => v)
             .join('<br>');
 
-        const tableDataFrom7 = tableData.slice(0); // Lấy toàn bộ tableData
+        const tableDataFrom7 = [...tableData];
         console.log('📋 tableDataFrom7:', JSON.stringify(tableDataFrom7, null, 2));
 
         const uniqueB = [...new Set(tableDataFrom7.map(item => item.row[1]).filter(v => v && v !== 'Mã SP' && v !== 'Mã vật tư sản xuất'))];
         const uniqueC = [...new Set(tableDataFrom7.map(item => item.row[2]).filter(v => v && v !== 'Mã vật tư xuất kèm' && v !== 'Mã vật tư sản xuất'))];
-        console.log('📋 uniqueB:', uniqueB);
-        console.log('📋 uniqueC:', uniqueC);
 
         const summaryDataB = uniqueB.map((b, i) => {
             const sum = tableDataFrom7
                 .filter(item => item.row[1] === b || item.row[2] === b)
-                .reduce((sum, item) => sum + (item.row[8] || item.row[9] || item.row[10] || item.row[11] || 0), 0);
+                .reduce((sum, item) => sum + (parseFloat(item.row[8]) || 0), 0);
             const desc = tableDataFrom7.find(item => item.row[1] === b || item.row[2] === b)?.row[3] || '';
             return { stt: i + 1, b, sum, desc };
         });
         const summaryDataC = uniqueC.map((c, i) => {
             const sum = tableDataFrom7
                 .filter(item => item.row[1] === c || item.row[2] === c)
-                .reduce((sum, item) => sum + (item.row[10] || 0), 0);
+                .reduce((sum, item) => sum + (parseFloat(item.row[10]) || 0), 0);
             const desc = tableDataFrom7.find(item => item.row[1] === c || item.row[2] === c)?.row[3] || '';
             return { stt: summaryDataB.length + i + 1, c, sum, desc };
         });
@@ -127,9 +113,8 @@ async function prepareYcvtData(auth, spreadsheetId, spreadsheetHcId) {
             tableData,
             summaryDataB,
             summaryDataC,
-            hasDataE: tableDataFrom7.some(item => item.row[4]),
-            hasDataI: tableDataFrom7.some(item => item.row[8]),
-            hasDataJ: tableDataFrom7.some(item => item.row[9]),
+            hasDataE: tableData.some(item => item.row[4]), // E
+            hasDataI: tableData.some(item => item.row[8]), // I
             lastRowWithData
         };
     } catch (err) {
