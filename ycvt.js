@@ -2,14 +2,14 @@ import { google } from 'googleapis';
 
 console.log('🚀 Đang load module ycvt.js...');
 
-async function prepareYcvtData(auth, spreadsheetId, spreadsheetBomId) {
+async function prepareYcvtData(auth, spreadsheetId, spreadsheetHcId) {
     console.log('▶️ Bắt đầu chuẩn bị dữ liệu cho YCVT...');
     const sheets = google.sheets({ version: 'v4', auth });
     try {
         const [data1Res, data2Res, data3Res, data5Res] = await Promise.all([
             sheets.spreadsheets.values.get({ spreadsheetId, range: 'Don_hang_PVC_ct!A1:AE' }),
             sheets.spreadsheets.values.get({ spreadsheetId, range: 'Don_hang!A1:CF' }),
-            sheets.spreadsheets.values.get({ spreadsheetId: spreadsheetBomId, range: 'Data_bom!A1:P' }),
+            sheets.spreadsheets.values.get({ spreadsheetId: spreadsheetHcId, range: 'Data_bom!A1:N' }), // Lấy đến cột N
             sheets.spreadsheets.values.get({ spreadsheetId, range: 'File_BOM_ct!A1:D' })
         ]);
 
@@ -38,52 +38,30 @@ async function prepareYcvtData(auth, spreadsheetId, spreadsheetBomId) {
             }));
         console.log(`✔️ Tìm thấy ${hValues.length} sản phẩm với hValue.`);
 
-        const columnsToCopyBase = [17, 18, 19, 20, 21, 22, 23, 24, 29];
+        const columnsToCopyBase = [17, 18, 19, 20, 21, 22, 23, 24, 29]; // Các cột từ Don_hang_PVC_ct
         let tableData = [];
         let lastProcessedHValue = null;
-        let cachedBlock = null;
+
         hValues.forEach(hObj => {
             const hValue = hObj.hValue;
-            if (hValue === lastProcessedHValue && cachedBlock) {
-                tableData.push(...cachedBlock.map(row => ({
+            let matchingRow = data3.find(row => row[0] === hValue); // Tìm row trong Data_bom có cột A = hValue
+            if (matchingRow) {
+                // Lấy mảng B:N (index 1 đến 13, vì A là index 0)
+                let dataFromBN = matchingRow.slice(1, 14); // B:N (14 cột, từ index 1 đến 13)
+                tableData.push({
                     stt: hObj.stt,
-                    row: [...row]
-                })));
+                    row: [...dataFromBN] // Paste mảng B:N vào row
+                });
+                // Sau đó ghép columnsToCopyBase vào (đảm bảo độ dài khớp)
+                const targetValues = columnsToCopyBase.map(i => hObj.rowData[i - 1] || '');
+                tableData[tableData.length - 1].row.splice(4, 9, ...targetValues); // Ghép vào từ cột E (index 4), thay 9 ô
+                console.log(`✔️ Đã thêm row cho hValue ${hValue}:`, JSON.stringify(tableData[tableData.length - 1].row));
             } else {
-                let z = data3.findIndex(row => row[0] === hValue);
-                if (z === -1) {
-                    console.warn(`⚠️ Không tìm thấy hValue ${hValue} trong Data_bom`);
-                    return;
-                }
-                let block = [];
-                if (['0S', '0I', 'MD', 'GC', '0N', '0T'].some(str => hValue.includes(str))) {
-                    let y = data3.slice(z + 1).findIndex(row => row[1] === 'Mã SP') + z + 1;
-                    if (y < z) {
-                        console.warn(`⚠️ Không tìm thấy y cho hValue ${hValue}`);
-                        return;
-                    }
-                    block = data3.slice(z, y + 1);
-                } else {
-                    let x = data3.slice(0, z + 1).reverse().findIndex(row => row[1] === 'Mã SP');
-                    x = z - x;
-                    if (x === -1) {
-                        console.warn(`⚠️ Không tìm thấy x cho hValue ${hValue}`);
-                        return;
-                    }
-                    block = [data3[x], data3[z + 1]].filter(row => row);
-                }
-                tableData.push(...block.map(row => ({
-                    stt: hObj.stt,
-                    row: [...row]
-                })));
-                cachedBlock = block;
-                lastProcessedHValue = hValue;
+                console.warn(`⚠️ Không tìm thấy hValue ${hValue} trong Data_bom cột A`);
             }
-            const targetValues = columnsToCopyBase.map(i => hObj.rowData[i - 1] || '');
-            tableData[tableData.length - 1].row.splice(4, 9, ...targetValues);
         });
 
-        console.log('📋 tableData:', JSON.stringify(tableData, null, 2)); // Thêm log debug
+        console.log('📋 tableData:', JSON.stringify(tableData, null, 2));
 
         const matchingRows = data2.slice(1).filter(row => row[5] === d4Value || row[6] === d4Value);
         const l4Value = matchingRows[0] ? (matchingRows[0][8] || '') : '';
@@ -95,8 +73,8 @@ async function prepareYcvtData(auth, spreadsheetId, spreadsheetBomId) {
             .filter(v => v)
             .join('<br>');
 
-        const tableDataFrom7 = tableData.slice(6); // Lấy từ row 7
-        console.log('📋 tableDataFrom7:', JSON.stringify(tableDataFrom7, null, 2)); // Thêm log debug
+        const tableDataFrom7 = tableData.slice(0); // Lấy toàn bộ tableData thay vì slice(6)
+        console.log('📋 tableDataFrom7:', JSON.stringify(tableDataFrom7, null, 2));
 
         const uniqueB = [...new Set(tableDataFrom7.map(item => item.row[1]).filter(v => v && v !== 'Mã SP' && v !== 'Mã vật tư sản xuất'))];
         const uniqueC = [...new Set(tableDataFrom7.map(item => item.row[2]).filter(v => v && v !== 'Mã vật tư xuất kèm' && v !== 'Mã vật tư sản xuất'))];
@@ -142,4 +120,4 @@ async function prepareYcvtData(auth, spreadsheetId, spreadsheetBomId) {
     }
 }
 
-export { prepareYcvtData };
+export { prepareYcvtData};
