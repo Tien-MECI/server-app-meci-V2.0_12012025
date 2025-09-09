@@ -103,9 +103,9 @@ async function prepareYcvtData(auth, spreadsheetId, spreadsheetHcId) {
         console.log(`✔️ Tạo ${summaryDataB.length} mục B và ${summaryDataC.length} mục C trong bảng tổng hợp.`);
 
         // Kiểm tra "có dữ liệu" cho các cột E/I/J bằng cách trim chuỗi (an toàn hơn)
-        const hasDataE = tableDataFrom7.some(item => item.row[4] && item.row[4].toString().trim() !== '');
-        const hasDataI = tableDataFrom7.some(item => item.row[8] && item.row[8].toString().trim() !== '');
-        const hasDataJ = tableDataFrom7.some(item => item.row[9] && item.row[9].toString().trim() !== '');
+        const hasDataE = tableDataFrom7.some(item => item.row[5] && item.row[4].toString().trim() !== '');
+        const hasDataI = tableDataFrom7.some(item => item.row[9] && item.row[8].toString().trim() !== '');
+        const hasDataJ = tableDataFrom7.some(item => item.row[10] && item.row[9].toString().trim() !== '');
 
         return {
             d4Value,
