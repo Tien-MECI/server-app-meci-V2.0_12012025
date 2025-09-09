@@ -102,7 +102,7 @@
 
             <!-- Hiển thị 13 cột B -> N; giữ nguyên class mapping cũ (idx tính từ 0 = cột B) -->
             <% item.row.slice(1, 14).forEach((cell, i) => { %>
-                <td class="<%= i === 3 ? 'col-e' : i === 8 ? 'col-j' : i === 9 ? 'col-i' : i === 10 ? 'col-j' : '' %>">
+                <td class="<%= i === 3 ? 'col-e' : i === 7 ? 'col-i' : i === 8 ? 'col-j' : '' %>">
                     <%= cell || '' %>
                 </td>
             <% }) %>
