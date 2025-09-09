@@ -45,7 +45,7 @@ async function prepareYcvtData(auth, spreadsheetId, spreadsheetHcId) {
             const hValue = hObj.hValue;
             const matchingRows = data3.filter(row => row[0] === hValue); // Tìm tất cả row có column A = hValue
             if (matchingRows.length > 0) {
-                matchingRows.forEach(matchingRow => {
+                matchingRows.forEach((matchingRow, index) => {
                     let dataFromBN = matchingRow.slice(1, 14); // B:N (index 1 đến 13)
                     let newRow = [...dataFromBN];
 
@@ -53,32 +53,29 @@ async function prepareYcvtData(auth, spreadsheetId, spreadsheetHcId) {
                     const targetValues = columnsToCopyBase.map(i => hObj.rowData[i - 1] || '');
                     newRow.splice(4, 9, ...targetValues);
 
-                    // Tính công thức giống Sheets dựa trên giá trị ghép
-                    const rong = parseFloat(newRow[5] || 0); // F: Rộng (mm) = targetValues[0] = 1150 (từ columnsToCopyBase[0] = 17)
-                    const cao = parseFloat(newRow[6] || 0); // G: Cao (mm) = targetValues[1] = 2170
-                    const sl_soi = parseFloat(newRow[7] || 0); // H: SL sợi = targetValues[2] = 11
-                    const sl_bo = parseFloat(newRow[9] || 0); // J: SL bộ = targetValues[3] = 2
+                    // Tính công thức giống Sheets dựa trên dữ liệu mẫu
+                    const rong = parseFloat(newRow[5] || 0); // F: Rộng (mm)
+                    const cao = parseFloat(newRow[6] || 0); // G: Cao (mm)
+                    const sl_soi = parseFloat(newRow[7] || 0); // H: SL sợi
+                    const sl_bo = parseFloat(newRow[9] || 0); // J: SL bộ
 
-                    // Công thức cho cột I: SL = (H2/1000)*M2? Từ dữ liệu, M2 là Tổng SL sợi, nhưng có lẽ = (cao / 1000) * sl_bo
+                    // Công thức cho cột I: SL = (Cao / 1000) * SL bộ (dựa trên mẫu =(H2/1000)*M2, nhưng M2 là SL bộ)
                     newRow[8] = (cao / 1000) * sl_bo; // I: Số lượng
 
-                    // Công thức cho cột M: Tổng SL sợi = (G2/1000)*SL bộ? Từ mẫu =G2/1000 = rong / 1000
-                    newRow[12] = (rong / 1000) * sl_bo; // M: Tổng SL sợi (điều chỉnh nếu sai)
+                    // Công thức cho cột L: Tổng SL sợi = (Rộng / 1000) * SL bộ (dựa trên =G2/1000)
+                    newRow[11] = (rong / 1000) * sl_bo; // L: Tổng SL sợi
 
-                    // Công thức cho cột N: Ghi chú = targetValues[6] = 'bóc hết tem mac meci'
-                    newRow[13] = targetValues[6] || ''; // N: Ghi chú (nếu N là ghi chú)
+                    // Công thức cho cột K: Tổng m2 = (Rộng * Cao * SL sợi / 1000000) * SL
+                    newRow[10] = (rong * cao * sl_soi / 1000000) * newRow[8]; // K: Tổng m2
 
-                    // Công thức cho cột K: Tổng m2 = (rong * cao * sl_soi / 1000000) * sl_bo (giả định)
-                    newRow[10] = (rong * cao * sl_soi / 1000000) * sl_bo; // K: Tổng m2
-
-                    // Công thức cho cột L: Đơn vị = targetValues[4] = 'Bộ'
-                    newRow[11] = targetValues[4] or 'Bộ'; // L: Đơn vị
+                    // Cột M: Ghi chú (từ targetValues hoặc giữ nguyên)
+                    newRow[12] = targetValues[8] || newRow[12] || ''; // M: Ghi chú
 
                     tableData.push({
                         stt: hObj.stt,
                         row: newRow
                     });
-                    console.log(`✔️ Đã thêm row cho hValue ${hValue}:`, JSON.stringify(newRow));
+                    console.log(`✔️ Đã thêm row ${index + 1} cho hValue ${hValue}:`, JSON.stringify(newRow));
                 });
             } else {
                 console.warn(`⚠️ Không tìm thấy hValue ${hValue} trong Data_bom cột A`);
@@ -115,7 +112,7 @@ async function prepareYcvtData(auth, spreadsheetId, spreadsheetHcId) {
         const summaryDataC = uniqueC.map((c, i) => {
             const sum = tableDataFrom7
                 .filter(item => item.row[1] === c || item.row[2] === c)
-                .reduce((sum, item) => sum + (item.row[10] or 0), 0);
+                .reduce((sum, item) => sum + (item.row[10] || 0), 0);
             const desc = tableDataFrom7.find(item => item.row[1] === c || item.row[2] === c)?.row[3] || '';
             return { stt: summaryDataB.length + i + 1, c, sum, desc };
         });
