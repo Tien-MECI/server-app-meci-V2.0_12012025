@@ -57,15 +57,15 @@ async function prepareYcvtData(auth, spreadsheetId, spreadsheetHcId) {
                         isMainRowProcessed = true;
 
                         // Tính công thức giống Sheets
-                        const rong = parseFloat(newRow[5] || 0); // F: Rộng
-                        const cao = parseFloat(newRow[6] || 0); // G: Cao
-                        const sl_soi = parseFloat(newRow[7] || 0); // H: SL sợi
-                        const sl_bo = parseFloat(newRow[9] || 0); // J: SL bộ
+                        //const rong = parseFloat(newRow[5] || 0); // F: Rộng
+                       // const cao = parseFloat(newRow[6] || 0); // G: Cao
+                       // const sl_soi = parseFloat(newRow[7] || 0); // H: SL sợi
+                        //const sl_bo = parseFloat(newRow[9] || 0); // J: SL bộ
 
-                        newRow[8] = (cao / 1000) * sl_bo; // I: Số lượng
-                        newRow[11] = (rong / 1000) * sl_bo; // L: Tổng SL sợi
-                        newRow[10] = (rong * cao * sl_soi / 1000000) * newRow[8]; // K: Tổng m2
-                        newRow[12] = targetValues[8] || newRow[12] || ''; // M: Ghi chú
+                        //newRow[8] = (cao / 1000) * sl_bo; // I: Số lượng
+                        //newRow[11] = (rong / 1000) * sl_bo; // L: Tổng SL sợi
+                        //newRow[10] = (rong * cao * sl_soi / 1000000) * newRow[8]; // K: Tổng m2
+                        //newRow[12] = targetValues[8] || newRow[12] || ''; // M: Ghi chú
                     }
 
                     tableData.push({

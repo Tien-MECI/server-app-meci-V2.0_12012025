@@ -113,17 +113,16 @@
         </tr>
     </thead>
     -->
-    <tbody>
-        <% tableData.forEach((item, index) => { %>
-            <tr>
-                <% item.row.slice(1).forEach((cell, i) => { %> <!-- Bỏ cột đầu tiên (STT) bằng slice(1) -->
-                    <td class="<%= i === 3 ? 'col-e' : i === 8 ? 'col-j' : i === 9 ? 'col-i' : i === 10 ? 'col-j' : '' %>">
-                        <%= cell || '' %>
-                    </td>
-                <% }) %>
-            </tr>
-        <% }) %>
-    </tbody>
+<tbody>
+    <% tableData.forEach((item) => { %>
+        <tr>
+            <% item.row.slice(1, 14).forEach((cell) => { %>
+                <td><%= cell || '' %></td>
+            <% }) %>
+        </tr>
+    <% }) %>
+</tbody>
+
     </table>
 
     <h2 class="center-text yellow bold" style="font-size: 22px;">BẢNG TỔNG HỢP VẬT TƯ - SẢN PHẨM CHO ĐƠN HÀNG DÀNH CHO KHO</h2>
