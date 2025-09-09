@@ -88,19 +88,24 @@ async function prepareYcvtData(auth, spreadsheetId, spreadsheetHcId) {
         const summaryDataB = uniqueB.map((b, i) => {
             const sum = tableDataFrom7
                 .filter(item => item.row[1] === b || item.row[2] === b)
-                .reduce((sum, item) => sum + (parseFloat(item.row[8]) || 0), 0);
+                .reduce((sum, item) => sum + (parseFloat((item.row[8] || '').toString().replace(',', '.')) || 0), 0);
             const desc = tableDataFrom7.find(item => item.row[1] === b || item.row[2] === b)?.row[3] || '';
             return { stt: i + 1, b, sum, desc };
         });
         const summaryDataC = uniqueC.map((c, i) => {
             const sum = tableDataFrom7
                 .filter(item => item.row[1] === c || item.row[2] === c)
-                .reduce((sum, item) => sum + (parseFloat(item.row[10]) || 0), 0);
+                .reduce((sum, item) => sum + (parseFloat((item.row[10] || '').toString().replace(',', '.')) || 0), 0);
             const desc = tableDataFrom7.find(item => item.row[1] === c || item.row[2] === c)?.row[3] || '';
             return { stt: summaryDataB.length + i + 1, c, sum, desc };
         });
 
         console.log(`✔️ Tạo ${summaryDataB.length} mục B và ${summaryDataC.length} mục C trong bảng tổng hợp.`);
+
+        // Kiểm tra "có dữ liệu" cho các cột E/I/J bằng cách trim chuỗi (an toàn hơn)
+        const hasDataE = tableDataFrom7.some(item => item.row[4] && item.row[4].toString().trim() !== '');
+        const hasDataI = tableDataFrom7.some(item => item.row[8] && item.row[8].toString().trim() !== '');
+        const hasDataJ = tableDataFrom7.some(item => item.row[9] && item.row[9].toString().trim() !== '');
 
         return {
             d4Value,
@@ -113,8 +118,9 @@ async function prepareYcvtData(auth, spreadsheetId, spreadsheetHcId) {
             tableData,
             summaryDataB,
             summaryDataC,
-            hasDataE: tableData.some(item => item.row[4]), // E
-            hasDataI: tableData.some(item => item.row[8]), // I
+            hasDataE, // E
+            hasDataI, // I
+            hasDataJ, // J  <--- added
             lastRowWithData
         };
     } catch (err) {
