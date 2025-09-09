@@ -47,7 +47,7 @@ async function prepareYcvtData(auth, spreadsheetId, spreadsheetHcId) {
             if (matchingRows.length > 0) {
                 let isMainRowProcessed = false; // Cờ để chỉ paste columnsToCopyBase vào row chính (cột C = hValue)
                 matchingRows.forEach((matchingRow, index) => {
-                    let dataFromBN = matchingRow.slice(1, 14); // B:N (index 1 đến 13)
+                    let dataFromBN = matchingRow.slice(1, 13); // B:N (index 1 đến 13)
                     let newRow = [...dataFromBN];
 
                     // Chỉ paste columnsToCopyBase vào row có cột C = hValue (row chính)
