@@ -185,9 +185,9 @@ async function prepareYcvtData(auth, spreadsheetId, spreadsheetHcId) {
       .filter(v => v).join('<br>');
 
     // 8) Flags kiểm tra dữ liệu
-    const hasDataF = tableData.some(item => item.row[5] && item.row[5].toString().trim() !== '');
-    const hasDataI = tableData.some(item => item.row[8] && item.row[8].toString().trim() !== '');
-    const hasDataJ = tableData.some(item => item.row[9] && item.row[9].toString().trim() !== '');
+    const hasDataF = tableData.some(item => item.row[4] && item.row[4].toString().trim() !== '');
+    const hasDataI = tableData.some(item => item.row[7] && item.row[7].toString().trim() !== '');
+    const hasDataJ = tableData.some(item => item.row[8] && item.row[8].toString().trim() !== '');
 
     return {
       d4Value,
