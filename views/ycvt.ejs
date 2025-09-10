@@ -28,7 +28,6 @@
         <% if (!hasDataF) { %> .col-f { display: none; } <% } %>
         <% if (!hasDataI) { %> .col-i { display: none; } <% } %>
         <% if (!hasDataJ) { %> .col-j { display: none; } <% } %>
-
     </style>
     <% if (autoPrint) { %>
         <script>
@@ -95,27 +94,25 @@
 
     <h2 class="center-text bold">BẢNG CHI TIẾT VẬT TƯ</h2>
     <table style="font-size: 12px;">
-<tbody>
-    <% tableData.forEach((item) => { %>
-        <tr>
-            <!-- Hiển thị cột A: STT -->
-            <td><%= item.stt %></td>
+        <tbody>
+            <% tableData.forEach((item) => { %>
+                <tr>
+                    <!-- Cột A: STT -->
+                    <td><%= item.stt %></td>
 
-            <!-- Hiển thị B -> N -->
-            <% item.row.slice(1, 14).forEach((cell, i) => { %>
-                <td class="<%= 
-                    i === 4 ? 'col-f' : 
-                    i === 7 ? 'col-i' : 
-                    i === 8 ? 'col-j' : '' 
-                %>">
-                    <%= cell || '' %>
-                </td>
+                    <!-- Cột B -> N -->
+                    <% item.row.slice(1, 14).forEach((cell, i) => { %>
+                        <td class="<%= 
+                            i === 4 ? 'col-f' : 
+                            i === 7 ? 'col-i' : 
+                            i === 8 ? 'col-j' : '' 
+                        %>">
+                            <%= cell || '' %>
+                        </td>
+                    <% }) %>
+                </tr>
             <% }) %>
-        </tr>
-    <% }) %>
-</tbody>
-
-
+        </tbody>
     </table>
 
     <h2 class="center-text yellow bold" style="font-size: 22px;">BẢNG TỔNG HỢP VẬT TƯ - SẢN PHẨM CHO ĐƠN HÀNG DÀNH CHO KHO</h2>
