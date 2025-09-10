@@ -97,25 +97,26 @@
        <tbody>
   <% tableData.forEach(item => { %>
     <tr>
+      <td><%= item.row[0] %></td> <!-- Mã SP -->
       <td><%= item.row[1] %></td> <!-- Mã SP -->
       <td><%= item.row[2] %></td> <!-- Mã SP -->
       <td><%= item.row[3] %></td> <!-- Mã SP -->
-      <td><%= item.row[4] %></td> <!-- Mã SP -->
-      <% if (hasDataF) { %>
-        <td><%= item.row[5] %></td> <!-- Rộng -->
+       <% if (hasDataF) { %>
+        <td><%= item.row[4] %></td> <!-- Rộng -->
       <% } %>
+      <td><%= item.row[5] %></td>
 
       <td><%= item.row[6] %></td> <!-- Cao -->
-      <td><%= item.row[7] %></td> <!-- Mã SP -->
+      <% if (hasDataI) { %>
+        <td><%= item.row[7] %></td> <!-- SL bộ -->
+      <% } %>
 
       <% if (hasDataI) { %>
         <td><%= item.row[8] %></td> <!-- SL bộ -->
       <% } %>
       
-
-      <% if (hasDataJ) { %>
         <td><%= item.row[9] %></td> <!-- ĐVT -->
-      <% } %>
+      
 
       <td><%= item.row[10] %></td> <!-- Tổng SL sợi -->
       <td><%= item.row[12] %></td> <!-- Ghi chú -->
