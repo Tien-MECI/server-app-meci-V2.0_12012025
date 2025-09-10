@@ -135,6 +135,7 @@
                 <th>Mã vật tư</th>
                 <th>Mô tả</th>
                 <th>Tổng số lượng</th>
+                <th>ĐVT</th>
             </tr>
         </thead>
         <tbody>
@@ -145,6 +146,7 @@
                     <td></td>
                     <td><%= item.desc %></td>
                     <td><%= item.sum %></td>
+                    <td><%= item.DVT %></td>
                 </tr>
             <% }) %>
             <% summaryDataC.forEach(item => { %>
@@ -154,6 +156,7 @@
                     <td><%= item.code %></td>
                     <td><%= item.desc %></td>
                     <td><%= item.sum %></td>
+                    <td><%= item.DVT %></td>
                 </tr>
             <% }) %>
         </tbody>
