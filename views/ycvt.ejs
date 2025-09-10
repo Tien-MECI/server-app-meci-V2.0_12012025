@@ -4,7 +4,7 @@
     <title>Yêu Cầu Vật Tư</title>
     <meta charset="UTF-8">
     <style>
-        @page { size: A4 portrait; margin: 1cm; }
+        @page { size: A4 portrait; margin: 0.5cm; }
         body { font-family: Arial, sans-serif; font-size: 12px; margin: 0; padding: 15px; }
         table { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 12px; }
         th, td { border: 1px solid black; padding: 4px; text-align: center; }
@@ -97,18 +97,18 @@
         </tr>
     </table>
 
-    <h2 class="center-text bold">BẢNG CHI TIẾT VẬT TƯ</h2>
+    <h2 class="center-text bold">BẢNG CHI TIẾT SẢN PHẨM - VẬT TƯ</h2>
     <table style="font-size: 12px;">
        <tbody>
   <% tableData.forEach(item => { 
        const isHeaderRow = ["Mã SP", "Mã vật tư sản xuất", "Mã vật tư xuất kèm"].includes(item.row[1]) 
                         || ["Mã SP", "Mã vật tư sản xuất", "Mã vật tư xuất kèm"].includes(item.row[2]);
   %>
-    <tr class="<%= isHeaderRow ? 'bold center-text' : '' %>">
-      <td class="<%= isHeaderRow ? 'center-text blue-light' : 'text-left'  %>"><%= item.row[0] %></td>
+    <tr class="<%= isHeaderRow ? 'bold center-text blue-light' : '' %>">
+      <td class="<%= isHeaderRow ? 'center-text' : 'text-left' %>"><%= item.row[0] %></td>
       <td><%= item.row[1] %></td>
       <td><%= item.row[2] %></td>
-      <<td class="<%= isHeaderRow ? 'center-text blue-light' : 'text-left' %>"><%= item.row[3] %></td>
+      <<td class="<%= isHeaderRow ? 'center-text' : 'text-left' %>"><%= item.row[3] %></td>
 
       <% if (hasDataF) { %>
         <td class="center-text"><%= item.row[4] %></td>
