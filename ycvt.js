@@ -67,10 +67,9 @@ async function prepareYcvtData(auth, spreadsheetId, spreadsheetHcId) {
 
     console.log(`✔️ Tìm thấy ${hValues.length} hValue trong Don_hang_PVC_ct`);
 
-    // 4) Chuẩn bị paste vào F:N
+    // 4) Xử lý tuần tự từng hValue
     const columnsToCopyBase = [17, 18, 19, 20, 21, 22, 23, 24, 29]; // 9 cột
-    const pasteValueRanges = [];
-    const pastedRanges = [];
+    let tableData = [];
 
     for (const hObj of hValues) {
       const hValue = hObj.hValue;
@@ -82,72 +81,54 @@ async function prepareYcvtData(auth, spreadsheetId, spreadsheetHcId) {
         const row = data3[i] || [];
         if (String(row[2] || '').trim() === String(hValue).trim()) matchesC.push(i);
       }
-
       if (matchesC.length === 0) continue;
 
+      // build dữ liệu để paste
       const targetValues = columnsToCopyBase.map(colIndex =>
         hObj.rowData[colIndex - 1] !== undefined ? hObj.rowData[colIndex - 1] : ''
       );
 
+      const pasteValueRanges = [];
+      const pastedRanges = [];
       for (const idx of matchesC) {
         const rowNum = idx + 1;
         const range = `Data_bom!F${rowNum}:N${rowNum}`;
         pasteValueRanges.push({ range, values: [targetValues] });
         pastedRanges.push(range);
       }
-    }
 
-    // --------------------------
-    // 5) Nếu có paste thì xử lý
-    // --------------------------
-    let tableData = [];
-    if (pasteValueRanges.length > 0) {
-      console.log(`📥 Batch paste ${pasteValueRanges.length} ranges (F:N) ...`);
-      await batchPaste(pasteValueRanges);
-      await sleep(600);
-
-      let updatedData3 = null;
-      for (let attempts = 0; attempts < 5; attempts++) {
-        const res = await sheets.spreadsheets.values.get({
-          spreadsheetId: spreadsheetHcId,
-          range: 'Data_bom!A1:N'
-        });
-        updatedData3 = res.data.values || [];
-        const someBpopulated = updatedData3.some(r => r && r[1] && String(r[1]).trim() !== '');
-        if (someBpopulated) break;
+      // 5) paste riêng cho hValue này
+      if (pasteValueRanges.length > 0) {
+        console.log(`📥 Paste ${hValue}: ${pasteValueRanges.length} ranges...`);
+        await batchPaste(pasteValueRanges);
         await sleep(600);
-      }
 
-      // Thu thập B:N
-      for (const hObj of hValues) {
+        // 6) đọc lại Data_bom
+        let updatedData3 = null;
+        for (let attempts = 0; attempts < 5; attempts++) {
+          const res = await sheets.spreadsheets.values.get({
+            spreadsheetId: spreadsheetHcId,
+            range: 'Data_bom!A1:N'
+          });
+          updatedData3 = res.data.values || [];
+          const someBpopulated = updatedData3.some(r => r && r[1] && String(r[1]).trim() !== '');
+          if (someBpopulated) break;
+          await sleep(600);
+        }
+
+        // 7) thu thập dữ liệu theo A == hValue
         for (const row of updatedData3) {
-          if (String(row?.[0] || '').trim() === String(hObj.hValue).trim()) {
+          if (String(row?.[0] || '').trim() === String(hValue).trim()) {
             const sliceBN = row.slice(1, 14);
             while (sliceBN.length < 13) sliceBN.push('');
             tableData.push({ stt: hObj.stt, row: sliceBN });
           }
         }
-      }
 
-      console.log(`✔️ Đã thu thập tableData từ Data_bom sau paste: ${tableData.length} rows`);
-
-      // Clear lại
-      if (pastedRanges.length > 0) {
-        console.log(`🧹 Clear ${pastedRanges.length} ranges (F:N)...`);
-        await batchClear(pastedRanges);
-      }
-    } else {
-      // --------------------------
-      // Không có paste
-      // --------------------------
-      console.log('ℹ️ Không có paste, lấy trực tiếp từ data3 ban đầu.');
-      for (const hObj of hValues) {
-        for (const row of data3) {
-          if (String(row?.[0] || '').trim() === String(hObj.hValue).trim()) {
-            const sliceBN = row.slice(1, 14);
-            while (sliceBN.length < 13) sliceBN.push('');
-            tableData.push({ stt: hObj.stt, row: sliceBN });
-          }
+        // 8) clear lại
+        if (pastedRanges.length > 0) {
+          console.log(`🧹 Clear ${hValue}: ${pastedRanges.length} ranges...`);
+          await batchClear(pastedRanges);
         }
       }
     }
@@ -175,7 +156,6 @@ async function prepareYcvtData(auth, spreadsheetId, spreadsheetHcId) {
       const DVT = relatedRows.find(item => item.row[10])?.row[10] || '';
       return { stt: summaryDataB.length + i + 1, code: c, sum, desc, DVT };
     });
-
 
     // 7) Thông tin Don_hang
     const matchingRows = data2.slice(1).filter(
