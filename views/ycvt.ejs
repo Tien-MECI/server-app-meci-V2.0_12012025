@@ -12,6 +12,10 @@
         .bold { font-weight: bold; }
         .yellow { background: #FFFF00; }
         .no-border { border: none; }
+        .text-left { text-align: left; }
+        .center-text { text-align: center; }
+        .bold { font-weight: bold; }
+
         .watermark {
             position: fixed;
             top: 35%;
@@ -95,39 +99,38 @@
     <h2 class="center-text bold">BẢNG CHI TIẾT VẬT TƯ</h2>
     <table style="font-size: 12px;">
        <tbody>
-  <% tableData.forEach(item => { %>
-    <tr>
-      <td><%= item.row[0] %></td> <!-- Mã SP -->
-      <!--
-      <td><%= item.row[1] %></td>
-      -->
-      <!--
-      <td><%= item.row[2] %></td>
-      -->  
-      <td><%= item.row[3] %></td> <!-- Mã SP -->
+  <% tableData.forEach(item => { 
+       const isHeaderRow = ["Mã SP", "Mã vật tư sản xuất", "Mã vật tư xuất kèm"].includes(item.row[1]) 
+                        || ["Mã SP", "Mã vật tư sản xuất", "Mã vật tư xuất kèm"].includes(item.row[2]);
+  %>
+    <tr class="<%= isHeaderRow ? 'bold center-text' : '' %>">
+      <td class="<%= isHeaderRow ? 'center-text' : 'text-left' %>"><%= item.row[0] %></td>
+      <!-- <td><%= item.row[1] %></td> -->
+      <!-- <td><%= item.row[2] %></td> -->
+      <td class="<%= isHeaderRow ? 'center-text' : 'text-left' %>"><%= item.row[3] %></td>
+
       <% if (hasDataF) { %>
-      <td><%= item.row[4] %></td>
+        <td class="center-text"><%= item.row[4] %></td>
       <% } %>
+      <td class="center-text"><%= item.row[5] %></td>
+      <td class="center-text"><%= item.row[6] %></td>
 
-      <td><%= item.row[5] %></td> <!-- Rộng -->
-
-      <td><%= item.row[6] %></td> <!-- Cao -->
       <% if (hasDataI) { %>
-      <td><%= item.row[7] %></td> <!-- Cao -->
+        <td class="center-text"><%= item.row[7] %></td>
       <% } %>
+
       <% if (hasDataJ) { %>
-        <td><%= item.row[8] %></td> <!-- SL bộ -->
+        <td class="center-text"><%= item.row[8] %></td>
       <% } %>
-        <td><%= item.row[9] %></td> <!-- SL bộ -->
 
-        <td><%= item.row[10] %></td> <!-- ĐVT -->
-      
-
-      <td><%= item.row[11] %></td> <!-- Tổng SL sợi -->
-      <td><%= item.row[12] %></td> <!-- Ghi chú -->
+      <td class="center-text"><%= item.row[9] %></td>
+      <td class="center-text"><%= item.row[10] %></td>
+      <td class="center-text"><%= item.row[11] %></td>
+      <td class="center-text"><%= item.row[12] %></td>
     </tr>
   <% }) %>
 </tbody>
+
     </table>
 
         <h2 class="center-text yellow bold" style="font-size: 14px;">BẢNG TỔNG HỢP VẬT TƯ - SẢN PHẨM CHO ĐƠN HÀNG DÀNH CHO KHO</h2>
