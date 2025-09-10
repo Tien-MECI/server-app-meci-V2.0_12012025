@@ -25,9 +25,10 @@
         @media print {
             body { margin: 0; padding: 15px; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         }
-        <% if (!hasDataE) { %> .col-e { display: none; } <% } %>
+        <% if (!hasDataF) { %> .col-f { display: none; } <% } %>
         <% if (!hasDataI) { %> .col-i { display: none; } <% } %>
         <% if (!hasDataJ) { %> .col-j { display: none; } <% } %>
+
     </style>
     <% if (autoPrint) { %>
         <script>
@@ -100,15 +101,20 @@
             <!-- Hiển thị cột A: STT -->
             <td><%= item.stt %></td>
 
-            <!-- Hiển thị 13 cột B -> N; giữ nguyên class mapping cũ (idx tính từ 0 = cột B) -->
+            <!-- Hiển thị B -> N -->
             <% item.row.slice(1, 14).forEach((cell, i) => { %>
-                <td class="<%= i === 3 ? 'col-e' : i === 7 ? 'col-i' : i === 8 ? 'col-j' : '' %>">
+                <td class="<%= 
+                    i === 4 ? 'col-f' : 
+                    i === 7 ? 'col-i' : 
+                    i === 8 ? 'col-j' : '' 
+                %>">
                     <%= cell || '' %>
                 </td>
             <% }) %>
         </tr>
     <% }) %>
 </tbody>
+
 
     </table>
 
