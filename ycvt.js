@@ -196,13 +196,14 @@ async function prepareYcvtData(auth, spreadsheetId, spreadsheetHcId) {
         .join('<br>');
 
       // Kiểm tra cột F (index 5 trong B:N)
-      const hasDataF = tableDataFrom7.some(item => item.row[5] && item.row[5].toString().trim() !== '');
+      const hasDataF = tableData.some(item => item.row[5] && item.row[5].toString().trim() !== '');
 
       // Kiểm tra cột I (index 8 trong B:N)
-      const hasDataI = tableDataFrom7.some(item => item.row[8] && item.row[8].toString().trim() !== '');
+      const hasDataI = tableData.some(item => item.row[8] && item.row[8].toString().trim() !== '');
 
       // Kiểm tra cột J (index 9 trong B:N)
-      const hasDataJ = tableDataFrom7.some(item => item.row[9] && item.row[9].toString().trim() !== '');
+      const hasDataJ = tableData.some(item => item.row[9] && item.row[9].toString().trim() !== '');
+
 
 
       return {
