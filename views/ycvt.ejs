@@ -94,27 +94,31 @@
 
     <h2 class="center-text bold">BẢNG CHI TIẾT VẬT TƯ</h2>
     <table style="font-size: 12px;">
-        <tbody>
-            <% tableData.forEach((item) => { %>
-                <tr>
-    <!-- Cột STT
-    <td><%= item.stt %></td>
-    -->
+       <tbody>
+  <% tableData.forEach(item => { %>
+    <tr>
+      <td><%= item.stt %></td>
+      <td><%= item.row[1] %></td> <!-- Mã SP -->
 
-    <!-- Cột B..N -->
-    <% item.row.forEach((cell, i) => { %>
-        <td class="<%= 
-            i === 4 ? 'col-f' : 
-            i === 7 ? 'col-i' : 
-            i === 8 ? 'col-j' : '' 
-        %>">
-            <%= cell || '' %>
-        </td>
-    <% }) %>
-</tr>
+      <% if (hasDataF) { %>
+        <td><%= item.row[5] %></td> <!-- Rộng -->
+      <% } %>
 
-            <% }) %>
-        </tbody>
+      <td><%= item.row[6] %></td> <!-- Cao -->
+
+      <% if (hasDataI) { %>
+        <td><%= item.row[8] %></td> <!-- SL bộ -->
+      <% } %>
+
+      <% if (hasDataJ) { %>
+        <td><%= item.row[9] %></td> <!-- ĐVT -->
+      <% } %>
+
+      <td><%= item.row[10] %></td> <!-- Tổng SL sợi -->
+      <td><%= item.row[12] %></td> <!-- Ghi chú -->
+    </tr>
+  <% }) %>
+</tbody>
     </table>
 
         <h2 class="center-text yellow bold" style="font-size: 14px;">BẢNG TỔNG HỢP VẬT TƯ - SẢN PHẨM CHO ĐƠN HÀNG DÀNH CHO KHO</h2>
