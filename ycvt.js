@@ -161,10 +161,12 @@ async function prepareYcvtData(auth, spreadsheetId, spreadsheetHcId) {
     const matchingRows = data2.slice(1).filter(
       row => String(row[5] || '').trim() === String(d4Value).trim() || String(row[6] || '').trim() === String(d4Value).trim()
     );
-    const l4Value = matchingRows[0] ? (matchingRows[0][8] || '') : '';
-    const d5Values = matchingRows.map(r => r[83]).filter(v => v).join(', ');
-    const h5Values = matchingRows.map(r => r[36]).filter(v => v).join(', ');
+    const l4Value = matchingRows[0] ? (matchingRows[0][9] || '') : '';
+    const d5Values = matchingRows.map(r => r[39]).filter(v => v).join(', ');
+    const ghichuKT = matchingRows.map(r => r[63]).filter(v => v).join(', ');
+    const h5Values = matchingRows.map(r => r[45]).filter(v => v).join(', ');
     const h6Values = matchingRows.map(r => r[37]).filter(v => v).join(', ');
+    const Loaiycthuchien = matchingRows.map(r => r[36]).filter(v => v).join(', ');
     const d6Values = matchingRows
       .map(r => r[48] ? new Date(r[48]).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '')
       .filter(v => v).join('<br>');
@@ -177,10 +179,12 @@ async function prepareYcvtData(auth, spreadsheetId, spreadsheetHcId) {
     return {
       d4Value,
       l4Value,
+      ghichuKT,
       d3: new Date().toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }),
       d5Values,
       h5Values,
       h6Values,
+      Loaiycthuchien,
       d6Values,
       tableData,
       summaryDataB,
