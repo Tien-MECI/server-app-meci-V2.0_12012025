@@ -11,6 +11,7 @@
         .center-text { text-align: center; }
         .bold { font-weight: bold; }
         .yellow { background: #FFFF00; }
+        .blue-light {background: #ADD8E6;}
         .no-border { border: none; }
         .text-left { text-align: left; }
         .center-text { text-align: center; }
@@ -104,10 +105,10 @@
                         || ["Mã SP", "Mã vật tư sản xuất", "Mã vật tư xuất kèm"].includes(item.row[2]);
   %>
     <tr class="<%= isHeaderRow ? 'bold center-text' : '' %>">
-      <td class="<%= isHeaderRow ? 'center-text' : 'text-left' %>"><%= item.row[0] %></td>
-      <!-- <td><%= item.row[1] %></td> -->
-      <!-- <td><%= item.row[2] %></td> -->
-      <td class="<%= isHeaderRow ? 'center-text' : 'text-left' %>"><%= item.row[3] %></td>
+      <td class="<%= isHeaderRow ? 'center-text' : 'text-left' : 'blue-light' %>"><%= item.row[0] %></td>
+      <td><%= item.row[1] %></td>
+      <td><%= item.row[2] %></td>
+      <td class="<%= isHeaderRow ? 'center-text' : 'text-left' : 'blue-light' %>"><%= item.row[3] %></td>
 
       <% if (hasDataF) { %>
         <td class="center-text"><%= item.row[4] %></td>
@@ -138,10 +139,8 @@
         <thead>
             <tr>
                 <th>STT</th>
-                <!--
                 <th>Mã SP</th>
                 <th>Mã vật tư</th>
-                -->
                 <th>Mô tả</th>
                 <th>Tổng số lượng</th>
                 <th>ĐVT</th>
@@ -151,10 +150,8 @@
             <% summaryDataB.forEach(item => { %>
                 <tr>
                     <td><%= item.stt %></td>
-                    <!--
                     <td><%= item.code %></td>
                     <td></td>
-                    -->
                     <td><%= item.desc %></td>
                     <td><%= item.sum %></td>
                     <td><%= item.DVT %></td>
@@ -163,10 +160,8 @@
             <% summaryDataC.forEach(item => { %>
                 <tr>
                     <td><%= item.stt %></td>
-                    <!--
                     <td></td>
                     <td><%= item.code %></td>
-                    -->
                     <td><%= item.desc %></td>
                     <td><%= item.sum %></td>
                     <td><%= item.DVT %></td>
