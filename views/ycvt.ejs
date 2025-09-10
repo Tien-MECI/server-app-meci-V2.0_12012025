@@ -97,18 +97,21 @@
        <tbody>
   <% tableData.forEach(item => { %>
     <tr>
-      <td><%= item.stt %></td>
       <td><%= item.row[1] %></td> <!-- Mã SP -->
-
+      <td><%= item.row[2] %></td> <!-- Mã SP -->
+      <td><%= item.row[3] %></td> <!-- Mã SP -->
+      <td><%= item.row[4] %></td> <!-- Mã SP -->
       <% if (hasDataF) { %>
         <td><%= item.row[5] %></td> <!-- Rộng -->
       <% } %>
 
       <td><%= item.row[6] %></td> <!-- Cao -->
+      <td><%= item.row[7] %></td> <!-- Mã SP -->
 
       <% if (hasDataI) { %>
         <td><%= item.row[8] %></td> <!-- SL bộ -->
       <% } %>
+      
 
       <% if (hasDataJ) { %>
         <td><%= item.row[9] %></td> <!-- ĐVT -->
