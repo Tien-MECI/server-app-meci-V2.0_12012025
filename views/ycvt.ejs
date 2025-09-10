@@ -105,10 +105,10 @@
                         || ["Mã SP", "Mã vật tư sản xuất", "Mã vật tư xuất kèm"].includes(item.row[2]);
   %>
     <tr class="<%= isHeaderRow ? 'bold center-text' : '' %>">
-      <td class="<%= isHeaderRow ? 'center-text' : 'text-left' : 'blue-light' %>"><%= item.row[0] %></td>
+      <td class="<%= isHeaderRow ? 'center-text blue-light' : 'text-left'  %>"><%= item.row[0] %></td>
       <td><%= item.row[1] %></td>
       <td><%= item.row[2] %></td>
-      <td class="<%= isHeaderRow ? 'center-text' : 'text-left' : 'blue-light' %>"><%= item.row[3] %></td>
+      <<td class="<%= isHeaderRow ? 'center-text blue-light' : 'text-left' %>"><%= item.row[3] %></td>
 
       <% if (hasDataF) { %>
         <td class="center-text"><%= item.row[4] %></td>
