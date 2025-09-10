@@ -98,8 +98,12 @@
   <% tableData.forEach(item => { %>
     <tr>
       <td><%= item.row[0] %></td> <!-- Mã SP -->
-      <td><%= item.row[1] %></td> <!-- Mã SP -->
-      <td><%= item.row[2] %></td> <!-- Mã SP -->
+      <!--
+      <td><%= item.row[1] %></td>
+      -->
+      <!--
+      <td><%= item.row[2] %></td>
+      -->  
       <td><%= item.row[3] %></td> <!-- Mã SP -->
       <% if (hasDataF) { %>
       <td><%= item.row[4] %></td>
@@ -131,8 +135,10 @@
         <thead>
             <tr>
                 <th>STT</th>
+                <!--
                 <th>Mã SP</th>
                 <th>Mã vật tư</th>
+                -->
                 <th>Mô tả</th>
                 <th>Tổng số lượng</th>
                 <th>ĐVT</th>
@@ -142,8 +148,10 @@
             <% summaryDataB.forEach(item => { %>
                 <tr>
                     <td><%= item.stt %></td>
+                    <!--
                     <td><%= item.code %></td>
                     <td></td>
+                    -->
                     <td><%= item.desc %></td>
                     <td><%= item.sum %></td>
                     <td><%= item.DVT %></td>
@@ -152,8 +160,10 @@
             <% summaryDataC.forEach(item => { %>
                 <tr>
                     <td><%= item.stt %></td>
+                    <!--
                     <td></td>
                     <td><%= item.code %></td>
+                    -->
                     <td><%= item.desc %></td>
                     <td><%= item.sum %></td>
                     <td><%= item.DVT %></td>
