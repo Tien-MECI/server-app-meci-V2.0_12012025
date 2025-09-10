@@ -167,7 +167,7 @@ async function prepareYcvtData(auth, spreadsheetId, spreadsheetHcId) {
     const summaryDataC = uniqueC.map((c, i) => {
       const sum = tableData
         .filter(item => item.row[1] === c || item.row[2] === c)
-        .reduce((s, item) => s + (parseFloat((item.row[10] || '').toString().replace(',', '.')) || 0), 0);
+        .reduce((s, item) => s + (parseFloat((item.row[9] || '').toString().replace(',', '.')) || 0), 0);
       const desc = tableData.find(item => item.row[1] === c || item.row[2] === c)?.row[3] || '';
       return { stt: summaryDataB.length + i + 1, code: c, sum, desc };
     });
