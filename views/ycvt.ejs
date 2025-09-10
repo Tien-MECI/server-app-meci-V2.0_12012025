@@ -101,24 +101,25 @@
       <td><%= item.row[1] %></td> <!-- Mã SP -->
       <td><%= item.row[2] %></td> <!-- Mã SP -->
       <td><%= item.row[3] %></td> <!-- Mã SP -->
+      <td><%= item.row[4] %></td>
        <% if (hasDataF) { %>
-        <td><%= item.row[4] %></td> <!-- Rộng -->
+        <td><%= item.row[5] %></td> <!-- Rộng -->
       <% } %>
-      <td><%= item.row[5] %></td>
 
       <td><%= item.row[6] %></td> <!-- Cao -->
-      <% if (hasDataI) { %>
-        <td><%= item.row[7] %></td> <!-- SL bộ -->
-      <% } %>
-
+      <td><%= item.row[7] %></td> <!-- Cao -->
       <% if (hasDataI) { %>
         <td><%= item.row[8] %></td> <!-- SL bộ -->
       <% } %>
-      
-        <td><%= item.row[9] %></td> <!-- ĐVT -->
+
+      <% if (hasDataI) { %>
+        <td><%= item.row[9] %></td> <!-- SL bộ -->
+      <% } %>
+
+        <td><%= item.row[10] %></td> <!-- ĐVT -->
       
 
-      <td><%= item.row[10] %></td> <!-- Tổng SL sợi -->
+      <td><%= item.row[11] %></td> <!-- Tổng SL sợi -->
       <td><%= item.row[12] %></td> <!-- Ghi chú -->
     </tr>
   <% }) %>
