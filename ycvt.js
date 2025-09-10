@@ -195,9 +195,15 @@ async function prepareYcvtData(auth, spreadsheetId, spreadsheetHcId) {
         .filter(v => v)
         .join('<br>');
 
-      const hasDataE = tableData.some(item => item.row[4] && String(item.row[4]).trim() !== '');
-      const hasDataI = tableData.some(item => item.row[7] && String(item.row[7]).trim() !== '');
-      const hasDataJ = tableData.some(item => item.row[8] && String(item.row[8]).trim() !== '');
+      // Kiểm tra cột F (index 5 trong B:N)
+      const hasDataF = tableDataFrom7.some(item => item.row[5] && item.row[5].toString().trim() !== '');
+
+      // Kiểm tra cột I (index 8 trong B:N)
+      const hasDataI = tableDataFrom7.some(item => item.row[8] && item.row[8].toString().trim() !== '');
+
+      // Kiểm tra cột J (index 9 trong B:N)
+      const hasDataJ = tableDataFrom7.some(item => item.row[9] && item.row[9].toString().trim() !== '');
+
 
       return {
         d4Value,
@@ -210,7 +216,7 @@ async function prepareYcvtData(auth, spreadsheetId, spreadsheetHcId) {
         tableData,
         summaryDataB,
         summaryDataC,
-        hasDataE,
+        hasDataF,
         hasDataI,
         hasDataJ,
         lastRowWithData
