@@ -101,7 +101,7 @@
                     <td><%= item.stt %></td>
 
                     <!-- Cột B -> N -->
-                    <% item.row.slice(1, 14).forEach((cell, i) => { %>
+                    <% item.row.forEach((cell, i) => { %>
                         <td class="<%= 
                             i === 4 ? 'col-f' : 
                             i === 7 ? 'col-i' : 
