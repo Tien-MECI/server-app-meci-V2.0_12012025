@@ -157,20 +157,25 @@ async function prepareYcvtData(auth, spreadsheetId, spreadsheetHcId) {
     const uniqueC = [...new Set(tableData.map(item => item.row[2]).filter(v => v && v !== 'Mã vật tư xuất kèm' && v !== 'Mã vật tư sản xuất'))];
 
     const summaryDataB = uniqueB.map((b, i) => {
-      const sum = tableData
-        .filter(item => item.row[1] === b || item.row[2] === b)
-        .reduce((s, item) => s + (parseFloat((item.row[9] || '').toString().replace(',', '.')) || 0), 0);
-      const desc = tableData.find(item => item.row[1] === b || item.row[2] === b)?.row[3] || '';
-      return { stt: i + 1, code: b, sum, desc };
+      const relatedRows = tableData.filter(item => item.row[1] === b || item.row[2] === b);
+      const sum = relatedRows.reduce((s, item) =>
+        s + (parseFloat((item.row[9] || '').toString().replace(',', '.')) || 0), 0);
+      const desc = relatedRows.find(item => item.row[3])?.row[3] || '';
+      const DVT = relatedRows.find(item => item.row[10])?.row[10] || '';
+      return { stt: i + 1, code: b, sum, desc, DVT };
     });
 
     const summaryDataC = uniqueC.map((c, i) => {
-      const sum = tableData
-        .filter(item => item.row[1] === c || item.row[2] === c)
-        .reduce((s, item) => s + (parseFloat((item.row[9] || '').toString().replace(',', '.')) || 0), 0);
-      const desc = tableData.find(item => item.row[1] === c || item.row[2] === c)?.row[3] || '';
-      return { stt: summaryDataB.length + i + 1, code: c, sum, desc };
+      const relatedRows = tableData.filter(item =>
+        item.row[1] === c || item.row[2] === c
+      );
+      const sum = relatedRows.reduce((s, item) =>
+        s + (parseFloat((item.row[9] || '').toString().replace(',', '.')) || 0), 0);
+      const desc = relatedRows.find(item => item.row[3])?.row[3] || '';
+      const DVT = relatedRows.find(item => item.row[10])?.row[10] || '';
+      return { stt: summaryDataB.length + i + 1, code: c, sum, desc, DVT };
     });
+
 
     // 7) Thông tin Don_hang
     const matchingRows = data2.slice(1).filter(
