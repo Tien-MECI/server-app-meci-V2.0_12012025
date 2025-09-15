@@ -1841,101 +1841,83 @@ app.get("/dashboard", async (req, res) => {
     try {
         console.log("📊 Bắt đầu lấy dữ liệu Dashboard...");
 
-        // 1️⃣ Đọc dữ liệu từ Google Sheets
-        const [donHangRes, donHangCtRes] = await Promise.all([
-            sheets.spreadsheets.values.get({
-                spreadsheetId: SPREADSHEET_ID,
-                range: "Don_hang",
-            }),
-            sheets.spreadsheets.values.get({
-                spreadsheetId: SPREADSHEET_ID,
-                range: "Don_hang_PVC_ct", // ⚠ Đúng tên sheet chứa chi tiết đơn hàng
-            }),
-        ]);
+        // 1️⃣ Lấy dữ liệu Don_hang từ Google Sheets
+        const donHangRes = await sheets.spreadsheets.values.get({
+            spreadsheetId: SPREADSHEET_ID,
+            range: "Don_hang", // đọc toàn bộ cột tới BY
+        });
 
         const donHangValues = donHangRes.data.values || [];
-        const donHangCtValues = donHangCtRes.data.values || [];
-
-        if (donHangValues.length === 0) {
+        if (donHangValues.length <= 1) {
             console.warn("⚠️ Sheet Don_hang không có dữ liệu!");
-            return res.render("dashboard", { revenue: {}, profit: {}, conversionRate: 0, topProducts: [] });
+            return res.render("dashboard", { sales: [] });
         }
 
-        // 2️⃣ Chuyển mảng -> object
-        const donHangHeader = donHangValues[0];
-        const donHangData = donHangValues.slice(1).map(row =>
-            Object.fromEntries(donHangHeader.map((h, i) => [h, row[i] || ""]))
-        );
+        // 2️⃣ Lấy dữ liệu từng dòng (bỏ tiêu đề)
+        const rows = donHangValues.slice(1);
 
-        const donHangCtHeader = donHangCtValues[0] || [];
-        const donHangCtData = donHangCtValues.slice(1).map(row =>
-            Object.fromEntries(donHangCtHeader.map((h, i) => [h, row[i] || ""]))
-        );
+        // 3️⃣ Chuẩn bị object lưu doanh số theo nhân viên
+        const salesByNV = {};
 
-        // 3️⃣ Tính doanh thu, lợi nhuận theo tháng + tỷ lệ chốt đơn
-        const doanhThuTheoThang = {};
-        const loiNhuanTheoThang = {};
-        let tongDon = 0, donChot = 0;
+        rows.forEach(row => {
+            const nhanVien = row[2] || "Không xác định"; // Cột C
+            const khachHang = row[9] || "";
+            const ngayDuyet = row[49] || "";
+            const trangThai = row[43] || "";
+            const baoGia = row[46] || "";
+            const giaTri = parseFloat(row[64] || 0);
 
-        donHangData.forEach(dh => {
-            if (!dh.Ngay) return;
-            const thang = new Date(dh.Ngay).getMonth() + 1;
-            const tongTien = parseFloat(dh.TongTien || 0);
-            const chiPhi = parseFloat(dh.ChiPhi || 0);
-
-            doanhThuTheoThang[thang] = (doanhThuTheoThang[thang] || 0) + tongTien;
-            loiNhuanTheoThang[thang] = (loiNhuanTheoThang[thang] || 0) + (tongTien - chiPhi);
-
-            tongDon++;
-            if (dh.TrangThai?.toLowerCase().includes("kế hoạch sản xuất")) donChot++;
-        });
-
-        const conversionRate = tongDon > 0 ? ((donChot / tongDon) * 100).toFixed(2) : 0;
-
-        // 4️⃣ Top sản phẩm bán chạy (group theo Mã SP + DVT)
-        const productSales = {};
-        donHangCtData.forEach(item => {
-            const maSP = item["Ma_SP"];
-            const soLuong = parseFloat(item["SL_Bo"] || 0);
-            const dvt = item["Don_vi_tinh"] || ""; // lấy ĐVT
-
-            if (!maSP) return;
-
-            if (!productSales[maSP]) {
-                productSales[maSP] = { total: 0, dvt };
+            if (!salesByNV[nhanVien]) {
+                salesByNV[nhanVien] = {
+                    nhanVien,
+                    tongDoanhSo: 0,
+                    tongDon: 0,
+                    soDonChot: 0,
+                    doanhSoChot: 0,
+                    soDonHuy: 0,
+                    doanhSoHuy: 0,
+                    soBaoGia: 0
+                };
             }
-            productSales[maSP].total += soLuong;
+
+            const nv = salesByNV[nhanVien];
+
+            // Cộng dồn doanh số & tổng đơn
+            nv.tongDoanhSo += giaTri;
+            nv.tongDon++;
+
+            // Nếu trạng thái đơn là Kế hoạch sản xuất -> đếm đơn chốt
+            if (trangThai.trim().toLowerCase() === "kế hoạch sản xuất") {
+                nv.soDonChot++;
+                nv.doanhSoChot += giaTri;
+            }
+
+            // Nếu trạng thái đơn là Hủy đơn -> đếm đơn hủy
+            if (trangThai.trim().toLowerCase() === "hủy đơn") {
+                nv.soDonHuy++;
+                nv.doanhSoHuy += giaTri;
+            }
+
+            // Nếu AU = Báo giá -> đếm số báo giá
+            if (baoGia.trim().toLowerCase() === "báo giá") {
+                nv.soBaoGia++;
+            }
         });
 
-        // Chuyển thành mảng, sort theo số lượng giảm dần, format số
-        const topProducts = Object.entries(productSales)
-            .map(([maSP, data]) => ({
-                maSP,
-                dvt: data.dvt,
-                sum: data.total,
-                sumFormatted: data.total.toLocaleString("vi-VN") // hiển thị có dấu chấm ngăn cách
-            }))
-            .sort((a, b) => b.sum - a.sum)
-            .slice(0, 10);
+        // 4️⃣ Chuyển thành mảng & sắp xếp theo doanh số
+        const sales = Object.values(salesByNV).sort((a, b) => b.tongDoanhSo - a.tongDoanhSo);
 
-        console.log("📊 Dashboard -> Doanh thu theo tháng:", doanhThuTheoThang);
-        console.log("📊 Dashboard -> Lợi nhuận theo tháng:", loiNhuanTheoThang);
-        console.log("📊 Dashboard -> Tỷ lệ chốt đơn:", conversionRate);
-        console.log("📊 Dashboard -> Top sản phẩm:", topProducts);
+        console.log("📊 Dashboard -> Doanh số theo NV:", sales);
 
         // 5️⃣ Render ra dashboard.ejs
-        res.render("dashboard", {
-            revenue: doanhThuTheoThang,
-            profit: loiNhuanTheoThang,
-            conversionRate,
-            topProducts
-        });
+        res.render("dashboard", { sales });
 
     } catch (err) {
         console.error("❌ Lỗi khi xử lý Dashboard:", err);
         res.status(500).send("Lỗi khi tạo Dashboard");
     }
 });
+
 
 
 
