@@ -1835,6 +1835,52 @@ app.get('/ycvt', async (req, res) => {
     }
 });
 
+/// ---- Dashboard ---
+app.get("/dashboard", async (req, res) => {
+  try {
+    // Lấy dữ liệu từ Google Sheets
+    const donHangValues = await getSheetData("Don_hang", "A:Z"); // Lấy tất cả cột từ A đến Z
+    const donHangCtValues = await getSheetData("Don_hang_ct", "A:Z");
+
+    // --- Chuyển dữ liệu dạng mảng -> object ---
+    // Giả sử dòng đầu tiên là header
+    const donHangHeader = donHangValues[0];
+    const donHangSheet = donHangValues.slice(1).map(row =>
+      Object.fromEntries(donHangHeader.map((h, i) => [h, row[i]]))
+    );
+
+    const donHangCtHeader = donHangCtValues[0];
+    const donHangCtSheet = donHangCtValues.slice(1).map(row =>
+      Object.fromEntries(donHangCtHeader.map((h, i) => [h, row[i]]))
+    );
+
+    // --- Tính toán dữ liệu ---
+    const doanhThuTheoThang = {};
+    const loiNhuanTheoThang = {};
+    let tongDon = 0, donChot = 0;
+
+    donHangSheet.forEach(dh => {
+      const thang = new Date(dh.Ngay).getMonth() + 1;
+      doanhThuTheoThang[thang] = (doanhThuTheoThang[thang] || 0) + parseFloat(dh.TongTien || 0);
+      loiNhuanTheoThang[thang] = (loiNhuanTheoThang[thang] || 0) + (parseFloat(dh.TongTien || 0) - parseFloat(dh.ChiPhi || 0));
+      tongDon++;
+      if (dh.TrangThai === "Đã chốt") donChot++;
+    });
+
+    res.render("dashboard", {
+      revenue: doanhThuTheoThang,
+      profit: loiNhuanTheoThang,
+      conversionRate: ((donChot / tongDon) * 100).toFixed(2),
+    });
+
+  } catch (err) {
+    console.error("Lỗi đọc Google Sheets:", err);
+    res.status(500).send("Không đọc được dữ liệu từ Google Sheets");
+  }
+});
+
+
+
 
 app.use(express.static(path.join(__dirname, 'public')));
 // --- Debug ---
