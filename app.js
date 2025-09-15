@@ -1883,7 +1883,7 @@ app.get("/dashboard", async (req, res) => {
             doanhThuTheoThang[thang] = (doanhThuTheoThang[thang] || 0) + parseFloat(dh.TongTien || 0);
             loiNhuanTheoThang[thang] = (loiNhuanTheoThang[thang] || 0) + ((parseFloat(dh.TongTien || 0)) - (parseFloat(dh.ChiPhi || 0)));
             tongDon++;
-            if (dh.TrangThai?.toLowerCase().includes("chốt")) donChot++;
+            if (dh.TrangThai?.toLowerCase().includes("Kế hoạch sản xuất")) donChot++;
         });
 
         const conversionRate = tongDon > 0 ? ((donChot / tongDon) * 100).toFixed(2) : 0;
@@ -1891,8 +1891,8 @@ app.get("/dashboard", async (req, res) => {
         // 4️⃣ Top sản phẩm bán chạy (group theo Mã SP trong Don_hang_ct)
         const productSales = {};
         donHangCtData.forEach(item => {
-            const maSP = item["Mã SP"];
-            const soLuong = parseFloat(item["Số lượng"] || 0);
+            const maSP = item["Ma_SP"];
+            const soLuong = parseFloat(item["SL_Bo"] || 0);
             if (!maSP) return;
             productSales[maSP] = (productSales[maSP] || 0) + soLuong;
         });
