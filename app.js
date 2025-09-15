@@ -1836,48 +1836,91 @@ app.get('/ycvt', async (req, res) => {
 });
 
 /// ---- Dashboard ---
+// --- Route Dashboard ---
 app.get("/dashboard", async (req, res) => {
-  try {
-    // Lấy dữ liệu từ Google Sheets
-    const donHangValues = await getSheetData("Don_hang", "A:Z"); // Lấy tất cả cột từ A đến Z
-    const donHangCtValues = await getSheetData("Don_hang_ct", "A:Z");
+    try {
+        console.log("📊 Bắt đầu lấy dữ liệu Dashboard...");
 
-    // --- Chuyển dữ liệu dạng mảng -> object ---
-    // Giả sử dòng đầu tiên là header
-    const donHangHeader = donHangValues[0];
-    const donHangSheet = donHangValues.slice(1).map(row =>
-      Object.fromEntries(donHangHeader.map((h, i) => [h, row[i]]))
-    );
+        // 1️⃣ Đọc dữ liệu từ Google Sheets
+        const [donHangRes, donHangCtRes] = await Promise.all([
+            sheets.spreadsheets.values.get({
+                spreadsheetId: SPREADSHEET_ID,
+                range: "Don_hang!A:Z",
+            }),
+            sheets.spreadsheets.values.get({
+                spreadsheetId: SPREADSHEET_ID,
+                range: "Don_hang_ct!A:Z",
+            }),
+        ]);
 
-    const donHangCtHeader = donHangCtValues[0];
-    const donHangCtSheet = donHangCtValues.slice(1).map(row =>
-      Object.fromEntries(donHangCtHeader.map((h, i) => [h, row[i]]))
-    );
+        const donHangValues = donHangRes.data.values || [];
+        const donHangCtValues = donHangCtRes.data.values || [];
 
-    // --- Tính toán dữ liệu ---
-    const doanhThuTheoThang = {};
-    const loiNhuanTheoThang = {};
-    let tongDon = 0, donChot = 0;
+        if (donHangValues.length === 0) {
+            console.warn("⚠️ Sheet Don_hang không có dữ liệu!");
+            return res.render("dashboard", { revenue: {}, profit: {}, conversionRate: 0, topProducts: [] });
+        }
 
-    donHangSheet.forEach(dh => {
-      const thang = new Date(dh.Ngay).getMonth() + 1;
-      doanhThuTheoThang[thang] = (doanhThuTheoThang[thang] || 0) + parseFloat(dh.TongTien || 0);
-      loiNhuanTheoThang[thang] = (loiNhuanTheoThang[thang] || 0) + (parseFloat(dh.TongTien || 0) - parseFloat(dh.ChiPhi || 0));
-      tongDon++;
-      if (dh.TrangThai === "Đã chốt") donChot++;
-    });
+        // 2️⃣ Chuyển mảng -> object để dễ xử lý
+        const donHangHeader = donHangValues[0];
+        const donHangData = donHangValues.slice(1).map(row =>
+            Object.fromEntries(donHangHeader.map((h, i) => [h, row[i] || ""]))
+        );
 
-    res.render("dashboard", {
-      revenue: doanhThuTheoThang,
-      profit: loiNhuanTheoThang,
-      conversionRate: ((donChot / tongDon) * 100).toFixed(2),
-    });
+        const donHangCtHeader = donHangCtValues[0];
+        const donHangCtData = donHangCtValues.slice(1).map(row =>
+            Object.fromEntries(donHangCtHeader.map((h, i) => [h, row[i] || ""]))
+        );
 
-  } catch (err) {
-    console.error("Lỗi đọc Google Sheets:", err);
-    res.status(500).send("Không đọc được dữ liệu từ Google Sheets");
-  }
+        // 3️⃣ Tính toán: doanh thu & lợi nhuận theo tháng, tỷ lệ chốt đơn
+        const doanhThuTheoThang = {};
+        const loiNhuanTheoThang = {};
+        let tongDon = 0, donChot = 0;
+
+        donHangData.forEach(dh => {
+            if (!dh.Ngay) return;
+            const thang = new Date(dh.Ngay).getMonth() + 1;
+            doanhThuTheoThang[thang] = (doanhThuTheoThang[thang] || 0) + parseFloat(dh.TongTien || 0);
+            loiNhuanTheoThang[thang] = (loiNhuanTheoThang[thang] || 0) + ((parseFloat(dh.TongTien || 0)) - (parseFloat(dh.ChiPhi || 0)));
+            tongDon++;
+            if (dh.TrangThai?.toLowerCase().includes("chốt")) donChot++;
+        });
+
+        const conversionRate = tongDon > 0 ? ((donChot / tongDon) * 100).toFixed(2) : 0;
+
+        // 4️⃣ Top sản phẩm bán chạy (group theo Mã SP trong Don_hang_ct)
+        const productSales = {};
+        donHangCtData.forEach(item => {
+            const maSP = item["Mã SP"];
+            const soLuong = parseFloat(item["Số lượng"] || 0);
+            if (!maSP) return;
+            productSales[maSP] = (productSales[maSP] || 0) + soLuong;
+        });
+
+        const topProducts = Object.entries(productSales)
+            .map(([maSP, sum]) => ({ maSP, sum }))
+            .sort((a, b) => b.sum - a.sum)
+            .slice(0, 10); // lấy top 10
+
+        console.log("📊 Dashboard -> Doanh thu theo tháng:", doanhThuTheoThang);
+        console.log("📊 Dashboard -> Lợi nhuận theo tháng:", loiNhuanTheoThang);
+        console.log("📊 Dashboard -> Tỷ lệ chốt đơn:", conversionRate);
+        console.log("📊 Dashboard -> Top sản phẩm:", topProducts);
+
+        // 5️⃣ Render ra dashboard.ejs
+        res.render("dashboard", {
+            revenue: doanhThuTheoThang,
+            profit: loiNhuanTheoThang,
+            conversionRate,
+            topProducts
+        });
+
+    } catch (err) {
+        console.error("❌ Lỗi khi xử lý Dashboard:", err);
+        res.status(500).send("Lỗi khi tạo Dashboard");
+    }
 });
+
 
 
 
