@@ -1,54 +1,42 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
     <title>Dashboard Kinh Doanh</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; }
         h1 { text-align: center; }
-        .chart-container { width: 80%; margin: 20px auto; }
+        table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+        th { background-color: #f4f4f4; }
     </style>
 </head>
 <body>
     <h1>📊 Dashboard Kinh Doanh</h1>
-    <h3>Tỷ lệ chốt đơn: <%= conversionRate %>%</h3>
 
-    <div class="chart-container">
-        <canvas id="revenueChart"></canvas>
-    </div>
+    <h2>📈 Tỷ lệ chốt đơn: <%= conversionRate %>%</h2>
 
-    <div class="chart-container">
-        <canvas id="profitChart"></canvas>
-    </div>
+    <h2>Doanh thu theo tháng</h2>
+    <table>
+        <tr><th>Tháng</th><th>Doanh thu</th><th>Lợi nhuận</th></tr>
+        <% Object.keys(revenue).forEach(thang => { %>
+            <tr>
+                <td><%= thang %></td>
+                <td><%= revenue[thang].toLocaleString() %></td>
+                <td><%= profit[thang].toLocaleString() %></td>
+            </tr>
+        <% }) %>
+    </table>
 
-    <script>
-        const revenueData = <%- JSON.stringify(revenue) %>;
-        const profitData = <%- JSON.stringify(profit) %>;
-        const labels = Object.keys(revenueData).map(m => "Tháng " + m);
-
-        new Chart(document.getElementById('revenueChart'), {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Doanh thu',
-                    data: Object.values(revenueData)
-                }]
-            }
-        });
-
-        new Chart(document.getElementById('profitChart'), {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Lợi nhuận',
-                    data: Object.values(profitData),
-                    borderColor: 'green',
-                    fill: false
-                }]
-            }
-        });
-    </script>
+    <h2>🏆 Top 10 sản phẩm bán chạy</h2>
+    <table>
+        <tr><th>Mã SP</th><th>Số lượng</th></tr>
+        <% topProducts.forEach(p => { %>
+            <tr>
+                <td><%= p.maSP %></td>
+                <td><%= p.sum %></td>
+            </tr>
+        <% }) %>
+    </table>
 </body>
 </html>
