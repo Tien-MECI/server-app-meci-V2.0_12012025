@@ -1892,19 +1892,19 @@ app.get("/dashboard", async (req, res) => {
             nv.tongDoanhSo += giaTri;
             nv.tongDon++;
 
-            if (trangThai.trim().toLowerCase() === "kế hoạch sản xuất") {
+            if (trangThai.trim().toLowerCase() === "Kế hoạch sản xuất") {
                 nv.soDonChot++;
                 nv.doanhSoChot += giaTri;
                 soDonChot++;
             }
 
-            if (trangThai.trim().toLowerCase() === "hủy đơn") {
+            if (trangThai.trim().toLowerCase() === "Hủy đơn") {
                 nv.soDonHuy++;
                 nv.doanhSoHuy += giaTri;
                 soDonHuy++;
             }
 
-            if (baoGia.trim().toLowerCase() === "báo giá") {
+            if (baoGia.trim().toLowerCase() === "Báo giá") {
                 nv.soBaoGia++;
             }
         });
