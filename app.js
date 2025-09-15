@@ -1837,35 +1837,42 @@ app.get('/ycvt', async (req, res) => {
 
 /// ---- Dashboard ---
 // --- Route Dashboard ---
+import { format } from "date-fns";
+
 app.get("/dashboard", async (req, res) => {
     try {
         console.log("📊 Bắt đầu lấy dữ liệu Dashboard...");
 
-        // 1️⃣ Lấy dữ liệu Don_hang từ Google Sheets
+        // Lấy tháng từ query ?month=9 (nếu có)
+        const selectedMonth = req.query.month ? parseInt(req.query.month) : null;
+
         const donHangRes = await sheets.spreadsheets.values.get({
             spreadsheetId: SPREADSHEET_ID,
-            range: "Don_hang", // đọc toàn bộ cột tới BY
+            range: "Don_hang",
         });
 
         const donHangValues = donHangRes.data.values || [];
         if (donHangValues.length <= 1) {
-            console.warn("⚠️ Sheet Don_hang không có dữ liệu!");
-            return res.render("dashboard", { sales: [] });
+            return res.render("dashboard", { sales: [], selectedMonth });
         }
 
-        // 2️⃣ Lấy dữ liệu từng dòng (bỏ tiêu đề)
         const rows = donHangValues.slice(1);
 
-        // 3️⃣ Chuẩn bị object lưu doanh số theo nhân viên
         const salesByNV = {};
+        let soDonChot = 0, soDonHuy = 0;
 
         rows.forEach(row => {
             const nhanVien = row[2] || "Không xác định"; // Cột C
-            const khachHang = row[9] || "";
             const ngayDuyet = row[49] || "";
             const trangThai = row[43] || "";
             const baoGia = row[46] || "";
             const giaTri = parseFloat(row[64] || 0);
+
+            // Lọc theo tháng nếu có chọn
+            if (selectedMonth && ngayDuyet) {
+                const month = new Date(ngayDuyet).getMonth() + 1;
+                if (month !== selectedMonth) return;
+            }
 
             if (!salesByNV[nhanVien]) {
                 salesByNV[nhanVien] = {
@@ -1882,41 +1889,41 @@ app.get("/dashboard", async (req, res) => {
 
             const nv = salesByNV[nhanVien];
 
-            // Cộng dồn doanh số & tổng đơn
             nv.tongDoanhSo += giaTri;
             nv.tongDon++;
 
-            // Nếu trạng thái đơn là Kế hoạch sản xuất -> đếm đơn chốt
             if (trangThai.trim().toLowerCase() === "kế hoạch sản xuất") {
                 nv.soDonChot++;
                 nv.doanhSoChot += giaTri;
+                soDonChot++;
             }
 
-            // Nếu trạng thái đơn là Hủy đơn -> đếm đơn hủy
             if (trangThai.trim().toLowerCase() === "hủy đơn") {
                 nv.soDonHuy++;
                 nv.doanhSoHuy += giaTri;
+                soDonHuy++;
             }
 
-            // Nếu AU = Báo giá -> đếm số báo giá
             if (baoGia.trim().toLowerCase() === "báo giá") {
                 nv.soBaoGia++;
             }
         });
 
-        // 4️⃣ Chuyển thành mảng & sắp xếp theo doanh số
         const sales = Object.values(salesByNV).sort((a, b) => b.tongDoanhSo - a.tongDoanhSo);
 
-        console.log("📊 Dashboard -> Doanh số theo NV:", sales);
-
-        // 5️⃣ Render ra dashboard.ejs
-        res.render("dashboard", { sales });
+        res.render("dashboard", { 
+            sales, 
+            selectedMonth, 
+            soDonChot, 
+            soDonHuy 
+        });
 
     } catch (err) {
         console.error("❌ Lỗi khi xử lý Dashboard:", err);
         res.status(500).send("Lỗi khi tạo Dashboard");
     }
 });
+
 
 
 

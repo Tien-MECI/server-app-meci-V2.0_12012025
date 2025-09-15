@@ -1,29 +1,74 @@
-<h1 class="text-center">📊 Dashboard Doanh số</h1>
-<table border="1" style="width:100%; border-collapse: collapse;">
-  <thead>
-    <tr>
-      <th>Nhân viên</th>
-      <th>Tổng doanh số</th>
-      <th>Số đơn</th>
-      <th>Số đơn chốt</th>
-      <th>Doanh số chốt</th>
-      <th>Số đơn hủy</th>
-      <th>Doanh số hủy</th>
-      <th>Số báo giá</th>
-    </tr>
-  </thead>
-  <tbody>
-    <% sales.forEach(nv => { %>
-      <tr>
-        <td><%= nv.nhanVien %></td>
-        <td><%= nv.tongDoanhSo.toLocaleString("vi-VN") %></td>
-        <td><%= nv.tongDon %></td>
-        <td><%= nv.soDonChot %></td>
-        <td><%= nv.doanhSoChot.toLocaleString("vi-VN") %></td>
-        <td><%= nv.soDonHuy %></td>
-        <td><%= nv.doanhSoHuy.toLocaleString("vi-VN") %></td>
-        <td><%= nv.soBaoGia %></td>
-      </tr>
-    <% }) %>
-  </tbody>
-</table>
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Dashboard Kinh Doanh</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    .filter-box { margin-bottom: 20px; }
+    .chart-container { width: 90%; margin: auto; }
+  </style>
+</head>
+<body>
+  <h1 style="text-align:center;">📊 Dashboard Kinh Doanh</h1>
+
+  <!-- Bộ lọc chọn tháng -->
+  <div class="filter-box" style="text-align:center;">
+    <form method="GET" action="/dashboard">
+      <label for="month">Chọn tháng:</label>
+      <select name="month" id="month" onchange="this.form.submit()">
+        <option value="">Tất cả</option>
+        <% for (let m = 1; m <= 12; m++) { %>
+          <option value="<%= m %>" <%= selectedMonth == m ? 'selected' : '' %>>Tháng <%= m %></option>
+        <% } %>
+      </select>
+    </form>
+  </div>
+
+  <div class="chart-container">
+    <canvas id="salesChart"></canvas>
+  </div>
+
+  <div class="chart-container">
+    <canvas id="statusChart"></canvas>
+  </div>
+
+  <script>
+    const sales = <%- JSON.stringify(sales) %>;
+    const soDonChot = <%= soDonChot %>;
+    const soDonHuy = <%= soDonHuy %>;
+
+    // Bar Chart: Doanh số theo nhân viên
+    new Chart(document.getElementById("salesChart"), {
+      type: "bar",
+      data: {
+        labels: sales.map(s => s.nhanVien),
+        datasets: [{
+          label: "Tổng doanh số",
+          data: sales.map(s => s.tongDoanhSo),
+          backgroundColor: "rgba(54, 162, 235, 0.7)"
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: {
+            ticks: { callback: value => value.toLocaleString("vi-VN") }
+          }
+        }
+      }
+    });
+
+    // Pie Chart: Tỷ lệ đơn chốt vs đơn hủy
+    new Chart(document.getElementById("statusChart"), {
+      type: "pie",
+      data: {
+        labels: ["Đơn chốt", "Đơn hủy"],
+        datasets: [{
+          data: [soDonChot, soDonHuy],
+          backgroundColor: ["#4CAF50", "#F44336"]
+        }]
+      }
+    });
+  </script>
+</body>
+</html>
