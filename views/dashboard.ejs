@@ -1,35 +1,38 @@
 <!DOCTYPE html>
-<html>
+<html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <title>Dashboard Kinh Doanh</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        h1 { text-align: center; }
-        table { border-collapse: collapse; width: 100%; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
-        th { background-color: #f4f4f4; }
-    </style>
+  <meta charset="UTF-8">
+  <title>Dashboard Kinh Doanh</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h1 { text-align: center; }
+    .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 20px; }
+    .chart-container { background: #fff; padding: 15px; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    th, td { border: 1px solid #ddd; padding: 6px; text-align: center; }
+    th { background: #f0f0f0; }
+  </style>
 </head>
 <body>
-    <h1>📊 Dashboard Kinh Doanh</h1>
 
-    <h2>📈 Tỷ lệ chốt đơn: <%= conversionRate %>%</h2>
+<h1>📊 Dashboard Kinh Doanh</h1>
 
-    <h2>Doanh thu theo tháng</h2>
-    <table>
-        <tr><th>Tháng</th><th>Doanh thu</th><th>Lợi nhuận</th></tr>
-        <% Object.keys(revenue).forEach(thang => { %>
-            <tr>
-                <td><%= thang %></td>
-                <td><%= revenue[thang].toLocaleString() %></td>
-                <td><%= profit[thang].toLocaleString() %></td>
-            </tr>
-        <% }) %>
-    </table>
+<div class="charts">
+  <div class="chart-container">
+    <h3>Doanh thu theo tháng</h3>
+    <canvas id="revenueChart"></canvas>
+  </div>
+  <div class="chart-container">
+    <h3>Lợi nhuận theo tháng</h3>
+    <canvas id="profitChart"></canvas>
+  </div>
+</div>
 
-    <h2>🏆 Top 10 sản phẩm bán chạy</h2>
-    <table>
+<h3 style="margin-top: 30px;">Tỷ lệ chốt đơn: <%= conversionRate %>%</h3>
+
+<h3>Top sản phẩm bán chạy</h3>
+<table>
   <thead>
     <tr>
       <th>Mã SP</th>
@@ -47,6 +50,37 @@
     <% }) %>
   </tbody>
 </table>
+
+<script>
+  const revenueData = <%- JSON.stringify(revenue) %>;
+  const profitData = <%- JSON.stringify(profit) %>;
+
+  const months = Object.keys(revenueData).map(m => "T" + m);
+
+  new Chart(document.getElementById("revenueChart"), {
+    type: "bar",
+    data: {
+      labels: months,
+      datasets: [{
+        label: "Doanh thu",
+        data: Object.values(revenueData),
+        borderWidth: 1
+      }]
+    }
+  });
+
+  new Chart(document.getElementById("profitChart"), {
+    type: "bar",
+    data: {
+      labels: months,
+      datasets: [{
+        label: "Lợi nhuận",
+        data: Object.values(profitData),
+        borderWidth: 1
+      }]
+    }
+  });
+</script>
 
 </body>
 </html>

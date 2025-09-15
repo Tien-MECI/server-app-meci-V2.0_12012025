@@ -1845,11 +1845,11 @@ app.get("/dashboard", async (req, res) => {
         const [donHangRes, donHangCtRes] = await Promise.all([
             sheets.spreadsheets.values.get({
                 spreadsheetId: SPREADSHEET_ID,
-                range: "Don_hang!A:BY",
+                range: "Don_hang",
             }),
             sheets.spreadsheets.values.get({
                 spreadsheetId: SPREADSHEET_ID,
-                range: "Don_hang_ct!A:AF", // ⚠ Đúng tên sheet chứa chi tiết đơn hàng
+                range: "Don_hang_PVC_ct", // ⚠ Đúng tên sheet chứa chi tiết đơn hàng
             }),
         ]);
 
