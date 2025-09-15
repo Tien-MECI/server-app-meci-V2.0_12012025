@@ -1,86 +1,29 @@
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-  <meta charset="UTF-8">
-  <title>Dashboard Kinh Doanh</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    h1 { text-align: center; }
-    .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 20px; }
-    .chart-container { background: #fff; padding: 15px; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
-    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
-    th, td { border: 1px solid #ddd; padding: 6px; text-align: center; }
-    th { background: #f0f0f0; }
-  </style>
-</head>
-<body>
-
-<h1>📊 Dashboard Kinh Doanh</h1>
-
-<div class="charts">
-  <div class="chart-container">
-    <h3>Doanh thu theo tháng</h3>
-    <canvas id="revenueChart"></canvas>
-  </div>
-  <div class="chart-container">
-    <h3>Lợi nhuận theo tháng</h3>
-    <canvas id="profitChart"></canvas>
-  </div>
-</div>
-
-<h3 style="margin-top: 30px;">Tỷ lệ chốt đơn: <%= conversionRate %>%</h3>
-
-<h3>Top sản phẩm bán chạy</h3>
-<table>
+<h1 class="text-center">📊 Dashboard Doanh số</h1>
+<table border="1" style="width:100%; border-collapse: collapse;">
   <thead>
     <tr>
-      <th>Mã SP</th>
-      <th>Số lượng</th>
-      <th>ĐVT</th>
+      <th>Nhân viên</th>
+      <th>Tổng doanh số</th>
+      <th>Số đơn</th>
+      <th>Số đơn chốt</th>
+      <th>Doanh số chốt</th>
+      <th>Số đơn hủy</th>
+      <th>Doanh số hủy</th>
+      <th>Số báo giá</th>
     </tr>
   </thead>
   <tbody>
-    <% topProducts.forEach(item => { %>
+    <% sales.forEach(nv => { %>
       <tr>
-        <td><%= item.maSP %></td>
-        <td><%= item.sumFormatted %></td>
-        <td><%= item.dvt %></td>
+        <td><%= nv.nhanVien %></td>
+        <td><%= nv.tongDoanhSo.toLocaleString("vi-VN") %></td>
+        <td><%= nv.tongDon %></td>
+        <td><%= nv.soDonChot %></td>
+        <td><%= nv.doanhSoChot.toLocaleString("vi-VN") %></td>
+        <td><%= nv.soDonHuy %></td>
+        <td><%= nv.doanhSoHuy.toLocaleString("vi-VN") %></td>
+        <td><%= nv.soBaoGia %></td>
       </tr>
     <% }) %>
   </tbody>
 </table>
-
-<script>
-  const revenueData = <%- JSON.stringify(revenue) %>;
-  const profitData = <%- JSON.stringify(profit) %>;
-
-  const months = Object.keys(revenueData).map(m => "T" + m);
-
-  new Chart(document.getElementById("revenueChart"), {
-    type: "bar",
-    data: {
-      labels: months,
-      datasets: [{
-        label: "Doanh thu",
-        data: Object.values(revenueData),
-        borderWidth: 1
-      }]
-    }
-  });
-
-  new Chart(document.getElementById("profitChart"), {
-    type: "bar",
-    data: {
-      labels: months,
-      datasets: [{
-        label: "Lợi nhuận",
-        data: Object.values(profitData),
-        borderWidth: 1
-      }]
-    }
-  });
-</script>
-
-</body>
-</html>
