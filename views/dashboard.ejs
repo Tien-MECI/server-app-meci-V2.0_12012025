@@ -30,13 +30,23 @@
 
     <h2>🏆 Top 10 sản phẩm bán chạy</h2>
     <table>
-        <tr><th>Mã SP</th><th>Số lượng</th></tr>
-        <% topProducts.forEach(p => { %>
-            <tr>
-                <td><%= p.maSP %></td>
-                <td><%= p.sum %></td>
-            </tr>
-        <% }) %>
-    </table>
+  <thead>
+    <tr>
+      <th>Mã SP</th>
+      <th>Số lượng</th>
+      <th>ĐVT</th>
+    </tr>
+  </thead>
+  <tbody>
+    <% topProducts.forEach(item => { %>
+      <tr>
+        <td><%= item.maSP %></td>
+        <td><%= item.sumFormatted %></td>
+        <td><%= item.dvt %></td>
+      </tr>
+    <% }) %>
+  </tbody>
+</table>
+
 </body>
 </html>
