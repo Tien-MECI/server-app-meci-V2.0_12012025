@@ -1893,25 +1893,25 @@ app.get("/dashboard", async (req, res) => {
     const nv = salesByNV[nhanVien];
 
     // Chỉ cộng vào tổng doanh số nếu đơn không hủy
-    if (trangThai !== "hủy đơn") {
+    if (trangThai !== "Hủy đơn") {
         nv.tongDoanhSo += giaTri;
     }
 
     nv.tongDon++;
 
-    if (trangThai.includes("kế hoạch sản xuất")) {
+    if (trangThai.includes("Kế hoạch sản xuất")) {
         nv.soDonChot++;
         nv.doanhSoChot += giaTri;
         soDonChot++;
     }
 
-    if (trangThai.includes("hủy đơn")) {
+    if (trangThai.includes("Hủy đơn")) {
         nv.soDonHuy++;
         nv.doanhSoHuy += giaTri;
         soDonHuy++;
     }
 
-    if (baoGia.includes("báo giá")) {
+    if (baoGia.includes("Báo giá")) {
         nv.soBaoGia++;
     }
 });
