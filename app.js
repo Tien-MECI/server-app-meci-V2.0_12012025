@@ -1998,16 +1998,59 @@ app.get("/dashboard", async (req, res) => {
       .sort((a,b) => b.doanhSo - a.doanhSo)
       .slice(0,10);
 
+
+// ------------------ Cham_soc_khach_hang (Báo cáo CSKH) ------------------
+const cskhRes = await sheets.spreadsheets.values.get({
+  spreadsheetId: SPREADSHEET_ID,
+  range: "Cham_soc_khach_hang",
+  valueRenderOption: "FORMATTED_VALUE"
+});
+
+const cskhValues = cskhRes.data.values || [];
+const cskhRows = cskhValues.slice(1);
+
+const cskhMap = {}; // { nhanVien: { hinhThuc1: count, hinhThuc2: count, total: count } }
+const allHinhThuc = new Set();
+
+cskhRows.forEach(row => {
+  const nhanVien = row[7] || "Không xác định";  // H cột nhân viên KD
+  const ngayTao = row[5] || "";                 // F ngày tạo
+  const hinhThuc = row[3] || "Không rõ";        // D hình thức liên hệ
+
+  const ngayObj = parseSheetDate(ngayTao);
+  if (startMonth && endMonth && ngayObj) {
+    const th = ngayObj.getMonth() + 1;
+    if (th < startMonth || th > endMonth) return;
+  }
+
+  allHinhThuc.add(hinhThuc);
+
+  if (!cskhMap[nhanVien]) cskhMap[nhanVien] = { total: 0 };
+  cskhMap[nhanVien][hinhThuc] = (cskhMap[nhanVien][hinhThuc] || 0) + 1;
+  cskhMap[nhanVien].total++;
+});
+
+const cskhData = Object.entries(cskhMap).map(([nhanVien, data]) => ({
+  nhanVien,
+  ...data
+}));
+
+// Lưu danh sách tất cả hình thức để vẽ stacked chart
+const hinhThucList = Array.from(allHinhThuc);
+
     // render view: sales (NV), topProducts, watermarkBase64, months
     res.render("dashboard", {
-      sales,
-      startMonth,
-      endMonth,
-      soDonChot,
-      soDonHuy,
-      topProducts,
-      watermarkBase64
-    });
+  sales,
+  startMonth,
+  endMonth,
+  soDonChot,
+  soDonHuy,
+  topProducts,
+  cskhData,        // ✅ thêm dữ liệu chăm sóc khách hàng
+  hinhThucList,    // ✅ danh sách các hình thức liên hệ
+  watermarkBase64
+});
+
 
   } catch (err) {
     console.error("❌ Lỗi khi xử lý Dashboard:", err);

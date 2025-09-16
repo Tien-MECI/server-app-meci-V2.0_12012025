@@ -52,6 +52,13 @@
       <canvas id="productChart"></canvas>
     </div>
   </div>
+  <!-- Hàng 3: Báo cáo chăm sóc khách hàng -->
+  <div class="row">
+    <div class="chart-container full-width">
+      <canvas id="cskhChart"></canvas>
+    </div>
+  </div>
+
 
   <script>
     const sales = <%- JSON.stringify(sales) %>;
@@ -207,6 +214,54 @@
       plugins: [ChartDataLabels, watermarkPlugin]
     });
 
+
+    // Dữ liệu CSKH
+  const cskhData = <%- JSON.stringify(cskhData) %>;
+  const hinhThucList = <%- JSON.stringify(hinhThucList) %>;
+
+  // Tạo datasets cho từng hình thức
+  const cskhDatasets = hinhThucList.map((ht, idx) => ({
+    label: ht,
+    data: cskhData.map(item => item[ht] || 0),
+    backgroundColor: `hsl(${(idx * 60) % 360}, 70%, 60%)`, // tự sinh màu khác nhau
+    stack: "Stack 0"
+  }));
+
+  new Chart(document.getElementById("cskhChart"), {
+    type: "bar",
+    data: {
+      labels: cskhData.map(item => item.nhanVien),
+      datasets: cskhDatasets
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        title: { display: true, text: "📞 Báo cáo chăm sóc khách hàng", font: { size: 16 } },
+        tooltip: {
+          callbacks: {
+            footer: (items) => {
+              const nv = items[0].label;
+              const total = cskhData.find(x => x.nhanVien === nv)?.total || 0;
+              return `Tổng liên hệ: ${total}`;
+            }
+          }
+        },
+        datalabels: {
+          color: "#000",
+          anchor: "end",
+          align: "top",
+          formatter: v => v > 0 ? v : "",
+          font: ctx => ({ size: Math.max(10, Math.min(14, ctx.chart.width / Math.max(1, cskhData.length) * 0.6)) })
+        }
+      },
+      scales: {
+        x: { stacked: true, ticks: { autoSkip: false, maxRotation: 45 } },
+        y: { stacked: true, beginAtZero: true }
+      }
+    },
+    plugins: [ChartDataLabels, watermarkPlugin]
+  });
   </script>
 </body>
 </html>
