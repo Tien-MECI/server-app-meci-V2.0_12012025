@@ -1847,6 +1847,10 @@ app.get("/dashboard", async (req, res) => {
     // Lấy tháng bắt đầu và kết thúc từ query (?startMonth=5&endMonth=7)
     const startMonth = req.query.startMonth ? parseInt(req.query.startMonth, 10) : null;
     const endMonth = req.query.endMonth ? parseInt(req.query.endMonth, 10) : null;
+        // ⚡️ Tải watermark từ Google Drive
+    const [watermarkBase64] = await Promise.all([
+      loadDriveImageBase64(WATERMARK_FILE_ID)
+    ]);
 
     // ---- Lấy dữ liệu Don_hang ----
     const donHangRes = await sheets.spreadsheets.values.get({
@@ -1985,6 +1989,7 @@ app.get("/dashboard", async (req, res) => {
       endMonth,
       soDonChot,
       soDonHuy,
+      watermarkBase64,
       topProducts
     });
 

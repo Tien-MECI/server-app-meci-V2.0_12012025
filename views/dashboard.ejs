@@ -8,13 +8,14 @@
     body { font-family: Arial, sans-serif; }
     .filter-box { text-align:center; margin-bottom: 20px; }
     .row { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; }
-    .chart-container { flex: 1; min-width: 400px; max-width: 600px; height: 400px; }
+    .chart-container { flex: 1; min-width: 400px; max-width: 600px; height: 400px; position: relative; }
+    canvas { max-height: 100%; }
   </style>
 </head>
 <body>
   <h1 style="text-align:center;">📊 Dashboard Kinh Doanh</h1>
 
-  <!-- Bộ lọc chọn tháng bắt đầu / kết thúc -->
+  <!-- Bộ lọc tháng -->
   <div class="filter-box">
     <form method="GET" action="/dashboard">
       <label for="startMonth">Từ tháng:</label>
@@ -23,19 +24,17 @@
           <option value="<%= m %>" <%= startMonth == m ? 'selected' : '' %>>Tháng <%= m %></option>
         <% } %>
       </select>
-
       <label for="endMonth">Đến tháng:</label>
       <select name="endMonth" id="endMonth">
         <% for (let m = 1; m <= 12; m++) { %>
           <option value="<%= m %>" <%= endMonth == m ? 'selected' : '' %>>Tháng <%= m %></option>
         <% } %>
       </select>
-
       <button type="submit">Lọc</button>
     </form>
   </div>
 
-  <!-- Hàng 1: Doanh số nhân viên + tỷ lệ đơn -->
+  <!-- Hàng 1: Doanh số nhân viên + Tỷ lệ đơn -->
   <div class="row">
     <div class="chart-container"><canvas id="salesChart"></canvas></div>
     <div class="chart-container"><canvas id="statusChart"></canvas></div>
@@ -53,6 +52,26 @@
     const soDonChot = <%= soDonChot %>;
     const soDonHuy = <%= soDonHuy %>;
     const topProducts = <%- JSON.stringify(topProducts) %>;
+    const watermarkBase64 = "<%= watermarkBase64 %>";
+
+    // Plugin thêm watermark góc dưới phải
+    const watermarkPlugin = {
+      id: 'watermark',
+      beforeDraw: (chart) => {
+        if (!watermarkBase64) return;
+        const ctx = chart.ctx;
+        const img = new Image();
+        img.src = watermarkBase64;
+        const { width, height } = chart.canvas;
+        img.onload = () => {
+          const size = Math.min(width, height) * 0.15;
+          ctx.save();
+          ctx.globalAlpha = 0.15;
+          ctx.drawImage(img, width - size - 10, height - size - 10, size, size);
+          ctx.restore();
+        };
+      }
+    };
 
     // Biểu đồ doanh số theo nhân viên
     new Chart(document.getElementById("salesChart"), {
@@ -66,11 +85,22 @@
         }]
       },
       options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: { datalabels: { color: "#000", anchor: "end", align: "top", formatter: v => v.toLocaleString("vi-VN") } },
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          title: { display: true, text: "💼 Doanh số theo nhân viên", font: { size: 18 } },
+          datalabels: {
+            color: "#000",
+            anchor: "end",
+            align: "top",
+            clamp: true,
+            font: ctx => ({ size: Math.max(10, Math.min(ctx.chart.width / sales.length * 0.3, 14)) }),
+            formatter: v => v.toLocaleString("vi-VN")
+          }
+        },
         scales: { y: { ticks: { callback: v => v.toLocaleString("vi-VN") } } }
       },
-      plugins: [ChartDataLabels]
+      plugins: [ChartDataLabels, watermarkPlugin]
     });
 
     // Biểu đồ tỷ lệ đơn chốt / hủy
@@ -78,46 +108,74 @@
       type: "pie",
       data: { labels: ["Đơn chốt", "Đơn hủy"], datasets: [{ data: [soDonChot, soDonHuy], backgroundColor: ["#4CAF50", "#F44336"] }] },
       options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: { datalabels: { color: "#fff", formatter: (v, ctx) => {
-          const total = ctx.chart.data.datasets[0].data.reduce((a,b)=>a+b,0);
-          return total>0 ? ((v/total)*100).toFixed(1)+"%" : "0%";
-        }}}
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          title: { display: true, text: "📊 Tỷ lệ đơn chốt / hủy", font: { size: 18 } },
+          datalabels: {
+            color: "#fff",
+            font: ctx => ({ size: Math.max(10, Math.min(ctx.chart.width / 15, 14)) }),
+            formatter: (v, ctx) => {
+              const total = ctx.chart.data.datasets[0].data.reduce((a,b)=>a+b,0);
+              return total>0 ? ((v/total)*100).toFixed(1)+"%" : "0%";
+            }
+          }
+        }
       },
-      plugins: [ChartDataLabels]
+      plugins: [ChartDataLabels, watermarkPlugin]
     });
 
-    // Biểu đồ Top 10 sản phẩm theo doanh số
+    // Biểu đồ Top 10 sản phẩm
     new Chart(document.getElementById("productChart"), {
       type: "bar",
       data: {
         labels: topProducts.map(p => p.tenSP),
-        datasets: [{
-          label: "Số lượng",
-          data: topProducts.map(p => p.soLuong),
-          backgroundColor: "rgba(255, 159, 64, 0.7)",
-          yAxisID: "y"
-        },{
-          label: "Doanh số",
-          data: topProducts.map(p => p.doanhSo),
-          backgroundColor: "rgba(54, 162, 235, 0.7)",
-          type: "line",
-          yAxisID: "y1"
-        }]
+        datasets: [
+          {
+            label: "Số lượng",
+            data: topProducts.map(p => p.soLuong),
+            backgroundColor: "rgba(255, 159, 64, 0.7)",
+            yAxisID: "y"
+          },
+          {
+            label: "Doanh số",
+            data: topProducts.map(p => p.doanhSo),
+            backgroundColor: "rgba(54, 162, 235, 0.7)",
+            type: "line",
+            yAxisID: "y1"
+          }
+        ]
       },
       options: {
-        responsive: true, maintainAspectRatio: false,
+        responsive: true,
+        maintainAspectRatio: false,
         plugins: {
-          tooltip: { callbacks: { label: ctx => ctx.dataset.label === "Doanh số"
-            ? ctx.parsed.y.toLocaleString("vi-VN")+" đ"
-            : ctx.parsed.y + " " + (topProducts[ctx.dataIndex]?.donVi || "")
-          }}
+          title: { display: true, text: "🏆 Top 10 sản phẩm bán chạy nhất", font: { size: 18 } },
+          datalabels: {
+            display: ctx => ctx.dataset.type !== "line",
+            color: "#000",
+            anchor: "end",
+            align: "top",
+            font: ctx => ({ size: Math.max(10, Math.min(ctx.chart.width / topProducts.length * 0.3, 14)) }),
+            formatter: (v, ctx) => v + " " + (topProducts[ctx.dataIndex]?.donVi || "")
+          },
+          tooltip: {
+            callbacks: {
+              label: ctx =>
+                ctx.dataset.label === "Doanh số"
+                  ? ctx.parsed.y.toLocaleString("vi-VN")+" đ"
+                  : ctx.parsed.y + " " + (topProducts[ctx.dataIndex]?.donVi || "")
+            }
+          }
         },
         scales: {
           y: { position: "left", title: { display: true, text: "Số lượng" } },
-          y1: { position: "right", grid: { drawOnChartArea: false }, title: { display: true, text: "Doanh số (VND)" }, ticks: { callback: v => v.toLocaleString("vi-VN") } }
+          y1: { position: "right", grid: { drawOnChartArea: false },
+                title: { display: true, text: "Doanh số (VND)" },
+                ticks: { callback: v => v.toLocaleString("vi-VN") } }
         }
-      }
+      },
+      plugins: [ChartDataLabels, watermarkPlugin]
     });
   </script>
 </body>
