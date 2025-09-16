@@ -3,6 +3,7 @@
 <head>
   <title>Dashboard Kinh Doanh</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
   <style>
     .filter-box { margin-bottom: 20px; }
     .chart-container { width: 90%; margin: auto; }
@@ -50,12 +51,21 @@
       },
       options: {
         responsive: true,
+        plugins: {
+          datalabels: {
+            color: "#000",
+            anchor: "end",
+            align: "top",
+            formatter: value => value.toLocaleString("vi-VN")
+          }
+        },
         scales: {
           y: {
             ticks: { callback: value => value.toLocaleString("vi-VN") }
           }
         }
-      }
+      },
+      plugins: [ChartDataLabels]
     });
 
     // Pie Chart: Tỷ lệ đơn chốt vs đơn hủy
@@ -67,7 +77,20 @@
           data: [soDonChot, soDonHuy],
           backgroundColor: ["#4CAF50", "#F44336"]
         }]
-      }
+      },
+      options: {
+        plugins: {
+          datalabels: {
+            color: "#fff",
+            formatter: (value, ctx) => {
+              let total = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+              let percentage = ((value / total) * 100).toFixed(1) + "%";
+              return percentage;
+            }
+          }
+        }
+      },
+      plugins: [ChartDataLabels]
     });
   </script>
 </body>
