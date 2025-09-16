@@ -1844,7 +1844,9 @@ app.get("/dashboard", async (req, res) => {
   try {
     console.log("📊 Bắt đầu lấy dữ liệu Dashboard...");
 
-    const selectedMonth = req.query.month ? parseInt(req.query.month, 10) : null;
+    // Lấy tháng bắt đầu và kết thúc từ query (?startMonth=5&endMonth=7)
+    const startMonth = req.query.startMonth ? parseInt(req.query.startMonth, 10) : null;
+    const endMonth = req.query.endMonth ? parseInt(req.query.endMonth, 10) : null;
 
     // ---- Lấy dữ liệu Don_hang ----
     const donHangRes = await sheets.spreadsheets.values.get({
@@ -1858,6 +1860,7 @@ app.get("/dashboard", async (req, res) => {
     const salesByNV = {};
     let soDonChot = 0, soDonHuy = 0;
 
+    // Hàm chuẩn hóa số tiền
     function parseMoney(value) {
       if (!value) return 0;
       const s = value.toString().trim();
@@ -1883,6 +1886,7 @@ app.get("/dashboard", async (req, res) => {
       return parseFloat(s) || 0;
     }
 
+    // Hàm parse ngày trong sheet
     function parseSheetDate(val) {
       if (!val) return null;
       if (typeof val === "number") {
@@ -1906,7 +1910,10 @@ app.get("/dashboard", async (req, res) => {
       const giaTri = parseMoney(row[64]);
 
       const ngayObj = parseSheetDate(ngayDuyet);
-      if (selectedMonth && (!ngayObj || ngayObj.getMonth() + 1 !== selectedMonth)) return;
+      if (startMonth && endMonth && ngayObj) {
+        const thang = ngayObj.getMonth() + 1;
+        if (thang < startMonth || thang > endMonth) return;
+      }
 
       if (!salesByNV[nhanVien]) {
         salesByNV[nhanVien] = {
@@ -1947,6 +1954,13 @@ app.get("/dashboard", async (req, res) => {
     const productsMap = {};
 
     pvcRows.forEach(row => {
+      const ngayTao = row[29] || ""; // cột AD (0-index = 29)
+      const ngayObj = parseSheetDate(ngayTao);
+      if (startMonth && endMonth && ngayObj) {
+        const thang = ngayObj.getMonth() + 1;
+        if (thang < startMonth || thang > endMonth) return;
+      }
+
       const maSP = row[7] || "N/A";
       const tenSP = row[8] || "Không tên";
       const soLuong = parseFloat((row[21] || "0").toString().replace(/,/g, "")) || 0;
@@ -1967,7 +1981,8 @@ app.get("/dashboard", async (req, res) => {
 
     res.render("dashboard", { 
       sales,
-      selectedMonth,
+      startMonth,
+      endMonth,
       soDonChot,
       soDonHuy,
       topProducts
@@ -1978,6 +1993,7 @@ app.get("/dashboard", async (req, res) => {
     res.status(500).send("Lỗi khi tạo Dashboard");
   }
 });
+
 
 
 

@@ -8,27 +8,30 @@
     body { font-family: Arial, sans-serif; }
     .filter-box { text-align:center; margin-bottom: 20px; }
     .row { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; }
-    .chart-container {
-      flex: 1;
-      min-width: 400px;
-      max-width: 600px;
-      height: 400px;
-      margin: 10px;
-    }
+    .chart-container { flex: 1; min-width: 400px; max-width: 600px; height: 400px; }
   </style>
 </head>
 <body>
   <h1 style="text-align:center;">📊 Dashboard Kinh Doanh</h1>
 
+  <!-- Bộ lọc chọn tháng bắt đầu / kết thúc -->
   <div class="filter-box">
     <form method="GET" action="/dashboard">
-      <label for="month">Chọn tháng:</label>
-      <select name="month" id="month" onchange="this.form.submit()">
-        <option value="">Tất cả</option>
+      <label for="startMonth">Từ tháng:</label>
+      <select name="startMonth" id="startMonth">
         <% for (let m = 1; m <= 12; m++) { %>
-          <option value="<%= m %>" <%= selectedMonth == m ? 'selected' : '' %>>Tháng <%= m %></option>
+          <option value="<%= m %>" <%= startMonth == m ? 'selected' : '' %>>Tháng <%= m %></option>
         <% } %>
       </select>
+
+      <label for="endMonth">Đến tháng:</label>
+      <select name="endMonth" id="endMonth">
+        <% for (let m = 1; m <= 12; m++) { %>
+          <option value="<%= m %>" <%= endMonth == m ? 'selected' : '' %>>Tháng <%= m %></option>
+        <% } %>
+      </select>
+
+      <button type="submit">Lọc</button>
     </form>
   </div>
 
@@ -63,17 +66,9 @@
         }]
       },
       options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          datalabels: {
-            color: "#000", anchor: "end", align: "top",
-            formatter: v => v.toLocaleString("vi-VN")
-          }
-        },
-        scales: {
-          y: { ticks: { callback: v => v.toLocaleString("vi-VN") } }
-        }
+        responsive: true, maintainAspectRatio: false,
+        plugins: { datalabels: { color: "#000", anchor: "end", align: "top", formatter: v => v.toLocaleString("vi-VN") } },
+        scales: { y: { ticks: { callback: v => v.toLocaleString("vi-VN") } } }
       },
       plugins: [ChartDataLabels]
     });
@@ -81,25 +76,18 @@
     // Biểu đồ tỷ lệ đơn chốt / hủy
     new Chart(document.getElementById("statusChart"), {
       type: "pie",
-      data: {
-        labels: ["Đơn chốt", "Đơn hủy"],
-        datasets: [{ data: [soDonChot, soDonHuy], backgroundColor: ["#4CAF50", "#F44336"] }]
-      },
+      data: { labels: ["Đơn chốt", "Đơn hủy"], datasets: [{ data: [soDonChot, soDonHuy], backgroundColor: ["#4CAF50", "#F44336"] }] },
       options: {
         responsive: true, maintainAspectRatio: false,
-        plugins: {
-          datalabels: {
-            color: "#fff", formatter: (v, ctx) => {
-              const total = ctx.chart.data.datasets[0].data.reduce((a,b)=>a+b,0);
-              return total>0 ? ((v/total)*100).toFixed(1)+"%" : "0%";
-            }
-          }
-        }
+        plugins: { datalabels: { color: "#fff", formatter: (v, ctx) => {
+          const total = ctx.chart.data.datasets[0].data.reduce((a,b)=>a+b,0);
+          return total>0 ? ((v/total)*100).toFixed(1)+"%" : "0%";
+        }}}
       },
       plugins: [ChartDataLabels]
     });
 
-    // Biểu đồ Top 10 sản phẩm
+    // Biểu đồ Top 10 sản phẩm theo doanh số
     new Chart(document.getElementById("productChart"), {
       type: "bar",
       data: {
@@ -118,23 +106,16 @@
         }]
       },
       options: {
-        responsive: true,
-        maintainAspectRatio: false,
+        responsive: true, maintainAspectRatio: false,
         plugins: {
           tooltip: { callbacks: { label: ctx => ctx.dataset.label === "Doanh số"
             ? ctx.parsed.y.toLocaleString("vi-VN")+" đ"
             : ctx.parsed.y + " " + (topProducts[ctx.dataIndex]?.donVi || "")
-          }},
-          datalabels: { display: false } // tránh chồng số quá nhiều
+          }}
         },
         scales: {
           y: { position: "left", title: { display: true, text: "Số lượng" } },
-          y1: {
-            position: "right",
-            grid: { drawOnChartArea: false },
-            title: { display: true, text: "Doanh số (VND)" },
-            ticks: { callback: v => v.toLocaleString("vi-VN") }
-          }
+          y1: { position: "right", grid: { drawOnChartArea: false }, title: { display: true, text: "Doanh số (VND)" }, ticks: { callback: v => v.toLocaleString("vi-VN") } }
         }
       }
     });
