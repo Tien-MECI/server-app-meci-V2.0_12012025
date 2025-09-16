@@ -1844,33 +1844,23 @@ app.get("/dashboard", async (req, res) => {
   try {
     console.log("📊 Bắt đầu lấy dữ liệu Dashboard...");
 
-    // Lấy tháng bắt đầu và kết thúc từ query (?startMonth=5&endMonth=7)
+    // range filter months from query: startMonth, endMonth (1..12)
     const startMonth = req.query.startMonth ? parseInt(req.query.startMonth, 10) : null;
     const endMonth = req.query.endMonth ? parseInt(req.query.endMonth, 10) : null;
-        // ⚡️ Tải watermark từ Google Drive
+
+    // load watermark (bạn đã có hàm loadDriveImageBase64)
     const [watermarkBase64] = await Promise.all([
       loadDriveImageBase64(WATERMARK_FILE_ID)
     ]);
 
-    // ---- Lấy dữ liệu Don_hang ----
-    const donHangRes = await sheets.spreadsheets.values.get({
-      spreadsheetId: SPREADSHEET_ID,
-      range: "Don_hang",
-      valueRenderOption: "FORMATTED_VALUE"
-    });
-
-    const donHangValues = donHangRes.data.values || [];
-    const rows = donHangValues.slice(1);
-    const salesByNV = {};
-    let soDonChot = 0, soDonHuy = 0;
-
-    // Hàm chuẩn hóa số tiền
+    // ------------------ Helpers ------------------
     function parseMoney(value) {
-      if (!value) return 0;
-      const s = value.toString().trim();
+      if (value === null || value === undefined || value === "") return 0;
+      const s = String(value).trim();
       const hasDot = s.includes(".");
       const hasComma = s.includes(",");
       if (hasDot && hasComma) {
+        // decide which is decimal by last occurrence
         return s.lastIndexOf(",") > s.lastIndexOf(".")
           ? parseFloat(s.replace(/\./g, "").replace(/,/g, ".")) || 0
           : parseFloat(s.replace(/,/g, "")) || 0;
@@ -1890,33 +1880,59 @@ app.get("/dashboard", async (req, res) => {
       return parseFloat(s) || 0;
     }
 
-    // Hàm parse ngày trong sheet
-    function parseSheetDate(val) {
-      if (!val) return null;
-      if (typeof val === "number") {
-        const epoch = new Date(Date.UTC(1899, 11, 30));
-        return new Date(epoch.getTime() + val * 24 * 3600 * 1000);
-      }
-      const m = val.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
-      if (m) {
-        let [, dd, mm, yyyy, hh = "0", mi = "0", ss = "0"] = m;
-        if (yyyy.length === 2) yyyy = "20" + yyyy;
-        return new Date(+yyyy, +mm - 1, +dd, +hh, +mi, +ss);
-      }
-      return new Date(val);
+    function parseNumber(value) {
+      // for quantities: allow "1.000" or "1,000" or "1000"
+      if (value === null || value === undefined || value === "") return 0;
+      const s = String(value).trim();
+      return parseFloat(s.replace(/\./g, "").replace(/,/g, ".")) || 0;
     }
 
-    rows.forEach(row => {
-      const nhanVien = row[2] || "Không xác định";
-      const ngayDuyet = row[49] || "";
-      const trangThai = (row[43] || "").trim().toLowerCase();
-      const baoGia = (row[46] || "").trim().toLowerCase();
-      const giaTri = parseMoney(row[64]);
+    function parseSheetDate(val) {
+      if (!val && val !== 0) return null;
+      if (typeof val === "number") {
+        // sheet serial -> JS Date
+        const epoch = new Date(Date.UTC(1899, 11, 30));
+        return new Date(epoch.getTime() + Math.round(val * 24 * 3600 * 1000));
+      }
+      const s = String(val).trim();
+      // dd/mm/yyyy hh:mm:ss or dd/mm/yyyy
+      const re1 = /^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/;
+      const m1 = s.match(re1);
+      if (m1) {
+        let [, dd, mm, yyyy, hh = "0", mi = "0", ss = "0"] = m1;
+        if (yyyy.length === 2) yyyy = '20' + yyyy;
+        return new Date(+yyyy, +mm - 1, +dd, +hh, +mi, +ss);
+      }
+      // ISO fallback
+      const d = new Date(s);
+      if (!isNaN(d)) return d;
+      return null;
+    }
 
-      const ngayObj = parseSheetDate(ngayDuyet);
+    // ------------------ Don_hang (doanh số theo NV) ------------------
+    const donHangRes = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: "Don_hang",
+      valueRenderOption: "FORMATTED_VALUE"
+    });
+
+    const donHangValues = donHangRes.data.values || [];
+    const donHangRows = donHangValues.slice(1); // drop header
+
+    const salesByNV = {};
+    let soDonChot = 0, soDonHuy = 0;
+
+    donHangRows.forEach(row => {
+      const nhanVien = row[2] || "Không xác định";    // C
+      const ngayDuyetRaw = row[49] || "";             // AX
+      const trangThai = String(row[43] || "").trim().toLowerCase(); // AR
+      const baoGia = String(row[46] || "").trim().toLowerCase();    // AU
+      const giaTriDonHang = parseMoney(row[64]);      // BM
+
+      const ngayObj = parseSheetDate(ngayDuyetRaw);
       if (startMonth && endMonth && ngayObj) {
-        const thang = ngayObj.getMonth() + 1;
-        if (thang < startMonth || thang > endMonth) return;
+        const th = ngayObj.getMonth() + 1;
+        if (th < startMonth || th > endMonth) return;
       }
 
       if (!salesByNV[nhanVien]) {
@@ -1931,22 +1947,23 @@ app.get("/dashboard", async (req, res) => {
           soBaoGia: 0
         };
       }
-
       const nv = salesByNV[nhanVien];
       nv.tongDon++;
-      if (!trangThai.includes("hủy")) nv.tongDoanhSo += giaTri;
+      // tổng doanh số không tính đơn hủy
+      if (!trangThai.includes("hủy")) nv.tongDoanhSo += giaTriDonHang;
+
       if (trangThai.includes("kế hoạch sản xuất") || trangThai.includes("chốt")) {
-        nv.soDonChot++; nv.doanhSoChot += giaTri; soDonChot++;
+        nv.soDonChot++; nv.doanhSoChot += giaTriDonHang; soDonChot++;
       }
       if (trangThai.includes("hủy")) {
-        nv.soDonHuy++; nv.doanhSoHuy += giaTri; soDonHuy++;
+        nv.soDonHuy++; nv.doanhSoHuy += giaTriDonHang; soDonHuy++;
       }
       if (baoGia.includes("báo giá")) nv.soBaoGia++;
     });
 
-    const sales = Object.values(salesByNV).sort((a, b) => b.tongDoanhSo - a.tongDoanhSo);
+    const sales = Object.values(salesByNV).sort((a,b) => b.tongDoanhSo - a.tongDoanhSo);
 
-    // ---- Lấy dữ liệu Don_hang_PVC_ct ----
+    // ------------------ Don_hang_PVC_ct (top products by doanh so) ------------------
     const pvcRes = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
       range: "Don_hang_PVC_ct",
@@ -1955,42 +1972,41 @@ app.get("/dashboard", async (req, res) => {
 
     const pvcValues = pvcRes.data.values || [];
     const pvcRows = pvcValues.slice(1);
-    const productsMap = {};
 
+    const productsMap = {};
     pvcRows.forEach(row => {
-      const ngayTao = row[29] || ""; // cột AD (0-index = 29)
-      const ngayObj = parseSheetDate(ngayTao);
+      const ngayTaoRaw = row[29] || "";   // AD index 29 (user said AD is mm/dd/yyyy)
+      const ngayObj = parseSheetDate(ngayTaoRaw);
       if (startMonth && endMonth && ngayObj) {
-        const thang = ngayObj.getMonth() + 1;
-        if (thang < startMonth || thang > endMonth) return;
+        const th = ngayObj.getMonth() + 1;
+        if (th < startMonth || th > endMonth) return;
       }
 
-      const maSP = row[7] || "N/A";
-      const tenSP = row[8] || "Không tên";
-      const soLuong = parseFloat((row[21] || "0").toString().replace(/,/g, "")) || 0;
-      const donVi = row[22] || "";
-      const giaTri = parseMoney(row[27]);
+      const maSP = row[7] || "N/A";       // H index 7
+      const tenSP = row[8] || "Không tên"; // I index 8
+      const soLuong = parseNumber(row[21]); // V index 21
+      const donVi = row[22] || "";        // W index 22
+      const giaTriPVC = parseMoney(row[27]); // AB index 27
 
       const key = maSP + "|" + tenSP;
-      if (!productsMap[key]) {
-        productsMap[key] = { maSP, tenSP, soLuong: 0, donVi, doanhSo: 0 };
-      }
+      if (!productsMap[key]) productsMap[key] = { maSP, tenSP, soLuong: 0, donVi, doanhSo: 0 };
       productsMap[key].soLuong += soLuong;
-      productsMap[key].doanhSo += giaTri;
+      productsMap[key].doanhSo += giaTriPVC;
     });
 
     const topProducts = Object.values(productsMap)
-      .sort((a, b) => b.doanhSo - a.doanhSo)
-      .slice(0, 10);
+      .sort((a,b) => b.doanhSo - a.doanhSo)
+      .slice(0,10);
 
-    res.render("dashboard", { 
+    // render view: sales (NV), topProducts, watermarkBase64, months
+    res.render("dashboard", {
       sales,
       startMonth,
       endMonth,
       soDonChot,
       soDonHuy,
-      watermarkBase64,
-      topProducts
+      topProducts,
+      watermarkBase64
     });
 
   } catch (err) {
@@ -1998,6 +2014,7 @@ app.get("/dashboard", async (req, res) => {
     res.status(500).send("Lỗi khi tạo Dashboard");
   }
 });
+
 
 
 
