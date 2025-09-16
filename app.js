@@ -1854,68 +1854,72 @@ app.get("/dashboard", async (req, res) => {
 
         const donHangValues = donHangRes.data.values || [];
         if (donHangValues.length <= 1) {
-            return res.render("dashboard", { sales: [], selectedMonth });
+            return res.render("dashboard", { sales: [], selectedMonth, soDonChot: 0, soDonHuy: 0 });
         }
 
-        const rows = donHangValues.slice(1);
-
+        const rows = donHangValues.slice(1); // bỏ header
         const salesByNV = {};
         let soDonChot = 0, soDonHuy = 0;
 
-    rows.forEach(row => {
-    const nhanVien = row[2] || "Không xác định";  // Cột C
-    const ngayDuyet = row[49] || "";              // Cột AX
-    const trangThai = (row[43] || "").trim().toLowerCase();  // Cột AR
-    const baoGia = (row[46] || "").trim().toLowerCase();     // Cột AU
-    const giaTri = parseFloat(row[64] || 0);      // Cột BM
+        // Hàm chuẩn hóa số tiền
+        function parseMoney(value) {
+            if (!value) return 0;
+            return parseFloat(value.toString().replace(/\./g, "").replace(/,/g, ".")) || 0;
+        }
 
-    // Parse ngày duyệt dạng dd/mm/yyyy
-    let ngay = null;
-    if (ngayDuyet) {
-        const [d, m, y] = ngayDuyet.split(/[\/\s]/); // tách dd/mm/yyyy
-        ngay = new Date(`${y}-${m}-${d}`);
-        if (selectedMonth && ngay.getMonth() + 1 !== selectedMonth) return;
-    }
+        rows.forEach(row => {
+            const nhanVien = row[2] || "Không xác định";  // Cột C
+            const ngayDuyet = row[49] || "";              // Cột AX
+            const trangThai = (row[43] || "").trim().toLowerCase();  // Cột AR (toLowerCase)
+            const baoGia = (row[46] || "").trim().toLowerCase();     // Cột AU
+            const giaTri = parseMoney(row[64]);           // ✅ Chuẩn hóa cột BM
 
-    if (!salesByNV[nhanVien]) {
-        salesByNV[nhanVien] = {
-            nhanVien,
-            tongDoanhSo: 0,
-            tongDon: 0,
-            soDonChot: 0,
-            doanhSoChot: 0,
-            soDonHuy: 0,
-            doanhSoHuy: 0,
-            soBaoGia: 0
-        };
-    }
+            // Parse ngày duyệt dạng dd/mm/yyyy
+            let ngay = null;
+            if (ngayDuyet) {
+                const [d, m, y] = ngayDuyet.split(/[\/\s]/); // tách dd/mm/yyyy
+                ngay = new Date(`${y}-${m}-${d}`);
+                if (selectedMonth && ngay.getMonth() + 1 !== selectedMonth) return;
+            }
 
-    const nv = salesByNV[nhanVien];
+            // Khởi tạo nếu chưa có nhân viên
+            if (!salesByNV[nhanVien]) {
+                salesByNV[nhanVien] = {
+                    nhanVien,
+                    tongDoanhSo: 0,
+                    tongDon: 0,
+                    soDonChot: 0,
+                    doanhSoChot: 0,
+                    soDonHuy: 0,
+                    doanhSoHuy: 0,
+                    soBaoGia: 0
+                };
+            }
 
-    // Chỉ cộng vào tổng doanh số nếu đơn không hủy
-    if (trangThai !== "Hủy đơn") {
-        nv.tongDoanhSo += giaTri;
-    }
+            const nv = salesByNV[nhanVien];
+            nv.tongDon++;
 
-    nv.tongDon++;
+            // Chỉ cộng tổng doanh số nếu đơn KHÔNG hủy
+            if (!trangThai.includes("hủy đơn")) {
+                nv.tongDoanhSo += giaTri;
+            }
 
-    if (trangThai.includes("Kế hoạch sản xuất")) {
-        nv.soDonChot++;
-        nv.doanhSoChot += giaTri;
-        soDonChot++;
-    }
+            if (trangThai.includes("kế hoạch sản xuất")) {
+                nv.soDonChot++;
+                nv.doanhSoChot += giaTri;
+                soDonChot++;
+            }
 
-    if (trangThai.includes("Hủy đơn")) {
-        nv.soDonHuy++;
-        nv.doanhSoHuy += giaTri;
-        soDonHuy++;
-    }
+            if (trangThai.includes("hủy đơn")) {
+                nv.soDonHuy++;
+                nv.doanhSoHuy += giaTri;
+                soDonHuy++;
+            }
 
-    if (baoGia.includes("Báo giá")) {
-        nv.soBaoGia++;
-    }
-});
-
+            if (baoGia.includes("báo giá")) {
+                nv.soBaoGia++;
+            }
+        });
 
         const sales = Object.values(salesByNV).sort((a, b) => b.tongDoanhSo - a.tongDoanhSo);
 
@@ -1931,6 +1935,7 @@ app.get("/dashboard", async (req, res) => {
         res.status(500).send("Lỗi khi tạo Dashboard");
     }
 });
+
 
 
 
