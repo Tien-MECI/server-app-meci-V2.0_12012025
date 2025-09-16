@@ -1844,10 +1844,9 @@ app.get("/dashboard", async (req, res) => {
   try {
     console.log("📊 Bắt đầu lấy dữ liệu Dashboard...");
 
-    // selectedMonth from query ?month=9  (1..12) or null = all
     const selectedMonth = req.query.month ? parseInt(req.query.month, 10) : null;
 
-    // Request formatted values so date cells come back as strings like "4/7/2025 08:22:13"
+    // ---- Lấy dữ liệu Don_hang ----
     const donHangRes = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
       range: "Don_hang",
@@ -1855,143 +1854,60 @@ app.get("/dashboard", async (req, res) => {
     });
 
     const donHangValues = donHangRes.data.values || [];
-    if (donHangValues.length <= 1) {
-      return res.render("dashboard", { sales: [], selectedMonth, soDonChot: 0, soDonHuy: 0 });
-    }
-
-    const rows = donHangValues.slice(1); // drop header
+    const rows = donHangValues.slice(1);
     const salesByNV = {};
     let soDonChot = 0, soDonHuy = 0;
 
-    // --- helpers ---
-    // parse money strings like "1.000.000", "1,234,567.89", "1234567", "1.234,56" -> number
     function parseMoney(value) {
-      if (value === null || value === undefined || value === "") return 0;
+      if (!value) return 0;
       const s = value.toString().trim();
-      // If value already a plain number-like string "12345" or "12345.67"
-      // Normalize: remove thousand separators (.) and convert comma decimal to dot
-      // Handle cases:
-      // "1.000.000" -> "1000000"
-      // "1,234,567.89" -> "1234567.89"
-      // "1.234,56" -> "1234.56"
-      // Strategy:
-      // - If both '.' and ',' exist: assume '.' thousands and ',' decimal OR vice versa depending on last separator.
-      //   We'll take a safe approach: if last separator is ',' then treat ',' as decimal.
-      const hasDot = s.indexOf('.') !== -1;
-      const hasComma = s.indexOf(',') !== -1;
+      const hasDot = s.includes(".");
+      const hasComma = s.includes(",");
       if (hasDot && hasComma) {
-        // find last separator char
-        const lastDot = s.lastIndexOf('.');
-        const lastComma = s.lastIndexOf(',');
-        if (lastComma > lastDot) {
-          // comma is decimal -> remove dots and replace comma with dot
-          return parseFloat(s.replace(/\./g, "").replace(/,/g, ".")) || 0;
-        } else {
-          // dot is decimal -> remove commas
-          return parseFloat(s.replace(/,/g, "")) || 0;
-        }
+        return s.lastIndexOf(",") > s.lastIndexOf(".")
+          ? parseFloat(s.replace(/\./g, "").replace(/,/g, ".")) || 0
+          : parseFloat(s.replace(/,/g, "")) || 0;
       }
       if (hasDot && !hasComma) {
-        // ambiguous: either 1.000.000 (thousand separators) or 1234.56 (decimal)
-        // Heuristic: if digits after dot length === 3 -> treat dots as thousands
-        const afterDot = s.split('.')[1] || "";
-        if (afterDot.length === 3) {
-          return parseFloat(s.replace(/\./g, "")) || 0;
-        } else {
-          return parseFloat(s) || 0;
-        }
+        const afterDot = s.split(".")[1] || "";
+        return afterDot.length === 3
+          ? parseFloat(s.replace(/\./g, "")) || 0
+          : parseFloat(s) || 0;
       }
       if (!hasDot && hasComma) {
-        // likely comma is decimal or thousands: if after comma length === 3 -> thousands -> remove commas
-        const afterComma = s.split(',')[1] || "";
-        if (afterComma.length === 3) {
-          return parseFloat(s.replace(/,/g, "")) || 0;
-        } else {
-          // treat comma as decimal
-          return parseFloat(s.replace(',', '.')) || 0;
-        }
+        const afterComma = s.split(",")[1] || "";
+        return afterComma.length === 3
+          ? parseFloat(s.replace(/,/g, "")) || 0
+          : parseFloat(s.replace(",", ".")) || 0;
       }
-      // no separators
       return parseFloat(s) || 0;
     }
 
-    // parse date string from sheet (dd/mm/yyyy hh:mm:ss, dd/mm/yy, yyyy-mm-dd..., or a numeric serial)
     function parseSheetDate(val) {
-      if (!val && val !== 0) return null;
-
-      // If value is a number (Sheets might sometimes return numeric serial)
+      if (!val) return null;
       if (typeof val === "number") {
-        // Google/Excel serial -> convert to JS date:
-        // Google Sheets serial 1 => 1899-12-31, but there are differences; this approach generally works:
-        const epoch = new Date(Date.UTC(1899, 11, 30)); // 1899-12-30
-        const ms = Math.round(val * 24 * 60 * 60 * 1000);
-        return new Date(epoch.getTime() + ms);
+        const epoch = new Date(Date.UTC(1899, 11, 30));
+        return new Date(epoch.getTime() + val * 24 * 3600 * 1000);
       }
-
-      const s = String(val).trim();
-
-      // Try to match dd/mm/yyyy [hh:mm:ss]
-      const re1 = /^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/;
-      const m1 = s.match(re1);
-      if (m1) {
-        let [, dd, mm, yyyy, hh = "0", min = "0", ss = "0"] = m1;
-        if (yyyy.length === 2) yyyy = '20' + yyyy;
-        // build local date using components
-        const dateObj = new Date(
-          parseInt(yyyy, 10),
-          parseInt(mm, 10) - 1,
-          parseInt(dd, 10),
-          parseInt(hh, 10),
-          parseInt(min, 10),
-          parseInt(ss, 10)
-        );
-        if (!isNaN(dateObj)) return dateObj;
+      const m = val.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+      if (m) {
+        let [, dd, mm, yyyy, hh = "0", mi = "0", ss = "0"] = m;
+        if (yyyy.length === 2) yyyy = "20" + yyyy;
+        return new Date(+yyyy, +mm - 1, +dd, +hh, +mi, +ss);
       }
-
-      // Try ISO-like yyyy-mm-dd or yyyy/mm/dd
-      const re2 = /^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})(?:[T\s](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/;
-      const m2 = s.match(re2);
-      if (m2) {
-        let [, yyyy, mm, dd, hh = "0", min = "0", ss = "0"] = m2;
-        const dateObj = new Date(
-          parseInt(yyyy, 10),
-          parseInt(mm, 10) - 1,
-          parseInt(dd, 10),
-          parseInt(hh, 10),
-          parseInt(min, 10),
-          parseInt(ss, 10)
-        );
-        if (!isNaN(dateObj)) return dateObj;
-      }
-
-      // Last resort: try native Date parse
-      const d = new Date(s);
-      if (!isNaN(d)) return d;
-
-      return null;
+      return new Date(val);
     }
 
-    // iterate rows
     rows.forEach(row => {
-      // row indexes (0-based)
-      const nhanVien = row[2] || "Không xác định";  // C
-      const ngayDuyetRaw = row[49] || "";           // AX
-      const trangThaiRaw = row[43] || "";           // AR
-      const baoGiaRaw = row[46] || "";              // AU
-      const giaTriRaw = row[64] || "";              // BM
+      const nhanVien = row[2] || "Không xác định";
+      const ngayDuyet = row[49] || "";
+      const trangThai = (row[43] || "").trim().toLowerCase();
+      const baoGia = (row[46] || "").trim().toLowerCase();
+      const giaTri = parseMoney(row[64]);
 
-      const trangThai = String(trangThaiRaw).trim().toLowerCase();
-      const baoGia = String(baoGiaRaw).trim().toLowerCase();
-      const giaTri = parseMoney(giaTriRaw);
+      const ngayObj = parseSheetDate(ngayDuyet);
+      if (selectedMonth && (!ngayObj || ngayObj.getMonth() + 1 !== selectedMonth)) return;
 
-      // parse date robustly
-      const ngayObj = parseSheetDate(ngayDuyetRaw);
-      if (selectedMonth && (!ngayObj || (ngayObj.getMonth() + 1) !== selectedMonth)) {
-        // if user filtered a month and this row is not in that month -> skip
-        return;
-      }
-
-      // init bucket
       if (!salesByNV[nhanVien]) {
         salesByNV[nhanVien] = {
           nhanVien,
@@ -2007,36 +1923,54 @@ app.get("/dashboard", async (req, res) => {
 
       const nv = salesByNV[nhanVien];
       nv.tongDon++;
-
-      // only add to total if not cancelled
-      if (!trangThai.includes("hủy")) {
-        nv.tongDoanhSo += giaTri;
-      }
-
+      if (!trangThai.includes("hủy")) nv.tongDoanhSo += giaTri;
       if (trangThai.includes("kế hoạch sản xuất") || trangThai.includes("chốt")) {
-        nv.soDonChot++;
-        nv.doanhSoChot += giaTri;
-        soDonChot++;
+        nv.soDonChot++; nv.doanhSoChot += giaTri; soDonChot++;
       }
-
       if (trangThai.includes("hủy")) {
-        nv.soDonHuy++;
-        nv.doanhSoHuy += giaTri;
-        soDonHuy++;
+        nv.soDonHuy++; nv.doanhSoHuy += giaTri; soDonHuy++;
       }
-
-      if (baoGia.includes("báo giá")) {
-        nv.soBaoGia++;
-      }
+      if (baoGia.includes("báo giá")) nv.soBaoGia++;
     });
 
     const sales = Object.values(salesByNV).sort((a, b) => b.tongDoanhSo - a.tongDoanhSo);
 
-    res.render("dashboard", {
+    // ---- Lấy dữ liệu Don_hang_PVC_ct ----
+    const pvcRes = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: "Don_hang_PVC_ct",
+      valueRenderOption: "FORMATTED_VALUE"
+    });
+
+    const pvcValues = pvcRes.data.values || [];
+    const pvcRows = pvcValues.slice(1);
+    const productsMap = {};
+
+    pvcRows.forEach(row => {
+      const maSP = row[7] || "N/A";
+      const tenSP = row[8] || "Không tên";
+      const soLuong = parseFloat((row[21] || "0").toString().replace(/,/g, "")) || 0;
+      const donVi = row[22] || "";
+      const giaTri = parseMoney(row[27]);
+
+      const key = maSP + "|" + tenSP;
+      if (!productsMap[key]) {
+        productsMap[key] = { maSP, tenSP, soLuong: 0, donVi, doanhSo: 0 };
+      }
+      productsMap[key].soLuong += soLuong;
+      productsMap[key].doanhSo += giaTri;
+    });
+
+    const topProducts = Object.values(productsMap)
+      .sort((a, b) => b.doanhSo - a.doanhSo)
+      .slice(0, 10);
+
+    res.render("dashboard", { 
       sales,
       selectedMonth,
       soDonChot,
-      soDonHuy
+      soDonHuy,
+      topProducts
     });
 
   } catch (err) {
@@ -2044,6 +1978,7 @@ app.get("/dashboard", async (req, res) => {
     res.status(500).send("Lỗi khi tạo Dashboard");
   }
 });
+
 
 
 
