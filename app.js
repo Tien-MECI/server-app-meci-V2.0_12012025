@@ -1837,6 +1837,7 @@ app.get('/ycvt', async (req, res) => {
 
 /// ---- Dashboard ---
 // --- Route Dashboard ---
+
 import { format } from "date-fns";
 
 app.get("/dashboard", async (req, res) => {
@@ -1923,11 +1924,6 @@ app.get("/dashboard", async (req, res) => {
         res.status(500).send("Lỗi khi tạo Dashboard");
     }
 });
-
-
-
-
-
 
 
 
