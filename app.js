@@ -2082,6 +2082,48 @@ const baidangData = Object.entries(baidangMap).map(([nhanVien, data]) => ({
 
 const kenhBaiArray = Array.from(kenhBaiList);
 
+// ------------------ Data_khach_hang (Báo cáo khách hàng mới) ------------------
+const dataKHRes = await sheets.spreadsheets.values.get({
+  spreadsheetId: SPREADSHEET_ID,
+  range: "Data_khach_hang",
+  valueRenderOption: "FORMATTED_VALUE"
+});
+
+const dataKHValues = dataKHRes.data.values || [];
+const khRows = dataKHValues.slice(1);
+
+const khMapByNguoiTao = {}; // đếm số khách theo người tạo
+const nguonKHMap = {};      // đếm theo nguồn khách
+const loaiKHMap = {};       // đếm theo loại khách
+
+khRows.forEach(row => {
+  const loaiKH = row[3] || "Không xác định";  // Cột D
+  const nguonKH = row[28] || "Không rõ";      // Cột AC
+  const ngayTao = row[32] || "";              // Cột AG
+  const nguoiTao = row[33] || "Không xác định"; // Cột AH
+
+  const ngayObj = parseSheetDate(ngayTao);
+  if (startMonth && endMonth && ngayObj) {
+    const th = ngayObj.getMonth() + 1;
+    if (th < startMonth || th > endMonth) return;
+  }
+
+  // Đếm theo người tạo
+  khMapByNguoiTao[nguoiTao] = (khMapByNguoiTao[nguoiTao] || 0) + 1;
+
+  // Đếm theo nguồn khách
+  nguonKHMap[nguonKH] = (nguonKHMap[nguonKH] || 0) + 1;
+
+  // Đếm theo loại khách
+  loaiKHMap[loaiKH] = (loaiKHMap[loaiKH] || 0) + 1;
+});
+
+// Chuyển thành mảng để vẽ chart
+const khNguoiTaoData = Object.entries(khMapByNguoiTao).map(([nguoi, count]) => ({ nguoi, count }));
+const khNguonData = Object.entries(nguonKHMap).map(([nguon, count]) => ({ nguon, count }));
+const khLoaiData = Object.entries(loaiKHMap).map(([loai, count]) => ({ loai, count }));
+
+
     // render view: sales (NV), topProducts, watermarkBase64, months
    res.render("dashboard", {
   sales,
@@ -2092,9 +2134,12 @@ const kenhBaiArray = Array.from(kenhBaiList);
   topProducts,
   cskhData,
   hinhThucList,
-  baidangData,    // ✅ dữ liệu thống kê bài đăng
-  kenhBaiArray,   // ✅ danh sách các kênh-bài
-  linkList,       // ✅ danh sách link để render bảng
+  baidangData,
+  kenhBaiArray,
+  linkList,
+  khNguoiTaoData,  // ✅ số liệu khách hàng theo người tạo
+  khNguonData,     // ✅ nguồn khách
+  khLoaiData,      // ✅ loại khách
   watermarkBase64
 });
 

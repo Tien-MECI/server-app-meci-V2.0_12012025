@@ -89,6 +89,20 @@
   </table>
 </div>
 
+<!-- Hàng 5: Báo cáo khách hàng mới -->
+<div class="row">
+  <div class="chart-container" style="width: 45%; display:inline-block;">
+    <canvas id="khachHangNguoiTaoChart"></canvas>
+  </div>
+  <div class="chart-container" style="width: 25%; display:inline-block;">
+    <canvas id="khachHangNguonChart"></canvas>
+  </div>
+  <div class="chart-container" style="width: 25%; display:inline-block;">
+    <canvas id="khachHangLoaiChart"></canvas>
+  </div>
+</div>
+
+
 
   <script>
     const sales = <%- JSON.stringify(sales) %>;
@@ -169,6 +183,8 @@
       },
       plugins: [ChartDataLabels, watermarkPlugin]
     });
+
+
 
     // --- Top product chart: bar (soLuong) + line (doanhSo) ---
     new Chart(document.getElementById("productChart"), {
@@ -331,6 +347,95 @@
       }
     },
     plugins: [ChartDataLabels, watermarkPlugin]
+  });
+
+  const khNguoiTaoData = <%- JSON.stringify(khNguoiTaoData) %>;
+  const khNguonData = <%- JSON.stringify(khNguonData) %>;
+  const khLoaiData = <%- JSON.stringify(khLoaiData) %>;
+
+  // Bar Chart: khách hàng mới theo người tạo
+  new Chart(document.getElementById("khachHangNguoiTaoChart"), {
+    type: "bar",
+    data: {
+      labels: khNguoiTaoData.map(x => x.nguoi),
+      datasets: [{
+        label: "Khách hàng mới",
+        data: khNguoiTaoData.map(x => x.count),
+        backgroundColor: "rgba(54, 162, 235, 0.7)"
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        title: { display: true, text: "👤 Khách hàng mới theo người tạo", font: { size: 16 } },
+        datalabels: {
+          color: "#000",
+          anchor: "end",
+          align: "top",
+          formatter: value => value,
+          font: ctx => ({
+            size: Math.max(10, Math.min(14, ctx.chart.width / Math.max(1, khNguoiTaoData.length) * 0.6))
+          })
+        }
+      },
+      scales: {
+        y: { beginAtZero: true }
+      }
+    },
+    plugins: [ChartDataLabels, watermarkPlugin]
+  });
+
+  // Pie Chart: khách hàng theo nguồn
+  new Chart(document.getElementById("khachHangNguonChart"), {
+    type: "pie",
+    data: {
+      labels: khNguonData.map(x => x.nguon),
+      datasets: [{
+        data: khNguonData.map(x => x.count),
+        backgroundColor: khNguonData.map((_, i) => `hsl(${(i * 50) % 360}, 70%, 60%)`)
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        title: { display: true, text: "📌 Nguồn khách hàng", font: { size: 16 } },
+        datalabels: {
+          color: "#fff",
+          formatter: (value, ctx) => {
+            let total = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+            return total > 0 ? `${((value / total) * 100).toFixed(1)}%` : "0%";
+          }
+        }
+      }
+    },
+    plugins: [ChartDataLabels]
+  });
+
+  // Pie Chart: khách hàng theo loại
+  new Chart(document.getElementById("khachHangLoaiChart"), {
+    type: "pie",
+    data: {
+      labels: khLoaiData.map(x => x.loai),
+      datasets: [{
+        data: khLoaiData.map(x => x.count),
+        backgroundColor: khLoaiData.map((_, i) => `hsl(${(i * 70) % 360}, 70%, 60%)`)
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        title: { display: true, text: "🏷️ Loại khách hàng", font: { size: 16 } },
+        datalabels: {
+          color: "#fff",
+          formatter: (value, ctx) => {
+            let total = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+            return total > 0 ? `${((value / total) * 100).toFixed(1)}%` : "0%";
+          }
+        }
+      }
+    },
+    plugins: [ChartDataLabels]
   });
   </script>
 </body>
