@@ -2038,18 +2038,66 @@ const cskhData = Object.entries(cskhMap).map(([nhanVien, data]) => ({
 // Lưu danh sách tất cả hình thức để vẽ stacked chart
 const hinhThucList = Array.from(allHinhThuc);
 
+// ------------------ Bao_cao_bai_dang_ban_hang (Báo cáo đăng bài MXH) ------------------
+const baidangRes = await sheets.spreadsheets.values.get({
+  spreadsheetId: SPREADSHEET_ID,
+  range: "Bao_cao_bai_dang_ban_hang",
+  valueRenderOption: "FORMATTED_VALUE"
+});
+
+const baidangValues = baidangRes.data.values || [];
+const baidangRows = baidangValues.slice(1);
+
+const baidangMap = {}; // { nv: { 'kênh-bài': count, total: count } }
+const kenhBaiList = new Set();
+const linkList = [];
+
+baidangRows.forEach(row => {
+  const nhanVien = row[2] || "Không xác định"; // C
+  const ngayTao = row[3] || "";               // D
+  const kenhBai = row[4] || "Không rõ";       // E
+  const link = row[5] || "";                  // F
+
+  const ngayObj = parseSheetDate(ngayTao);
+  if (startMonth && endMonth && ngayObj) {
+    const th = ngayObj.getMonth() + 1;
+    if (th < startMonth || th > endMonth) return;
+  }
+
+  kenhBaiList.add(kenhBai);
+
+  if (!baidangMap[nhanVien]) baidangMap[nhanVien] = { total: 0 };
+  baidangMap[nhanVien][kenhBai] = (baidangMap[nhanVien][kenhBai] || 0) + 1;
+  baidangMap[nhanVien].total++;
+
+  if (link) {
+    linkList.push({ nhanVien, kenhBai, link });
+  }
+});
+
+const baidangData = Object.entries(baidangMap).map(([nhanVien, data]) => ({
+  nhanVien,
+  ...data
+}));
+
+const kenhBaiArray = Array.from(kenhBaiList);
+
     // render view: sales (NV), topProducts, watermarkBase64, months
-    res.render("dashboard", {
+   res.render("dashboard", {
   sales,
   startMonth,
   endMonth,
   soDonChot,
   soDonHuy,
   topProducts,
-  cskhData,        // ✅ thêm dữ liệu chăm sóc khách hàng
-  hinhThucList,    // ✅ danh sách các hình thức liên hệ
+  cskhData,
+  hinhThucList,
+  baidangData,    // ✅ dữ liệu thống kê bài đăng
+  kenhBaiArray,   // ✅ danh sách các kênh-bài
+  linkList,       // ✅ danh sách link để render bảng
   watermarkBase64
 });
+
 
 
   } catch (err) {

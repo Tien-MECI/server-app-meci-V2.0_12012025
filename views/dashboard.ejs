@@ -55,6 +55,39 @@
       <canvas id="cskhChart"></canvas>
     </div>
   </div>
+  <!-- Hàng 4: Báo cáo đăng bài mạng xã hội -->
+  <div class="row">
+    <div class="chart-container full-width">
+      <canvas id="baidangChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Bảng danh sách link -->
+<div style="width: 90%; margin: 20px auto;">
+  <h3>🔗 Danh sách link bài đăng</h3>
+  <table border="1" cellpadding="5" cellspacing="0" style="width: 100%; border-collapse: collapse;">
+    <thead>
+      <tr>
+        <th>Nhân viên</th>
+        <th>Kênh - Bài</th>
+        <th>Link</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% if (linkList.length === 0) { %>
+        <tr><td colspan="3" style="text-align:center;">Không có dữ liệu</td></tr>
+      <% } else { %>
+        <% linkList.forEach(item => { %>
+          <tr>
+            <td><%= item.nhanVien %></td>
+            <td><%= item.kenhBai %></td>
+            <td><a href="<%= item.link %>" target="_blank" style="color:blue;">Xem bài</a></td>
+          </tr>
+        <% }) %>
+      <% } %>
+    </tbody>
+  </table>
+</div>
 
 
   <script>
@@ -250,6 +283,46 @@
           align: "top",
           formatter: v => v > 0 ? v : "",
           font: ctx => ({ size: Math.max(10, Math.min(14, ctx.chart.width / Math.max(1, cskhData.length) * 0.6)) })
+        }
+      },
+      scales: {
+        x: { stacked: true, ticks: { autoSkip: false, maxRotation: 45 } },
+        y: { stacked: true, beginAtZero: true }
+      }
+    },
+    plugins: [ChartDataLabels, watermarkPlugin]
+  });
+
+  const baidangData = <%- JSON.stringify(baidangData) %>;
+  const kenhBaiArray = <%- JSON.stringify(kenhBaiArray) %>;
+
+  // Datasets cho stacked bar
+  const baidangDatasets = kenhBaiArray.map((k, idx) => ({
+    label: k,
+    data: baidangData.map(item => item[k] || 0),
+    backgroundColor: `hsl(${(idx * 50) % 360}, 70%, 60%)`,
+    stack: "Stack 0"
+  }));
+
+  new Chart(document.getElementById("baidangChart"), {
+    type: "bar",
+    data: {
+      labels: baidangData.map(item => item.nhanVien),
+      datasets: baidangDatasets
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        title: { display: true, text: "📢 Báo cáo đăng bài mạng xã hội", font: { size: 16 } },
+        datalabels: {
+          color: "#000",
+          anchor: "end",
+          align: "top",
+          formatter: v => v > 0 ? v : "",
+          font: ctx => ({
+            size: Math.max(10, Math.min(14, ctx.chart.width / Math.max(1, baidangData.length) * 0.6))
+          })
         }
       },
       scales: {
