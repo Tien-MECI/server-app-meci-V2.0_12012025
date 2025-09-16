@@ -5,8 +5,21 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
   <style>
-    .filter-box { margin-bottom: 20px; }
-    .chart-container { width: 90%; margin: auto; }
+    body {
+      font-family: Arial, sans-serif;
+    }
+    .filter-box { 
+      margin-bottom: 20px; 
+    }
+    .chart-container { 
+      width: 90%; 
+      max-width: 1000px;  /* Không vượt quá 1000px để biểu đồ gọn gàng */
+      height: 400px;      /* Chiều cao cố định */
+      margin: 20px auto;
+    }
+    canvas {
+      max-height: 100%;   /* Đảm bảo canvas không vượt quá container */
+    }
   </style>
 </head>
 <body>
@@ -25,11 +38,13 @@
     </form>
   </div>
 
+  <!-- Biểu đồ doanh số -->
   <div class="chart-container">
     <canvas id="salesChart"></canvas>
   </div>
 
-  <div class="chart-container">
+  <!-- Biểu đồ tỷ lệ đơn chốt / hủy -->
+  <div class="chart-container" style="height: 300px;">
     <canvas id="statusChart"></canvas>
   </div>
 
@@ -51,11 +66,13 @@
       },
       options: {
         responsive: true,
+        maintainAspectRatio: false, // Cho phép kiểm soát chiều cao container
         plugins: {
           datalabels: {
             color: "#000",
             anchor: "end",
             align: "top",
+            font: { weight: "bold" },
             formatter: value => value.toLocaleString("vi-VN")
           }
         },
@@ -79,12 +96,15 @@
         }]
       },
       options: {
+        responsive: true,
+        maintainAspectRatio: false,
         plugins: {
           datalabels: {
             color: "#fff",
+            font: { weight: "bold" },
             formatter: (value, ctx) => {
               let total = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
-              let percentage = ((value / total) * 100).toFixed(1) + "%";
+              let percentage = total > 0 ? ((value / total) * 100).toFixed(1) + "%" : "0%";
               return percentage;
             }
           }
