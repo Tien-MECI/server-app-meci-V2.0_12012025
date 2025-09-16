@@ -1841,100 +1841,210 @@ app.get('/ycvt', async (req, res) => {
 import { format } from "date-fns";
 
 app.get("/dashboard", async (req, res) => {
-    try {
-        console.log("📊 Bắt đầu lấy dữ liệu Dashboard...");
+  try {
+    console.log("📊 Bắt đầu lấy dữ liệu Dashboard...");
 
-        // Lấy tháng từ query ?month=9 (nếu có)
-        const selectedMonth = req.query.month ? parseInt(req.query.month) : null;
+    // selectedMonth from query ?month=9  (1..12) or null = all
+    const selectedMonth = req.query.month ? parseInt(req.query.month, 10) : null;
 
-        const donHangRes = await sheets.spreadsheets.values.get({
-            spreadsheetId: SPREADSHEET_ID,
-            range: "Don_hang",
-        });
+    // Request formatted values so date cells come back as strings like "4/7/2025 08:22:13"
+    const donHangRes = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: "Don_hang",
+      valueRenderOption: "FORMATTED_VALUE"
+    });
 
-        const donHangValues = donHangRes.data.values || [];
-        if (donHangValues.length <= 1) {
-            return res.render("dashboard", { sales: [], selectedMonth, soDonChot: 0, soDonHuy: 0 });
-        }
-
-        const rows = donHangValues.slice(1); // bỏ header
-        const salesByNV = {};
-        let soDonChot = 0, soDonHuy = 0;
-
-        // Hàm chuẩn hóa số tiền
-        function parseMoney(value) {
-            if (!value) return 0;
-            return parseFloat(value.toString().replace(/\./g, "").replace(/,/g, ".")) || 0;
-        }
-
-        rows.forEach(row => {
-            const nhanVien = row[2] || "Không xác định";  // Cột C
-            const ngayDuyet = row[49] || "";              // Cột AX
-            const trangThai = (row[43] || "").trim().toLowerCase();  // Cột AR (toLowerCase)
-            const baoGia = (row[46] || "").trim().toLowerCase();     // Cột AU
-            const giaTri = parseMoney(row[64]);           // ✅ Chuẩn hóa cột BM
-
-            // Parse ngày duyệt dạng dd/mm/yyyy
-            let ngay = null;
-            if (ngayDuyet) {
-                const [d, m, y] = ngayDuyet.split(/[\/\s]/); // tách dd/mm/yyyy
-                ngay = new Date(`${y}-${m}-${d}`);
-                if (selectedMonth && ngay.getMonth() + 1 !== selectedMonth) return;
-            }
-
-            // Khởi tạo nếu chưa có nhân viên
-            if (!salesByNV[nhanVien]) {
-                salesByNV[nhanVien] = {
-                    nhanVien,
-                    tongDoanhSo: 0,
-                    tongDon: 0,
-                    soDonChot: 0,
-                    doanhSoChot: 0,
-                    soDonHuy: 0,
-                    doanhSoHuy: 0,
-                    soBaoGia: 0
-                };
-            }
-
-            const nv = salesByNV[nhanVien];
-            nv.tongDon++;
-
-            // Chỉ cộng tổng doanh số nếu đơn KHÔNG hủy
-            if (!trangThai.includes("hủy đơn")) {
-                nv.tongDoanhSo += giaTri;
-            }
-
-            if (trangThai.includes("kế hoạch sản xuất")) {
-                nv.soDonChot++;
-                nv.doanhSoChot += giaTri;
-                soDonChot++;
-            }
-
-            if (trangThai.includes("hủy đơn")) {
-                nv.soDonHuy++;
-                nv.doanhSoHuy += giaTri;
-                soDonHuy++;
-            }
-
-            if (baoGia.includes("báo giá")) {
-                nv.soBaoGia++;
-            }
-        });
-
-        const sales = Object.values(salesByNV).sort((a, b) => b.tongDoanhSo - a.tongDoanhSo);
-
-        res.render("dashboard", { 
-            sales, 
-            selectedMonth, 
-            soDonChot, 
-            soDonHuy 
-        });
-
-    } catch (err) {
-        console.error("❌ Lỗi khi xử lý Dashboard:", err);
-        res.status(500).send("Lỗi khi tạo Dashboard");
+    const donHangValues = donHangRes.data.values || [];
+    if (donHangValues.length <= 1) {
+      return res.render("dashboard", { sales: [], selectedMonth, soDonChot: 0, soDonHuy: 0 });
     }
+
+    const rows = donHangValues.slice(1); // drop header
+    const salesByNV = {};
+    let soDonChot = 0, soDonHuy = 0;
+
+    // --- helpers ---
+    // parse money strings like "1.000.000", "1,234,567.89", "1234567", "1.234,56" -> number
+    function parseMoney(value) {
+      if (value === null || value === undefined || value === "") return 0;
+      const s = value.toString().trim();
+      // If value already a plain number-like string "12345" or "12345.67"
+      // Normalize: remove thousand separators (.) and convert comma decimal to dot
+      // Handle cases:
+      // "1.000.000" -> "1000000"
+      // "1,234,567.89" -> "1234567.89"
+      // "1.234,56" -> "1234.56"
+      // Strategy:
+      // - If both '.' and ',' exist: assume '.' thousands and ',' decimal OR vice versa depending on last separator.
+      //   We'll take a safe approach: if last separator is ',' then treat ',' as decimal.
+      const hasDot = s.indexOf('.') !== -1;
+      const hasComma = s.indexOf(',') !== -1;
+      if (hasDot && hasComma) {
+        // find last separator char
+        const lastDot = s.lastIndexOf('.');
+        const lastComma = s.lastIndexOf(',');
+        if (lastComma > lastDot) {
+          // comma is decimal -> remove dots and replace comma with dot
+          return parseFloat(s.replace(/\./g, "").replace(/,/g, ".")) || 0;
+        } else {
+          // dot is decimal -> remove commas
+          return parseFloat(s.replace(/,/g, "")) || 0;
+        }
+      }
+      if (hasDot && !hasComma) {
+        // ambiguous: either 1.000.000 (thousand separators) or 1234.56 (decimal)
+        // Heuristic: if digits after dot length === 3 -> treat dots as thousands
+        const afterDot = s.split('.')[1] || "";
+        if (afterDot.length === 3) {
+          return parseFloat(s.replace(/\./g, "")) || 0;
+        } else {
+          return parseFloat(s) || 0;
+        }
+      }
+      if (!hasDot && hasComma) {
+        // likely comma is decimal or thousands: if after comma length === 3 -> thousands -> remove commas
+        const afterComma = s.split(',')[1] || "";
+        if (afterComma.length === 3) {
+          return parseFloat(s.replace(/,/g, "")) || 0;
+        } else {
+          // treat comma as decimal
+          return parseFloat(s.replace(',', '.')) || 0;
+        }
+      }
+      // no separators
+      return parseFloat(s) || 0;
+    }
+
+    // parse date string from sheet (dd/mm/yyyy hh:mm:ss, dd/mm/yy, yyyy-mm-dd..., or a numeric serial)
+    function parseSheetDate(val) {
+      if (!val && val !== 0) return null;
+
+      // If value is a number (Sheets might sometimes return numeric serial)
+      if (typeof val === "number") {
+        // Google/Excel serial -> convert to JS date:
+        // Google Sheets serial 1 => 1899-12-31, but there are differences; this approach generally works:
+        const epoch = new Date(Date.UTC(1899, 11, 30)); // 1899-12-30
+        const ms = Math.round(val * 24 * 60 * 60 * 1000);
+        return new Date(epoch.getTime() + ms);
+      }
+
+      const s = String(val).trim();
+
+      // Try to match dd/mm/yyyy [hh:mm:ss]
+      const re1 = /^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/;
+      const m1 = s.match(re1);
+      if (m1) {
+        let [, dd, mm, yyyy, hh = "0", min = "0", ss = "0"] = m1;
+        if (yyyy.length === 2) yyyy = '20' + yyyy;
+        // build local date using components
+        const dateObj = new Date(
+          parseInt(yyyy, 10),
+          parseInt(mm, 10) - 1,
+          parseInt(dd, 10),
+          parseInt(hh, 10),
+          parseInt(min, 10),
+          parseInt(ss, 10)
+        );
+        if (!isNaN(dateObj)) return dateObj;
+      }
+
+      // Try ISO-like yyyy-mm-dd or yyyy/mm/dd
+      const re2 = /^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})(?:[T\s](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/;
+      const m2 = s.match(re2);
+      if (m2) {
+        let [, yyyy, mm, dd, hh = "0", min = "0", ss = "0"] = m2;
+        const dateObj = new Date(
+          parseInt(yyyy, 10),
+          parseInt(mm, 10) - 1,
+          parseInt(dd, 10),
+          parseInt(hh, 10),
+          parseInt(min, 10),
+          parseInt(ss, 10)
+        );
+        if (!isNaN(dateObj)) return dateObj;
+      }
+
+      // Last resort: try native Date parse
+      const d = new Date(s);
+      if (!isNaN(d)) return d;
+
+      return null;
+    }
+
+    // iterate rows
+    rows.forEach(row => {
+      // row indexes (0-based)
+      const nhanVien = row[2] || "Không xác định";  // C
+      const ngayDuyetRaw = row[49] || "";           // AX
+      const trangThaiRaw = row[43] || "";           // AR
+      const baoGiaRaw = row[46] || "";              // AU
+      const giaTriRaw = row[64] || "";              // BM
+
+      const trangThai = String(trangThaiRaw).trim().toLowerCase();
+      const baoGia = String(baoGiaRaw).trim().toLowerCase();
+      const giaTri = parseMoney(giaTriRaw);
+
+      // parse date robustly
+      const ngayObj = parseSheetDate(ngayDuyetRaw);
+      if (selectedMonth && (!ngayObj || (ngayObj.getMonth() + 1) !== selectedMonth)) {
+        // if user filtered a month and this row is not in that month -> skip
+        return;
+      }
+
+      // init bucket
+      if (!salesByNV[nhanVien]) {
+        salesByNV[nhanVien] = {
+          nhanVien,
+          tongDoanhSo: 0,
+          tongDon: 0,
+          soDonChot: 0,
+          doanhSoChot: 0,
+          soDonHuy: 0,
+          doanhSoHuy: 0,
+          soBaoGia: 0
+        };
+      }
+
+      const nv = salesByNV[nhanVien];
+      nv.tongDon++;
+
+      // only add to total if not cancelled
+      if (!trangThai.includes("hủy")) {
+        nv.tongDoanhSo += giaTri;
+      }
+
+      if (trangThai.includes("kế hoạch sản xuất") || trangThai.includes("chốt")) {
+        nv.soDonChot++;
+        nv.doanhSoChot += giaTri;
+        soDonChot++;
+      }
+
+      if (trangThai.includes("hủy")) {
+        nv.soDonHuy++;
+        nv.doanhSoHuy += giaTri;
+        soDonHuy++;
+      }
+
+      if (baoGia.includes("báo giá")) {
+        nv.soBaoGia++;
+      }
+    });
+
+    const sales = Object.values(salesByNV).sort((a, b) => b.tongDoanhSo - a.tongDoanhSo);
+
+    res.render("dashboard", {
+      sales,
+      selectedMonth,
+      soDonChot,
+      soDonHuy
+    });
+
+  } catch (err) {
+    console.error("❌ Lỗi khi xử lý Dashboard:", err);
+    res.status(500).send("Lỗi khi tạo Dashboard");
+  }
 });
+
 
 
 
