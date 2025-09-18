@@ -136,7 +136,7 @@
       data: {
         labels: sales.map(s => s.nhanVien),
         datasets: [{
-          label: "Tổng doanh số",
+          label: `Tổng doanh số (${totalDoanhSo.toLocaleString("vi-VN")})`,
           data: sales.map(s => Math.round(s.tongDoanhSo)),
           backgroundColor: "rgba(54,162,235,0.75)",
           maxBarThickness: 60
