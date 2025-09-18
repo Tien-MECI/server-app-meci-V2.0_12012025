@@ -1939,7 +1939,7 @@ app.get('/ycxktp', async (req, res) => {
             if (condDate && condTen && condPT && condPXKEmpty) {
                 // dataToCopy giống AppScript: row[5], row[11], row[9], row[10], row[8], row[13], row[14], row[15]
                 const dataToCopy = [
-                    row[2],  // index 5
+                    row[5],  // index 5
                     row[11], // index 11
                     row[9],  // index 9
                     row[10], // index 10
