@@ -131,34 +131,44 @@
     };
 
     // --- Sales by NV chart ---
-    new Chart(document.getElementById("salesChart"), {
-      type: "bar",
-      data: {
-        labels: sales.map(s => s.nhanVien),
-        datasets: [{
-          label: `Tổng doanh số (${totalDoanhSo.toLocaleString("vi-VN")})`,
-          data: sales.map(s => Math.round(s.tongDoanhSo)),
-          backgroundColor: "rgba(54,162,235,0.75)",
-          maxBarThickness: 60
-        }]
-      },
-      options: {
-        responsive: true, maintainAspectRatio:false,
-        plugins: {
-          title: { display:true, text: "💼 Doanh số theo nhân viên", font:{size:16} },
-          datalabels: {
-            color:"#000", anchor:"end", align:"top",
-            formatter: v => v.toLocaleString("vi-VN"),
-            font: ctx => ({ size: Math.max(10, Math.min(14, ctx.chart.width / Math.max(1, sales.length) * 0.6)) })
-          }
-        },
-        scales: {
-          x: { ticks: { autoSkip: true, maxRotation:45, minRotation:0 } },
-          y: { ticks: { callback: v => v.toLocaleString("vi-VN") } }
-        }
-      },
-      plugins: [ChartDataLabels, watermarkPlugin]
-    });
+    // ✅ Tính tổng doanh số
+const totalDoanhSo = sales.reduce((sum, s) => sum + s.tongDoanhSo, 0);
+
+new Chart(document.getElementById("salesChart"), {
+  type: "bar",
+  data: {
+    labels: sales.map(s => s.nhanVien),
+    datasets: [{
+      // ✅ Gán label kèm tổng doanh số
+      label: `Tổng doanh số (${totalDoanhSo.toLocaleString("vi-VN")})`,
+      data: sales.map(s => Math.round(s.tongDoanhSo)),
+      backgroundColor: "rgba(54,162,235,0.75)",
+      maxBarThickness: 60
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      title: { display: true, text: "💼 Doanh số theo nhân viên", font: { size: 16 } },
+      datalabels: {
+        color: "#000",
+        anchor: "end",
+        align: "top",
+        formatter: v => v.toLocaleString("vi-VN"),
+        font: ctx => ({
+          size: Math.max(10, Math.min(14, ctx.chart.width / Math.max(1, sales.length) * 0.6))
+        })
+      }
+    },
+    scales: {
+      x: { ticks: { autoSkip: true, maxRotation: 45, minRotation: 0 } },
+      y: { ticks: { callback: v => v.toLocaleString("vi-VN") } }
+    }
+  },
+  plugins: [ChartDataLabels, watermarkPlugin]
+});
+
 
     // --- Status pie chart ---
     new Chart(document.getElementById("statusChart"), {
