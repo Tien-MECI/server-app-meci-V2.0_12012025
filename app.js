@@ -1835,6 +1835,214 @@ app.get('/ycvt', async (req, res) => {
     }
 });
 
+//---YCXKTP---
+
+app.get('/ycxktp', async (req, res) => {
+    try {
+        console.log('▶️ Bắt đầu xuất YCXKTP ...');
+
+        // 1) Lấy logo & watermark
+        const [logoBase64, watermarkBase64] = await Promise.all([
+            loadDriveImageBase64(LOGO_FILE_ID),
+            loadDriveImageBase64(WATERMARK_FILE_ID)
+        ]);
+
+        // 2) Đọc dữ liệu 2 sheet: File_YC_XK_TP (để lấy last row) và Ke_hoach_thuc_hien (để lọc)
+        const [ycxRes, keHoachRes] = await Promise.all([
+            sheets.spreadsheets.values.get({
+                spreadsheetId: SPREADSHEET_ID,
+                range: 'File_YC_XK_TP',
+                valueRenderOption: 'FORMATTED_VALUE'
+            }),
+            sheets.spreadsheets.values.get({
+                spreadsheetId: SPREADSHEET_ID,
+                range: 'Ke_hoach_thuc_hien',
+                valueRenderOption: 'FORMATTED_VALUE'
+            })
+        ]);
+
+        const ycxValues = ycxRes.data.values || [];
+        const keHoachValues = keHoachRes.data.values || [];
+
+        if (ycxValues.length <= 1) {
+            console.warn('⚠️ File_YC_XK_TP không có dữ liệu (chỉ header).');
+            // render một trang rỗng / thông báo
+            return res.render('ycxktp', {
+                ngayYC: '',
+                tenNSTHValue: '',
+                phuongTienValue: '',
+                giaTriE: '',
+                tableData: [],
+                tongDon: 0,
+                tongTaiTrong: 0,
+                logoBase64,
+                watermarkBase64,
+                autoPrint: false,
+                pathToFile: ''
+            });
+        }
+
+        // last row index (1-based)
+        const lastRowIndex = ycxValues.length;
+        const lastRow = ycxValues[lastRowIndex - 1];
+
+        // lấy giá trị từ File_YC_XK_TP (cột B, C, D, E tương ứng index 1..4)
+        const ngayYC_raw = lastRow[1];
+        const tenNSTHValue = lastRow[2] || '';
+        const phuongTienValue = lastRow[3] || '';
+        const giaTriE = lastRow[4] || '';
+
+        // helper parse date string/serial -> Date
+        function parseSheetDate(val) {
+            if (val === null || val === undefined || val === '') return null;
+            if (typeof val === 'number') {
+                const epoch = new Date(Date.UTC(1899, 11, 30));
+                return new Date(epoch.getTime() + Math.round(val * 24 * 60 * 60 * 1000));
+            }
+            const s = String(val).trim();
+            const m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+            if (m) {
+                let [, dd, mm, yyyy, hh = '0', min = '0', ss = '0'] = m;
+                if (yyyy.length === 2) yyyy = '20' + yyyy;
+                return new Date(+yyyy, +mm - 1, +dd, +hh, +min, +ss);
+            }
+            const d = new Date(s);
+            return isNaN(d) ? null : d;
+        }
+
+        const ngayYCObj = parseSheetDate(ngayYC_raw);
+        const ngayYC = ngayYCObj ? ngayYCObj.toLocaleDateString('vi-VN') : String(ngayYC_raw || '');
+
+        // 3) Filter dữ liệu từ Ke_hoach_thuc_hien giống Apps Script gốc
+        // - so sánh ngày (dd/MM/yyyy), tenNSTH, phuong tien, và pxk === ""
+        const filteredData = []; // mảng các rowToCopy
+        let tongTaiTrong = 0;
+
+        for (let i = 1; i < keHoachValues.length; i++) {
+            const row = keHoachValues[i];
+            if (!row) continue;
+
+            const ngayTH_raw = row[1];    // cột B (index 1)
+            const pxk = row[23];          // cột X (index 23) phải rỗng
+            const phuongTien_kehoach = row[35]; // giữ index 35 giống AppScript gốc
+            const tenNSTH_kehoach = row[36];
+
+            const ngayTHObj = parseSheetDate(ngayTH_raw);
+            if (!ngayTHObj) continue;
+            const formattedNgayTH = ngayTHObj.toLocaleDateString('vi-VN');
+
+            const condDate = formattedNgayTH === ngayYC;
+            const condTen = String(tenNSTH_kehoach || '').toString() === String(tenNSTHValue || '').toString();
+            const condPT = String(phuongTien_kehoach || '').toString() === String(phuongTienValue || '').toString();
+            const condPXKEmpty = (pxk === '' || pxk === undefined || pxk === null);
+
+            if (condDate && condTen && condPT && condPXKEmpty) {
+                // dataToCopy giống AppScript: row[5], row[11], row[9], row[10], row[8], row[13], row[14], row[15]
+                const dataToCopy = [
+                    row[5],  // index 5
+                    row[11], // index 11
+                    row[9],  // index 9
+                    row[10], // index 10
+                    row[8],  // index 8
+                    row[13], // index 13
+                    row[14], // index 14
+                    row[15]  // index 15 (tải trọng)
+                ];
+                filteredData.push(dataToCopy);
+
+                const t = parseFloat(row[15]) || 0;
+                tongTaiTrong += t;
+            }
+        }
+
+        const tongDon = filteredData.length;
+
+        // 4) Render cho client ngay (autoPrint: true)
+        const renderForClientData = {
+            ngayYC,
+            tenNSTHValue,
+            phuongTienValue,
+            giaTriE,
+            tableData: filteredData,
+            tongDon,
+            tongTaiTrong,
+            logoBase64,
+            watermarkBase64,
+            autoPrint: true,
+            pathToFile: ''
+        };
+
+        res.render('ycxktp', renderForClientData);
+
+        // 5) Gọi GAS WebApp ngầm (IIFE) để convert HTML -> PDF, sau đó ghi đường dẫn vào sheet
+        (async () => {
+            try {
+                // render HTML server-side bằng cùng template nhưng autoPrint: false
+                const htmlToSend = await renderFileAsync(
+                    path.join(__dirname, 'views', 'ycxktp.ejs'),
+                    {
+                        ...renderForClientData,
+                        autoPrint: false,
+                        pathToFile: ''
+                    }
+                );
+
+                // file name chuẩn giống Apps Script
+                const yyyy = ngayYCObj ? String(ngayYCObj.getFullYear()) : 'na';
+                const mm = ngayYCObj ? String(ngayYCObj.getMonth() + 1).padStart(2, '0') : '00';
+                const dd = ngayYCObj ? String(ngayYCObj.getDate()).padStart(2, '0') : '00';
+                const ngayYCTEN = `${yyyy}-${mm}-${dd}`;
+                const safeTen = String(tenNSTHValue || '').replace(/[\/\\:\*\?"<>\|]/g, '_').slice(0, 80);
+                const safePT = String(phuongTienValue || '').replace(/[\/\\:\*\?"<>\|]/g, '_').slice(0, 60);
+                const suggestedFileName = `${ngayYCTEN}_${safeTen}_${safePT}_Lần_${String(giaTriE || '')}.pdf`;
+
+                const gasUrl = process.env.GAS_WEBAPP_URL_YCXKTP || process.env.GAS_WEBAPP_URL_PYCVT;
+                if (!gasUrl) {
+                    console.warn('⚠️ GAS_WEBAPP_URL_YCXKTP (hoặc GAS_WEBAPP_URL_PYCVT) chưa cấu hình - bỏ qua gửi Apps Script.');
+                    return;
+                }
+
+                console.log('➡️ Gửi HTML tới GAS WebApp:', gasUrl);
+                const resp = await fetch(gasUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({
+                        orderCode: suggestedFileName,
+                        html: htmlToSend
+                    })
+                });
+
+                const result = await resp.json();
+                console.log('✔️ AppScript trả về:', result);
+
+                if (!result || !result.ok) {
+                    throw new Error(result?.error || 'Apps Script trả về lỗi hoặc không ok');
+                }
+
+                const pathToFile = result.pathToFile || (result.fileName ? `YCXKTP/${result.fileName}` : suggestedFileName);
+
+                // Ghi đường dẫn file vào cột F của last row
+                const updateRange = `File_YC_XK_TP!F${lastRowIndex}`;
+                await sheets.spreadsheets.values.update({
+                    spreadsheetId: SPREADSHEET_ID,
+                    range: updateRange,
+                    valueInputOption: 'RAW',
+                    requestBody: { values: [[pathToFile]] }
+                });
+
+                console.log('✔️ Đã ghi đường dẫn:', pathToFile, 'vào', updateRange);
+            } catch (err) {
+                console.error('❌ Lỗi gọi AppScript (YCXKTP):', err.stack || err.message || err);
+            }
+        })();
+
+    } catch (err) {
+        console.error('❌ Lỗi khi xuất YCXKTP:', err.stack || err.message || err);
+        res.status(500).send('Lỗi server: ' + (err.message || err));
+    }
+});
+
+
 /// ---- Dashboard ---
 // --- Route Dashboard ---
 
