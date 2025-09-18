@@ -1924,8 +1924,8 @@ app.get('/ycxktp', async (req, res) => {
 
             const ngayTH_raw = row[1];    // cột B (index 1)
             const pxk = row[23];          // cột X (index 23) phải rỗng
-            const phuongTien_kehoach = row[35]; // giữ index 35 giống AppScript gốc
-            const tenNSTH_kehoach = row[36];
+            const phuongTien_kehoach = row[30]; // giữ index 35 giống AppScript gốc
+            const tenNSTH_kehoach = row[26];
 
             const ngayTHObj = parseSheetDate(ngayTH_raw);
             if (!ngayTHObj) continue;
@@ -1939,7 +1939,7 @@ app.get('/ycxktp', async (req, res) => {
             if (condDate && condTen && condPT && condPXKEmpty) {
                 // dataToCopy giống AppScript: row[5], row[11], row[9], row[10], row[8], row[13], row[14], row[15]
                 const dataToCopy = [
-                    row[5],  // index 5
+                    row[2],  // index 5
                     row[11], // index 11
                     row[9],  // index 9
                     row[10], // index 10
