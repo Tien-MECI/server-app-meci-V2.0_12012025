@@ -2071,23 +2071,24 @@ app.get('/khns', async (req, res) => {
     const fileValues = fileRes.data.values || [];
     const keHoachValues = keHoachRes.data.values || [];
 
-    if (fileValues.length <= 1) {
-      console.warn('⚠️ File_KH_thuc_hien_NS không có dữ liệu (chỉ header).');
-      return res.render('khns', {
-        ngayYC: '',
-        tenNSTHValue: '',
-        phuongTienValue: '',
-        giaTriE: '',
-        groupedData: {},
-        tongDon: 0,
-        tongTaiTrong: 0,
-        NSHotro, 
-        logoBase64,
-        watermarkBase64,
-        autoPrint: false,
-        pathToFile: ''
-      });
-    }
+   if (fileValues.length <= 1) {
+  console.warn('⚠️ File_KH_thuc_hien_NS không có dữ liệu (chỉ header).');
+  return res.render('khns', {
+    ngayYC: '',
+    tenNSTHValue: '',
+    phuongTienValue: '',
+    giaTriE: '',
+    groupedData: {},
+    tableData: [],        // <-- thêm
+    tongDon: 0,
+    tongTaiTrong: 0,
+    NSHotro: '',          // <-- đảm bảo tồn tại
+    logoBase64,
+    watermarkBase64,
+    autoPrint: false,
+    pathToFile: ''
+  });
+}
 
     // 3) Lấy last row từ File_KH_thuc_hien_NS
     const lastRowIndex = fileValues.length;
@@ -2155,19 +2156,20 @@ for (let i = 1; i < keHoachValues.length; i++) {
 
     // 5) Render cho client
     const renderForClientData = {
-      ngayYC,
-      tenNSTHValue,
-      phuongTienValue,
-      giaTriE,
-      groupedData,
-      tongDon,
-      tongTaiTrong,
-      logoBase64,
-      watermarkBase64,
-      NSHotro, 
-      autoPrint: true,
-      pathToFile: ''
-    };
+  ngayYC,
+  tenNSTHValue,
+  phuongTienValue,
+  giaTriE,
+  groupedData,
+  tableData: filteredData,  // <-- thêm đây
+  tongDon,
+  tongTaiTrong,
+  logoBase64,
+  watermarkBase64,
+  NSHotro,
+  autoPrint: true,
+  pathToFile: ''
+};
 
     res.render('khns', renderForClientData);
 
