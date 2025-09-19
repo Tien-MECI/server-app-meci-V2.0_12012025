@@ -2082,7 +2082,7 @@ app.get('/khns', async (req, res) => {
     tableData: [],        // <-- thêm
     tongDon: 0,
     tongTaiTrong: 0,
-    NSHotro: '',          // <-- đảm bảo tồn tại
+    NSHotro: NSHotroStr,  // truyền string đã tổng hợp
     logoBase64,
     watermarkBase64,
     autoPrint: false,
