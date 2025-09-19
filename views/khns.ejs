@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Kế Hoạch Thực Hiện Nhân Sự</title>
+  <style>
+    @page {
+      size: A4 landscape;
+      margin: 10mm;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      font-size: 12px;
+      margin: 0;
+      padding: 0;
+      position: relative;
+    }
+    .watermark {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      opacity: 0.08;
+      z-index: 0;
+      pointer-events: none;
+      width: 70%;
+      text-align: center;
+    }
+    .watermark img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+    h1 {
+      text-align: center;
+      color: red;
+      font-weight: bold;
+      margin: 5px 0;
+      position: relative;
+      z-index: 1;
+    }
+    p {
+      margin: 4px 0;
+      text-align: center;
+      position: relative;
+      z-index: 1;
+    }
+    .summary {
+      text-align: right;
+      margin-bottom: 4px;
+      font-size: 12px;
+      font-weight: bold;
+      position: relative;
+      z-index: 1;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 6px;
+      position: relative;
+      z-index: 1;
+    }
+    th, td {
+      border: 1px solid black;
+      padding: 5px;
+      text-align: left;
+      font-size: 12px;
+    }
+    th {
+      background-color: #f2f2f2;
+      text-align: center;
+    }
+    .group-header {
+      background-color: #d9ead3;
+      font-weight: bold;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+
+  <% if (watermarkBase64) { %>
+    <div class="watermark">
+      <img src="<%= watermarkBase64 %>" alt="Watermark">
+    </div>
+  <% } %>
+
+  <h1>PHIẾU YÊU CẦU THỰC HIỆN CÔNG VIỆC - <%= ngayYC %></h1>
+  <p>Nhân sự phụ trách: <%= tenNSTHValue %> | Phương tiện: <%= phuongTienValue %> | Nhân sự hỗ trợ: <%= NSHotro %></p>
+  <p class="summary">Tổng đơn: <%= tongDon %> | Tổng tải trọng: <%= tongTaiTrong.toLocaleString('vi-VN') %> kg</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 80px;">TG YC</th>
+        <th style="width: 90px;">Mã ĐH</th>
+        <th>Nhóm SX</th>
+        <th>Nhóm SP</th>
+        <th>Loại YC</th>
+        <th>TT liên hệ</th>
+        <th>Ghi chú TH</th>
+        <th>TT nhà xe</th>
+        <th>Tải trọng</th>
+        <th style="width: 80px;">Phí bến bãi</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% 
+      const grouped = {};
+      tableData.forEach(row => {
+        const loai = row[4] || 'Không xác định';
+        if (!grouped[loai]) grouped[loai] = [];
+        grouped[loai].push(row);
+      });
+
+      Object.keys(grouped).forEach(loai => { 
+      %>
+        <tr class="group-header">
+          <td colspan="10">Loại yêu cầu: <%= loai %></td>
+        </tr>
+        <% grouped[loai].forEach(r => { %>
+          <tr>
+            <% r.forEach(c => { %>
+              <td><%= c || '' %></td>
+            <% }) %>
+          </tr>
+        <% }) %>
+      <% }) %>
+    </tbody>
+  </table>
+
+  <% if (autoPrint) { %>
+    <script>
+      window.onload = () => setTimeout(() => window.print(), 300);
+    </script>
+  <% } %>
+</body>
+</html>
