@@ -2081,6 +2081,7 @@ app.get('/khns', async (req, res) => {
         groupedData: {},
         tongDon: 0,
         tongTaiTrong: 0,
+        NSHotro, 
         logoBase64,
         watermarkBase64,
         autoPrint: false,
@@ -2111,32 +2112,36 @@ app.get('/khns', async (req, res) => {
     const ngayYC = ngayYCObj ? ngayYCObj.toLocaleDateString('vi-VN') : String(ngayYC_raw || '');
 
     // 4) Lọc dữ liệu từ Ke_hoach_thuc_hien
-    const filteredData = [];
-    let tongTaiTrong = 0;
+    // 4) Lọc dữ liệu từ Ke_hoach_thuc_hien
+const filteredData = [];
+let tongTaiTrong = 0;
+let NSHotro = '';  // 👈 thêm biến lưu NS hỗ trợ
 
-    for (let i = 1; i < keHoachValues.length; i++) {
-      const row = keHoachValues[i];
-      if (!row) continue;
+for (let i = 1; i < keHoachValues.length; i++) {
+  const row = keHoachValues[i];
+  if (!row) continue;
 
-      const ngayTH_raw = row[1];
-      const ngayTHObj = parseSheetDate(ngayTH_raw);
-      if (!ngayTHObj) continue;
-      const ngayTH_fmt = ngayTHObj.toLocaleDateString('vi-VN');
+  const ngayTH_raw = row[1];
+  const ngayTHObj = parseSheetDate(ngayTH_raw);
+  if (!ngayTHObj) continue;
+  const ngayTH_fmt = ngayTHObj.toLocaleDateString('vi-VN');
 
-      const condDate = ngayTH_fmt === ngayYC;
-      const condTen = (row[26] || '') === tenNSTHValue;
-      const condPT = (row[30] || '') === phuongTienValue;
+  const condDate = ngayTH_fmt === ngayYC;
+  const condTen = (row[26] || '') === tenNSTHValue;
+  const condPT = (row[30] || '') === phuongTienValue;
 
-      if (condDate && condTen && condPT) {
-        // dataToCopy giống Apps Script: row[29], row[5], row[11], row[9], row[10], row[8], row[13], row[14], row[15], row[49]
-        const dataToCopy = [
-          row[29], row[5], row[11], row[9], row[10],
-          row[8], row[13], row[14], row[15], row[49]
-        ];
-        filteredData.push(dataToCopy);
-        tongTaiTrong += parseFloat(row[15]) || 0;
-      }
-    }
+  if (condDate && condTen && condPT) {
+    const dataToCopy = [
+      row[29], row[5], row[11], row[9], row[10],
+      row[8], row[13], row[14], row[15], row[49]
+    ];
+    filteredData.push(dataToCopy);
+    tongTaiTrong += parseFloat(row[15]) || 0;
+
+    // Lấy NSHotro đầu tiên tìm thấy
+    if (!NSHotro && row[28]) NSHotro = row[28];
+         }
+}
 
     const tongDon = filteredData.length;
 
@@ -2159,6 +2164,7 @@ app.get('/khns', async (req, res) => {
       tongTaiTrong,
       logoBase64,
       watermarkBase64,
+      NSHotro, 
       autoPrint: true,
       pathToFile: ''
     };
