@@ -2116,7 +2116,7 @@ app.get('/khns', async (req, res) => {
     // 4) Lọc dữ liệu từ Ke_hoach_thuc_hien
 const filteredData = [];
 let tongTaiTrong = 0;
-let NSHotro = '';  // 👈 thêm biến lưu NS hỗ trợ
+let NSHotroArr  = [];  // 👈 thêm biến lưu NS hỗ trợ
 
 for (let i = 1; i < keHoachValues.length; i++) {
   const row = keHoachValues[i];
@@ -2140,10 +2140,10 @@ for (let i = 1; i < keHoachValues.length; i++) {
     tongTaiTrong += parseFloat(row[15]) || 0;
 
     // Lấy NSHotro đầu tiên tìm thấy
-    if (!NSHotro && row[28]) NSHotro = row[28];
-         }
+    if (row[28]) NSHotroArr.push(row[28]); // thu thập tất cả
+    }
 }
-
+    
     const tongDon = filteredData.length;
 
     // Nhóm theo Loại YC (index 4)
@@ -2153,7 +2153,7 @@ for (let i = 1; i < keHoachValues.length; i++) {
       if (!groupedData[loai]) groupedData[loai] = [];
       groupedData[loai].push(r);
     });
-
+const NSHotroStr = [...new Set(NSHotroArr)].join(' , '); // loại trùng
     // 5) Render cho client
     const renderForClientData = {
   ngayYC,
@@ -2166,7 +2166,7 @@ for (let i = 1; i < keHoachValues.length; i++) {
   tongTaiTrong,
   logoBase64,
   watermarkBase64,
-  NSHotro,
+  NSHotro: NSHotroStr,  // truyền string đã tổng hợp
   autoPrint: true,
   pathToFile: ''
 };
