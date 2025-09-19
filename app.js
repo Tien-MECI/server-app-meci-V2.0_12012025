@@ -2071,24 +2071,25 @@ app.get('/khns', async (req, res) => {
     const fileValues = fileRes.data.values || [];
     const keHoachValues = keHoachRes.data.values || [];
 
-   if (fileValues.length <= 1) {
-  console.warn('⚠️ File_KH_thuc_hien_NS không có dữ liệu (chỉ header).');
-  return res.render('khns', {
-    ngayYC: '',
-    tenNSTHValue: '',
-    phuongTienValue: '',
-    giaTriE: '',
-    groupedData: {},
-    tableData: [],        // <-- thêm
-    tongDon: 0,
-    tongTaiTrong: 0,
-    NSHotro: NSHotroStr,  // truyền string đã tổng hợp
-    logoBase64,
-    watermarkBase64,
-    autoPrint: false,
-    pathToFile: ''
-  });
-}
+    // Nếu không có dữ liệu
+    if (fileValues.length <= 1) {
+      console.warn('⚠️ File_KH_thuc_hien_NS không có dữ liệu (chỉ header).');
+      return res.render('khns', {
+        ngayYC: '',
+        tenNSTHValue: '',
+        phuongTienValue: '',
+        giaTriE: '',
+        groupedData: {},
+        tableData: [],
+        tongDon: 0,
+        tongTaiTrong: 0,
+        NSHotro: '',
+        logoBase64,
+        watermarkBase64,
+        autoPrint: false,
+        pathToFile: ''
+      });
+    }
 
     // 3) Lấy last row từ File_KH_thuc_hien_NS
     const lastRowIndex = fileValues.length;
@@ -2113,37 +2114,39 @@ app.get('/khns', async (req, res) => {
     const ngayYC = ngayYCObj ? ngayYCObj.toLocaleDateString('vi-VN') : String(ngayYC_raw || '');
 
     // 4) Lọc dữ liệu từ Ke_hoach_thuc_hien
-    // 4) Lọc dữ liệu từ Ke_hoach_thuc_hien
-const filteredData = [];
-let tongTaiTrong = 0;
-let NSHotroArr  = [];  // 👈 thêm biến lưu NS hỗ trợ
+    const filteredData = [];
+    let tongTaiTrong = 0;
+    let NSHotroArr = [];
 
-for (let i = 1; i < keHoachValues.length; i++) {
-  const row = keHoachValues[i];
-  if (!row) continue;
+    for (let i = 1; i < keHoachValues.length; i++) {
+      const row = keHoachValues[i];
+      if (!row) continue;
 
-  const ngayTH_raw = row[1];
-  const ngayTHObj = parseSheetDate(ngayTH_raw);
-  if (!ngayTHObj) continue;
-  const ngayTH_fmt = ngayTHObj.toLocaleDateString('vi-VN');
+      const ngayTH_raw = row[1];
+      const ngayTHObj = parseSheetDate(ngayTH_raw);
+      if (!ngayTHObj) continue;
+      const ngayTH_fmt = ngayTHObj.toLocaleDateString('vi-VN');
 
-  const condDate = ngayTH_fmt === ngayYC;
-  const condTen = (row[26] || '') === tenNSTHValue;
-  const condPT = (row[30] || '') === phuongTienValue;
+      const condDate = ngayTH_fmt === ngayYC;
+      const condTen = (row[26] || '') === tenNSTHValue;
+      const condPT = (row[30] || '') === phuongTienValue;
 
-  if (condDate && condTen && condPT) {
-    const dataToCopy = [
-      row[29], row[5], row[11], row[9], row[10],
-      row[8], row[13], row[14], row[15], row[49]
-    ];
-    filteredData.push(dataToCopy);
-    tongTaiTrong += parseFloat(row[15]) || 0;
+      if (condDate && condTen && condPT) {
+        const dataToCopy = [
+          row[29], row[5], row[11], row[9], row[10],
+          row[8], row[13], row[14], row[15], row[49]
+        ];
+        filteredData.push(dataToCopy);
+        tongTaiTrong += parseFloat(row[15]) || 0;
 
-    // Lấy NSHotro đầu tiên tìm thấy
-    if (row[28]) NSHotroArr.push(row[28]); // thu thập tất cả
+        if (row[28]) {
+          // ✅ Tách từng tên, loại trùng từng người
+          const names = row[28].split(/[,;]/).map(n => n.trim()).filter(Boolean);
+          NSHotroArr.push(...names);
+        }
+      }
     }
-}
-    
+
     const tongDon = filteredData.length;
 
     // Nhóm theo Loại YC (index 4)
@@ -2153,23 +2156,26 @@ for (let i = 1; i < keHoachValues.length; i++) {
       if (!groupedData[loai]) groupedData[loai] = [];
       groupedData[loai].push(r);
     });
-const NSHotroStr = [...new Set(NSHotroArr)].join(' , '); // loại trùng
+
+    // ✅ Loại trùng tên NS hỗ trợ
+    const NSHotroStr = [...new Set(NSHotroArr)].join(' , ');
+
     // 5) Render cho client
     const renderForClientData = {
-  ngayYC,
-  tenNSTHValue,
-  phuongTienValue,
-  giaTriE,
-  groupedData,
-  tableData: filteredData,  // <-- thêm đây
-  tongDon,
-  tongTaiTrong,
-  logoBase64,
-  watermarkBase64,
-  NSHotro: NSHotroStr,  // truyền string đã tổng hợp
-  autoPrint: true,
-  pathToFile: ''
-};
+      ngayYC,
+      tenNSTHValue,
+      phuongTienValue,
+      giaTriE,
+      groupedData,
+      tableData: filteredData,
+      tongDon,
+      tongTaiTrong,
+      logoBase64,
+      watermarkBase64,
+      NSHotro: NSHotroStr,
+      autoPrint: true,
+      pathToFile: ''
+    };
 
     res.render('khns', renderForClientData);
 
@@ -2230,6 +2236,7 @@ const NSHotroStr = [...new Set(NSHotroArr)].join(' , '); // loại trùng
     res.status(500).send('Lỗi server: ' + (err.message || err));
   }
 });
+
 
 
 
