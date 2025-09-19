@@ -2044,36 +2044,56 @@ app.get('/ycxktp', async (req, res) => {
 
 //---- KHNS ----
 
+// ================== /khns ==================
 app.get('/khns', async (req, res) => {
   try {
     console.log('▶️ Bắt đầu xuất KHNS ...');
 
-    // Lấy logo và watermark
+    // 1️⃣ Lấy logo & watermark từ Google Drive
     const [logoBase64, watermarkBase64] = await Promise.all([
       loadDriveImageBase64(LOGO_FILE_ID),
       loadDriveImageBase64(WATERMARK_FILE_ID)
     ]);
 
-    // Lấy dữ liệu từ Google Sheet (tự viết hàm prepareKhnsData giống filterData bạn đang có)
+    // 2️⃣ Chuẩn bị dữ liệu từ Google Sheets
     const data = await prepareKhnsData(auth, SPREADSHEET_ID);
-    const { ngayYC, ngayYCTEN, tenNSTHValue, phuongTienValue, giaTriE, lastRowWithData } = data;
+    const {
+      ngayYC, ngayYCTEN, tenNSTHValue, phuongTienValue, giaTriE,
+      NSHotro, tongDon, tongTaiTrong, groupedData, lastRowWithData
+    } = data;
 
-    // Render cho client
+    // 3️⃣ Render ra client để xem/in
     res.render('khns', {
-      ...data,
+      ngayYC,
+      ngayYCTEN,
+      tenNSTHValue,
+      phuongTienValue,
+      giaTriE,
+      NSHotro,
+      tongDon,
+      tongTaiTrong,
+      groupedData,
       logoBase64,
       watermarkBase64,
       autoPrint: true,
       pathToFile: ''
     });
 
-    // Gọi Apps Script ngầm để lưu file PDF
+    // 4️⃣ Gọi Apps Script để tạo PDF và lưu đường dẫn vào sheet
     (async () => {
       try {
         const renderedHtml = await renderFileAsync(
           path.join(__dirname, 'views', 'khns.ejs'),
           {
-            ...data,
+            ngayYC,
+            ngayYCTEN,
+            tenNSTHValue,
+            phuongTienValue,
+            giaTriE,
+            NSHotro,
+            tongDon,
+            tongTaiTrong,
+            groupedData,
             logoBase64,
             watermarkBase64,
             autoPrint: false,
@@ -2081,7 +2101,6 @@ app.get('/khns', async (req, res) => {
           }
         );
 
-        // Gọi Apps Script
         const resp = await fetch(GAS_WEBAPP_URL_KHNS, {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -2095,9 +2114,9 @@ app.get('/khns', async (req, res) => {
         });
 
         const result = await resp.json();
-        console.log('✔️ AppScript trả về:', result);
+        console.log('✔️ Apps Script trả về:', result);
 
-        if (!result.ok) throw new Error(result.error || 'Lỗi khi gọi Apps Script');
+        if (!result.ok) throw new Error(result.error || 'Không tạo được PDF');
 
         const pathToFile = result.pathToFile || `KHNS/${result.fileName}`;
 
@@ -2108,16 +2127,97 @@ app.get('/khns', async (req, res) => {
           requestBody: { values: [[pathToFile]] }
         });
 
-        console.log('✔️ Đã ghi đường dẫn:', pathToFile);
+        console.log('✔️ Đã ghi đường dẫn vào sheet:', pathToFile);
       } catch (err) {
-        console.error('❌ Lỗi gọi AppScript:', err);
+        console.error('❌ Lỗi khi gọi Apps Script KHNS:', err.message);
       }
     })();
+
   } catch (err) {
-    console.error('❌ Lỗi khi xuất KHNS:', err.stack || err.message);
-    res.status(500).send('Lỗi server: ' + (err.message || err));
+    console.error('❌ Lỗi khi xuất KHNS:', err.message);
+    res.status(500).send('Lỗi server: ' + err.message);
   }
 });
+
+
+// ================== HÀM CHUẨN BỊ DỮ LIỆU ==================
+async function prepareKhnsData(auth, spreadsheetId) {
+  const sheetsApi = google.sheets({ version: 'v4', auth });
+
+  // Lấy dữ liệu sheet File_KH_thuc_hien_NS
+  const { data: fileSheet } = await sheetsApi.spreadsheets.values.get({
+    spreadsheetId,
+    range: 'File_KH_thuc_hien_NS'
+  });
+
+  const rowsFile = fileSheet.values || [];
+  if (rowsFile.length < 2) throw new Error('Không có dữ liệu KHNS');
+  const lastRowWithData = rowsFile.length;
+  const lastRow = rowsFile[lastRowWithData - 1];
+
+  const ngayYCValue = new Date(lastRow[1]); // cột B
+  const tenNSTHValue = lastRow[2];          // cột C
+  const phuongTienValue = lastRow[3];       // cột D
+  const giaTriE = lastRow[4];               // cột E
+
+  const ngayYC = Utilities.formatDate
+    ? Utilities.formatDate(ngayYCValue, 'GMT+7', 'dd/MM/yyyy')
+    : ngayYCValue.toLocaleDateString('vi-VN');
+  const ngayYCTEN = ngayYC.replace(/\//g, '-');
+
+  // Lấy dữ liệu sheet Ke_hoach_thuc_hien
+  const { data: keHoachSheet } = await sheetsApi.spreadsheets.values.get({
+    spreadsheetId,
+    range: 'Ke_hoach_thuc_hien'
+  });
+
+  const dataKeHoach = keHoachSheet.values || [];
+  let filteredData = [];
+  let NSHotro = '';
+  let tongTaiTrong = 0;
+
+  for (let i = 1; i < dataKeHoach.length; i++) {
+    const row = dataKeHoach[i];
+    const ngayTH = row[1];
+    const tenNS = row[26];
+    const phuongTien = row[30];
+    const currentNSHotro = row[28];
+
+    if (ngayTH && new Date(ngayTH).toLocaleDateString('vi-VN') === ngayYC &&
+        String(tenNS) === String(tenNSTHValue) &&
+        String(phuongTien) === String(phuongTienValue)) {
+      const dataToCopy = [
+        row[29], row[5], row[11], row[9], row[10], row[8], row[13], row[14], row[15], row[49]
+      ];
+      filteredData.push(dataToCopy);
+      if (!NSHotro) NSHotro = currentNSHotro;
+      const taiTrong = parseFloat(row[15]);
+      if (!isNaN(taiTrong)) tongTaiTrong += taiTrong;
+    }
+  }
+
+  // Nhóm theo Loại YC (cột 5 của dataToCopy)
+  const groupedData = {};
+  filteredData.forEach(r => {
+    const loaiYC = r[4] || 'Không xác định';
+    if (!groupedData[loaiYC]) groupedData[loaiYC] = [];
+    groupedData[loaiYC].push(r);
+  });
+
+  return {
+    ngayYC,
+    ngayYCTEN,
+    tenNSTHValue,
+    phuongTienValue,
+    giaTriE,
+    NSHotro,
+    tongDon: filteredData.length,
+    tongTaiTrong,
+    groupedData,
+    lastRowWithData
+  };
+}
+
 
 
 
