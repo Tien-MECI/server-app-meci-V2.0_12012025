@@ -15,46 +15,51 @@
       padding: 0;
       position: relative;
     }
-    .logo {
-      text-align: center;
-      margin-bottom: 10px;
-    }
-    .logo img {
-      max-height: 60px;
-    }
+    /* ✅ Watermark căn giữa chuẩn cho khổ ngang */
     .watermark {
       position: fixed;
-      top: 40%;
+      top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
       opacity: 0.08;
-      z-index: -1;
+      z-index: 0;
       pointer-events: none;
+      width: 70%;
+      text-align: center;
     }
     .watermark img {
-      width: 70%;
-      max-width: 800px;
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
     }
     h1 {
       text-align: center;
       color: red;
       font-weight: bold;
       margin: 5px 0;
+      position: relative;
+      z-index: 1;
     }
     p {
       margin: 4px 0;
       text-align: center;
+      position: relative;
+      z-index: 1;
     }
     .summary {
       text-align: right;
       margin-bottom: 4px;
       font-size: 12px;
       font-weight: bold;
+      position: relative;
+      z-index: 1;
     }
     table {
       border-collapse: collapse;
       width: 100%;
       margin-top: 6px;
+      position: relative;
+      z-index: 1;
     }
     th, td {
       border: 1px solid black;
@@ -74,6 +79,7 @@
   </style>
 </head>
 <body>
+
   <!-- Watermark -->
   <% if (watermarkBase64) { %>
     <div class="watermark">
