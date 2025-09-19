@@ -2042,6 +2042,84 @@ app.get('/ycxktp', async (req, res) => {
     }
 });
 
+//---- KHNS ----
+
+app.get('/khns', async (req, res) => {
+  try {
+    console.log('▶️ Bắt đầu xuất KHNS ...');
+
+    // Lấy logo và watermark
+    const [logoBase64, watermarkBase64] = await Promise.all([
+      loadDriveImageBase64(LOGO_FILE_ID),
+      loadDriveImageBase64(WATERMARK_FILE_ID)
+    ]);
+
+    // Lấy dữ liệu từ Google Sheet (tự viết hàm prepareKhnsData giống filterData bạn đang có)
+    const data = await prepareKhnsData(auth, SPREADSHEET_ID);
+    const { ngayYC, ngayYCTEN, tenNSTHValue, phuongTienValue, giaTriE, lastRowWithData } = data;
+
+    // Render cho client
+    res.render('khns', {
+      ...data,
+      logoBase64,
+      watermarkBase64,
+      autoPrint: true,
+      pathToFile: ''
+    });
+
+    // Gọi Apps Script ngầm để lưu file PDF
+    (async () => {
+      try {
+        const renderedHtml = await renderFileAsync(
+          path.join(__dirname, 'views', 'khns.ejs'),
+          {
+            ...data,
+            logoBase64,
+            watermarkBase64,
+            autoPrint: false,
+            pathToFile: ''
+          }
+        );
+
+        // Gọi Apps Script
+        const resp = await fetch(GAS_WEBAPP_URL_KHNS, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({
+            html: renderedHtml,
+            ngayYCTEN,
+            tenNSTHValue,
+            phuongTienValue,
+            giaTriE
+          })
+        });
+
+        const result = await resp.json();
+        console.log('✔️ AppScript trả về:', result);
+
+        if (!result.ok) throw new Error(result.error || 'Lỗi khi gọi Apps Script');
+
+        const pathToFile = result.pathToFile || `KHNS/${result.fileName}`;
+
+        await sheets.spreadsheets.values.update({
+          spreadsheetId: SPREADSHEET_ID,
+          range: `File_KH_thuc_hien_NS!F${lastRowWithData}`,
+          valueInputOption: 'RAW',
+          requestBody: { values: [[pathToFile]] }
+        });
+
+        console.log('✔️ Đã ghi đường dẫn:', pathToFile);
+      } catch (err) {
+        console.error('❌ Lỗi gọi AppScript:', err);
+      }
+    })();
+  } catch (err) {
+    console.error('❌ Lỗi khi xuất KHNS:', err.stack || err.message);
+    res.status(500).send('Lỗi server: ' + (err.message || err));
+  }
+});
+
+
 
 /// ---- Dashboard ---
 // --- Route Dashboard ---
