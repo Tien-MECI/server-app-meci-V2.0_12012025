@@ -8,6 +8,7 @@ import ejs from "ejs";
 import fetch from "node-fetch";
 import { promisify } from "util";
 import { prepareYcvtData } from './ycvt.js';
+import { preparexkvtData } from './xuatvattu.js';
 const renderFileAsync = promisify(ejs.renderFile);
 
 
@@ -2572,7 +2573,7 @@ app.get('/xuatkhovt-:maDonHang', async (req, res) => {
 
 
         // Chuẩn bị dữ liệu (sử dụng maDonHang được cung cấp)
-        const result = await prepareYcvtData(auth, SPREADSHEET_ID, SPREADSHEET_BOM_ID, SPREADSHEET_KHVT_ID, maDonHang);
+        const result = await preparexkvtData(auth, SPREADSHEET_ID, SPREADSHEET_BOM_ID, SPREADSHEET_KHVT_ID, maDonHang);
 
         console.log('✔️ Hoàn tất xử lý xuất kho VT cho:', maDonHang);
 
