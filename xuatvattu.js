@@ -8,15 +8,15 @@ function sleep(ms) {
 }
 
 /**
- * prepareYcvtData
+ * preparexkvtData
  * - auth: OAuth2 client
  * - spreadsheetId: id của workbook chính (chứa Don_hang_PVC_ct)
  * - spreadsheetHcId: id workbook chứa Data_bom
  * - spreadsheetKhvtId: id workbook chứa xuat_kho_VT
  * - maDonHang: mã đơn hàng được cung cấp (thay vì trích xuất từ File_BOM_ct)
  */
-async function prepareYcvtData(auth, spreadsheetId, spreadsheetHcId, spreadsheetKhvtId, maDonHang) {
-  console.log('▶️ Bắt đầu prepareYcvtData...');
+async function preparexkvtData(auth, spreadsheetId, spreadsheetHcId, spreadsheetKhvtId, maDonHang) {
+  console.log('▶️ Bắt đầu preparexkvtData...');
   const sheets = google.sheets({ version: 'v4', auth });
 
   async function batchPaste(spreadsheetId, valueRanges) {
@@ -210,9 +210,9 @@ async function prepareYcvtData(auth, spreadsheetId, spreadsheetHcId, spreadsheet
     return { success: true, message: 'Xử lý và dán dữ liệu thành công' };
 
   } catch (err) {
-    console.error('❌ Lỗi trong prepareYcvtData:', err.stack || err.message);
+    console.error('❌ Lỗi trong preparexkvtData:', err.stack || err.message);
     throw err;
   }
 }
 
-export { prepareYcvtData };
+export { preparexkvtData };
