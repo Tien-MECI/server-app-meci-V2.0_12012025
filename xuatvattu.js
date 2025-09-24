@@ -13,7 +13,7 @@ function sleep(ms) {
  * - spreadsheetId: id của workbook chính (chứa Don_hang_PVC_ct)
  * - spreadsheetHcId: id workbook chứa Data_bom
  * - spreadsheetKhvtId: id workbook chứa xuat_kho_VT
- * - maDonHang: mã đơn hàng được cung cấp (thay vì trích xuất từ File_BOM_ct)
+ * - maDonHang: mã đơn hàng được cung cấp
  */
 async function preparexkvtData(auth, spreadsheetId, spreadsheetHcId, spreadsheetKhvtId, maDonHang) {
   console.log('▶️ Bắt đầu preparexkvtData...');
@@ -36,7 +36,7 @@ async function preparexkvtData(auth, spreadsheetId, spreadsheetHcId, spreadsheet
   }
 
   try {
-    // 1) Lấy dữ liệu ban đầu (bỏ Don_hang và File_BOM_ct, mở rộng Data_bom đến O)
+    // 1) Lấy dữ liệu ban đầu
     const [data1Res, data3Res] = await Promise.all([
       sheets.spreadsheets.values.get({ spreadsheetId, range: 'Don_hang_PVC_ct!A1:AE' }),
       sheets.spreadsheets.values.get({ spreadsheetId: spreadsheetHcId, range: 'Data_bom!A1:O' })
@@ -47,7 +47,7 @@ async function preparexkvtData(auth, spreadsheetId, spreadsheetHcId, spreadsheet
 
     console.log(`✔️ Lấy dữ liệu xong: Don_hang_PVC_ct=${data1.length}, Data_bom=${data3.length}`);
 
-    // 2) Sử dụng maDonHang được cung cấp (thay vì trích xuất từ File_BOM_ct)
+    // 2) Kiểm tra maDonHang
     if (!maDonHang) throw new Error('Không có mã đơn hàng được cung cấp');
     console.log(`✔️ Mã đơn hàng: ${maDonHang}`);
 
@@ -59,7 +59,7 @@ async function preparexkvtData(auth, spreadsheetId, spreadsheetHcId, spreadsheet
 
     console.log(`✔️ Tìm thấy ${hValues.length} hValue trong Don_hang_PVC_ct`);
 
-    // 4) Chuẩn bị maps để tổng hợp dữ liệu từ tất cả hValue
+    // 4) Chuẩn bị maps để tổng hợp dữ liệu
     const sanPhamMap = new Map(); // key: C (mã sản phẩm), value: { sumK: number, L: string }
     const vatTuMap = new Map(); // key: D (mã vật tư), value: { sumL: number, M: string }
 
@@ -120,6 +120,7 @@ async function preparexkvtData(auth, spreadsheetId, spreadsheetHcId, spreadsheet
               const k = parseFloat((row[10] || '').toString().replace(',', '.')) || 0; // Cột K (index 10)
               const l = (row[11] || '').trim(); // Cột L (index 11)
               if (c) {
+                console.log(`Sản phẩm: C=${c}, K=${k}, L=${l}`);
                 if (sanPhamMap.has(c)) {
                   const obj = sanPhamMap.get(c);
                   obj.sumK += k;
@@ -129,9 +130,11 @@ async function preparexkvtData(auth, spreadsheetId, spreadsheetHcId, spreadsheet
               }
             } else if (oValue === 'Vật tư') {
               const d = (row[3] || '').trim(); // Cột D (index 3)
-              const l_sum = parseFloat((row[11] || '').toString().replace(',', '.')) || 0; // Cột L (index 11) - số lượng
+              const l_value = (row[11] || '').toString().trim(); // Cột L (index 11) - số lượng
+              const l_sum = parseFloat(l_value.replace(',', '.')) || 0; // Chuyển đổi số
               const m = (row[12] || '').trim(); // Cột M (index 12)
               if (d) {
+                console.log(`Vật tư: D=${d}, L=${l_value}, l_sum=${l_sum}, M=${m}`);
                 if (vatTuMap.has(d)) {
                   const obj = vatTuMap.get(d);
                   obj.sumL += l_sum;
@@ -150,6 +153,10 @@ async function preparexkvtData(auth, spreadsheetId, spreadsheetHcId, spreadsheet
         }
       }
     }
+
+    // Log để kiểm tra maps
+    console.log('✔️ sanPhamMap:', Array.from(sanPhamMap.entries()));
+    console.log('✔️ vatTuMap:', Array.from(vatTuMap.entries()));
 
     // 6) Lấy dữ liệu hiện tại từ sheet xuat_kho_VT để tìm hàng cuối cùng
     const xuatDataRes = await sheets.spreadsheets.values.get({
@@ -171,7 +178,7 @@ async function preparexkvtData(auth, spreadsheetId, spreadsheetHcId, spreadsheet
         maDonHang,     // B: Mã đơn hàng
         currentDate,   // C: dd/mm/yyyy
         code,          // D: Mã (từ C hoặc D)
-        '',            // E: Rỗng (giả sử)
+        '',            // E: Rỗng
         sumK,          // F: Sum số lượng
         L              // G: Đơn vị tính
       ];
@@ -190,7 +197,7 @@ async function preparexkvtData(auth, spreadsheetId, spreadsheetHcId, spreadsheet
         maDonHang,     // B: Mã đơn hàng
         currentDate,   // C: dd/mm/yyyy
         code,          // D: Mã (từ C hoặc D)
-        '',            // E: Rỗng (giả sử)
+        '',            // E: Rỗng
         sumL,          // F: Sum số lượng
         M              // G: Đơn vị tính
       ];
