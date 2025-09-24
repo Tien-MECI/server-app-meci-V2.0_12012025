@@ -136,7 +136,7 @@ async function preparexkvtData(auth, spreadsheetId, spreadsheetHcId, spreadsheet
               const k_value = (row[10] || '').toString().trim(); // Cột K (index 10) - số lượng
               const k_clean = k_value.replace(/\./g, '').replace(',', '.'); // Xử lý định dạng số Việt Nam
               const l_sum = parseFloat(k_clean) || 0; // Số lượng từ cột K
-              const m = (row[12] || '').trim(); // Cột M (index 12) - đơn vị tính
+              const m = (row[11] || '').trim(); // Cột M (index 12) - đơn vị tính
               if (d) {
                 console.log(`Vật tư (hValue=${hValue}): D=${d}, K_value=${k_value}, l_sum=${l_sum}, M=${m}`);
                 if (vatTuMap.has(d)) {
