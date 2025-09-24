@@ -57,7 +57,7 @@ async function preparexkvtData(auth, spreadsheetId, spreadsheetHcId, spreadsheet
       .filter(o => String(o.row[1] || '').trim() === String(maDonHang).trim())
       .map((o, i) => ({ stt: i + 1, hValue: o.row[7] || '', rowData: o.row }));
 
-    console.log(`✔️ Tìm thấy ${hValues.length} hValue trong Don_hang_PVC_ct`);
+    console.log(`✔️ Tìm thấy ${hValues.length} hValue trong Don_hang_PVC_ct:`, hValues.map(h => h.hValue));
 
     // 4) Chuẩn bị maps để tổng hợp dữ liệu
     const sanPhamMap = new Map(); // key: C (mã sản phẩm), value: { sumK: number, L: string }
@@ -76,6 +76,7 @@ async function preparexkvtData(auth, spreadsheetId, spreadsheetHcId, spreadsheet
         const row = data3[i] || [];
         if (String(row[2] || '').trim() === String(hValue).trim()) matchesC.push(i);
       }
+      console.log(`✔️ Tìm thấy ${matchesC.length} dòng khớp với hValue=${hValue} trong Data_bom`);
       if (matchesC.length === 0) continue;
 
       // Build dữ liệu để paste
@@ -120,7 +121,7 @@ async function preparexkvtData(auth, spreadsheetId, spreadsheetHcId, spreadsheet
               const k_value = (row[10] || '').toString().trim(); // Cột K (index 10) - số lượng
               const k_clean = k_value.replace(/\./g, '').replace(',', '.'); // Xử lý định dạng số Việt Nam
               const k = parseFloat(k_clean) || 0;
-              const l = (row[11] || '').trim(); // Cột L (index 11)
+              const l = (row[11] || '').trim(); // Cột L (index 11) - đơn vị tính
               if (c) {
                 console.log(`Sản phẩm (hValue=${hValue}): C=${c}, K_value=${k_value}, k=${k}, L=${l}`);
                 if (sanPhamMap.has(c)) {
@@ -132,12 +133,12 @@ async function preparexkvtData(auth, spreadsheetId, spreadsheetHcId, spreadsheet
               }
             } else if (oValue === 'Vật tư') {
               const d = (row[3] || '').trim(); // Cột D (index 3)
-              const l_value = (row[11] || '').toString().trim(); // Cột L (index 11) - số lượng
-              const l_clean = l_value.replace(/\./g, '').replace(',', '.'); // Xử lý định dạng số Việt Nam
-              const l_sum = parseFloat(l_clean) || 0;
-              const m = (row[12] || '').trim(); // Cột M (index 12)
+              const k_value = (row[10] || '').toString().trim(); // Cột K (index 10) - số lượng
+              const k_clean = k_value.replace(/\./g, '').replace(',', '.'); // Xử lý định dạng số Việt Nam
+              const l_sum = parseFloat(k_clean) || 0; // Số lượng từ cột K
+              const m = (row[12] || '').trim(); // Cột M (index 12) - đơn vị tính
               if (d) {
-                console.log(`Vật tư (hValue=${hValue}): D=${d}, L_value=${l_value}, l_sum=${l_sum}, M=${m}`);
+                console.log(`Vật tư (hValue=${hValue}): D=${d}, K_value=${k_value}, l_sum=${l_sum}, M=${m}`);
                 if (vatTuMap.has(d)) {
                   const obj = vatTuMap.get(d);
                   obj.sumL += l_sum;
