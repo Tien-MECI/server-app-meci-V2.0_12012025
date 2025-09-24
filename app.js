@@ -26,6 +26,7 @@ const WATERMARK_FILE_ID = "1fNROb-dRtRl2RCCDCxGPozU3oHMSIkHr";
 const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
 const SPREADSHEET_HC_ID = process.env.SPREADSHEET_HC_ID;
 const SPREADSHEET_BOM_ID = process.env.SPREADSHEET_BOM_ID;
+const SPREADSHEET_KHVT_ID = process.env.SPREADSHEET_KHVT_ID;
 const GAS_WEBAPP_URL = process.env.GAS_WEBAPP_URL;
 const GAS_WEBAPP_URL_BBNT = process.env.GAS_WEBAPP_URL_BBNT;
 const GOOGLE_CREDENTIALS_B64 = process.env.GOOGLE_CREDENTIALS_B64;
@@ -2559,7 +2560,27 @@ const khLoaiData = Object.entries(loaiKHMap).map(([loai, count]) => ({ loai, cou
 });
 
 
+// xuatkhovt.js (đã cập nhật cho /xuatkhovt-mã đơn hàng)
+app.get('/xuatkhovt-:maDonHang', async (req, res) => {
+    try {
+        const maDonHang = req.params.maDonHang;
+        console.log('▶️ Bắt đầu xuất kho VT cho mã đơn hàng:', maDonHang);
 
+        if (!maDonHang) {
+            return res.status(400).send('Thiếu mã đơn hàng trong URL');
+        }
+
+
+        // Chuẩn bị dữ liệu (sử dụng maDonHang được cung cấp)
+        const result = await prepareYcvtData(auth, SPREADSHEET_ID, SPREADSHEET_BOM_ID, SPREADSHEET_KHVT_ID, maDonHang);
+
+        console.log('✔️ Hoàn tất xử lý xuất kho VT cho:', maDonHang);
+
+    } catch (err) {
+        console.error('❌ Lỗi khi xuất kho VT:', err.stack || err.message);
+        res.status(500).send('Lỗi server: ' + (err.message || err));
+    }
+});
 
 
 
