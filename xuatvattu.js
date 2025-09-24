@@ -117,10 +117,12 @@ async function preparexkvtData(auth, spreadsheetId, spreadsheetHcId, spreadsheet
             const oValue = (row[14] || '').trim(); // Cột O (index 14)
             if (oValue === 'Sản phẩm') {
               const c = (row[2] || '').trim(); // Cột C (index 2)
-              const k = parseFloat((row[10] || '').toString().replace(',', '.')) || 0; // Cột K (index 10)
+              const k_value = (row[10] || '').toString().trim(); // Cột K (index 10) - số lượng
+              const k_clean = k_value.replace(/\./g, '').replace(',', '.'); // Xử lý định dạng số Việt Nam
+              const k = parseFloat(k_clean) || 0;
               const l = (row[11] || '').trim(); // Cột L (index 11)
               if (c) {
-                console.log(`Sản phẩm: C=${c}, K=${k}, L=${l}`);
+                console.log(`Sản phẩm (hValue=${hValue}): C=${c}, K_value=${k_value}, k=${k}, L=${l}`);
                 if (sanPhamMap.has(c)) {
                   const obj = sanPhamMap.get(c);
                   obj.sumK += k;
@@ -131,10 +133,11 @@ async function preparexkvtData(auth, spreadsheetId, spreadsheetHcId, spreadsheet
             } else if (oValue === 'Vật tư') {
               const d = (row[3] || '').trim(); // Cột D (index 3)
               const l_value = (row[11] || '').toString().trim(); // Cột L (index 11) - số lượng
-              const l_sum = parseFloat(l_value.replace(',', '.')) || 0; // Chuyển đổi số
+              const l_clean = l_value.replace(/\./g, '').replace(',', '.'); // Xử lý định dạng số Việt Nam
+              const l_sum = parseFloat(l_clean) || 0;
               const m = (row[12] || '').trim(); // Cột M (index 12)
               if (d) {
-                console.log(`Vật tư: D=${d}, L=${l_value}, l_sum=${l_sum}, M=${m}`);
+                console.log(`Vật tư (hValue=${hValue}): D=${d}, L_value=${l_value}, l_sum=${l_sum}, M=${m}`);
                 if (vatTuMap.has(d)) {
                   const obj = vatTuMap.get(d);
                   obj.sumL += l_sum;
