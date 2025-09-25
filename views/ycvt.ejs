@@ -149,7 +149,6 @@
                     <tr class="<%= isHeaderRow ? 'bold center-text blue-light' : '' %>">
                         <td class="<%= isHeaderRow ? 'center-text' : 'text-left' %>"><%= item.row[0] %></td>
                         <td><%= item.row[1] %></td>
-                        <td><%= item.row[2] %></td>
                         <td class="<%= isHeaderRow ? 'center-text' : 'text-left' %>"><%= item.row[3] %></td>
 
                         <% if (hasDataF) { %>
@@ -190,28 +189,10 @@
                 %>
                     <tr class="<%= isHeaderRow ? 'bold center-text blue-light' : '' %>">
                         <td class="<%= isHeaderRow ? 'center-text' : 'text-left' %>"><%= item.row[0] %></td>
-                        <td><%= item.row[1] %></td>
                         <td><%= item.row[2] %></td>
                         <td class="<%= isHeaderRow ? 'center-text' : 'text-left' %>"><%= item.row[3] %></td>
-
-                        <% if (hasDataF) { %>
-                            <td class="center-text"><%= item.row[4] %></td>
-                        <% } %>
-                        <td class="center-text"><%= item.row[5] %></td>
-                        <td class="center-text"><%= item.row[6] %></td>
-
-                        <% if (hasDataI) { %>
-                            <td class="center-text"><%= item.row[7] %></td>
-                        <% } %>
-
-                        <% if (hasDataJ) { %>
-                            <td class="center-text"><%= item.row[8] %></td>
-                        <% } %>
-
-                        <td class="center-text"><%= item.row[9] %></td>
-                        <td class="center-text"><%= item.row[10] %></td>
-                        <td class="center-text"><%= item.row[11] %></td>
-                        <td class="center-text"><%= item.row[12] %></td>
+                        <td class="center-text"><%= item.row[7] %></td>
+                        <td class="center-text"><%= item.row[8] %></td>
                     </tr>
                 <% }) %>
             </tbody>
