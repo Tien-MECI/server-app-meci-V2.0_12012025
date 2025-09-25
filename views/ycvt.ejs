@@ -51,14 +51,14 @@
 <body>
     <% if (watermarkBase64) { %>
         <div class="watermark">
-            <img src="data:image/png;base64,<%= watermarkBase64 %>" />
+            <img src="<%= watermarkBase64 %>" />
         </div>
     <% } %>
 
     <table style="width: 100%; border-collapse: collapse;">
         <tr>
             <td class="no-border">
-                <img src="data:image/png;base64,<%= logoBase64 %>" style="width: 80px; height: 40px;" />
+                <img src="<%= logoBase64 %>" style="width: 80px; height: 40px;" />
             </td>
             <td class="no-border" style="text-align: right;">
                 <strong>CÔNG TY CỔ PHẦN CÔNG NGHIỆP M.E.C.I</strong>
@@ -191,8 +191,8 @@
                         <td class="<%= isHeaderRow ? 'center-text' : 'text-left' %>"><%= item.row[0] %></td>
                         <td><%= item.row[2] %></td>
                         <td class="<%= isHeaderRow ? 'center-text' : 'text-left' %>"><%= item.row[3] %></td>
-                        <td class="center-text"><%= item.row[7] %></td>
-                        <td class="center-text"><%= item.row[8] %></td>
+                        <td class="center-text"><%= item.row[9] %></td>
+                        <td class="center-text"><%= item.row[10] %></td>
                     </tr>
                 <% }) %>
             </tbody>
