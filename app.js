@@ -2563,24 +2563,25 @@ const khLoaiData = Object.entries(loaiKHMap).map(([loai, count]) => ({ loai, cou
 
 // xuatkhovt.js (đã cập nhật cho /xuatkhovt-mã đơn hàng)
 app.get('/xuatkhovt-:maDonHang', async (req, res) => {
-    try {
-        const maDonHang = req.params.maDonHang;
-        console.log('▶️ Bắt đầu xuất kho VT cho mã đơn hàng:', maDonHang);
-
-        if (!maDonHang) {
-            return res.status(400).send('Thiếu mã đơn hàng trong URL');
-        }
-
-
-        // Chuẩn bị dữ liệu (sử dụng maDonHang được cung cấp)
-        const result = await preparexkvtData(auth, SPREADSHEET_ID, SPREADSHEET_BOM_ID, SPREADSHEET_KHVT_ID, maDonHang);
-
-        console.log('✔️ Hoàn tất xử lý xuất kho VT cho:', maDonHang);
-
-    } catch (err) {
-        console.error('❌ Lỗi khi xuất kho VT:', err.stack || err.message);
-        res.status(500).send('Lỗi server: ' + (err.message || err));
-    }
+try {
+const maDonHang = req.params.maDonHang;
+console.log('▶️ Bắt đầu xuất kho VT cho mã đơn hàng:', maDonHang);
+if (!maDonHang) {
+return res.status(400).send('Thiếu mã đơn hàng trong URL');
+}
+// Chuẩn bị dữ liệu (sử dụng maDonHang được cung cấp)
+const result = await preparexkvtData(auth, SPREADSHEET_ID, SPREADSHEET_BOM_ID, SPREADSHEET_KHVT_ID, maDonHang);
+console.log('✔️ Hoàn tất xử lý xuất kho VT cho:', maDonHang);
+// Trả về phản hồi cho client
+res.json({
+status: 'success',
+message: 'Xử lý hoàn tất',
+result
+});
+} catch (err) {
+console.error('❌ Lỗi khi xuất kho VT:', err.stack || err.message);
+res.status(500).send('Lỗi server: ' + (err.message || err));
+}
 });
 
 
