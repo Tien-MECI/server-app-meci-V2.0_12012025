@@ -2586,116 +2586,119 @@ res.status(500).send('Lỗi server: ' + (err.message || err));
 
 // sao chép đơn hàng chi tiết
 app.get("/copy-:madh", async (req, res) => {
+    const { madh } = req.params;
+
     try {
-        const { madh } = req.params;
-        console.log(`🔍 Đang xử lý sao chép đơn hàng: ${madh}`);
+        console.log(`🔍 Đang tìm đơn hàng có mã: ${madh}`);
+        const sheetNamePVC = "Don_hang_PVC_ct";
+        const sheetNameDH = "Don_hang";
 
-        const SHEET_NAME = "Don_hang_PVC_ct";
-        const MAIN_SHEET_NAME = "Don_hang";
-
-        // 1️⃣ Đọc toàn bộ sheet Don_hang_PVC_ct
-        const pvcRes = await sheets.spreadsheets.values.get({
+        // === 1️⃣ Lấy toàn bộ dữ liệu từ sheet Don_hang_PVC_ct ===
+        const getPVC = await sheets.spreadsheets.values.get({
             spreadsheetId: SPREADSHEET_ID,
-            range: `${SHEET_NAME}!A:AG`,
+            range: `${sheetNamePVC}!A:AG`,
         });
-
-        const rows = pvcRes.data.values;
-        if (!rows || rows.length === 0) {
-            return res.status(404).send("Không có dữ liệu trong sheet Don_hang_PVC_ct");
+        const rowsPVC = getPVC.data.values || [];
+        if (rowsPVC.length === 0) {
+            return res.send("❌ Sheet Don_hang_PVC_ct không có dữ liệu!");
         }
 
-        // 2️⃣ Lọc ra các hàng có cột B = madh
-        const header = rows[0];
-        const dataRows = rows.slice(1);
-        const matchedRows = dataRows.filter(r => r[1] === madh);
+        // === 2️⃣ Lọc các dòng có cột B = madh ===
+        const headerPVC = rowsPVC[0];
+        const madhIndex = 1; // cột B
+        const matchedRows = rowsPVC.filter((r, i) => i > 0 && r[madhIndex] === madh);
 
         if (matchedRows.length === 0) {
-            return res.status(404).send(`Không tìm thấy đơn hàng ${madh} trong cột B`);
+            return res.send(`❌ Không tìm thấy đơn hàng nào có mã ${madh}`);
         }
 
-        console.log(`✅ Tìm thấy ${matchedRows.length} dòng có mã ${madh}`);
+        console.log(`✅ Tìm thấy ${matchedRows.length} dòng cần sao chép.`);
 
-        // 3️⃣ Lấy phần mã kinh doanh (x) trong madh => ví dụ: MC25-9-1932 → "9"
-        const match = madh.match(/MC(\d+)-(\d+)-(\d+)/);
-        if (!match) return res.status(400).send("Sai định dạng mã đơn hàng (phải có dạng MCyy-x-n)");
+        // === 3️⃣ Tạo mã đơn hàng mới ===
+        const yearNow = new Date().getFullYear().toString().slice(-2); // "25"
+        const matchParts = madh.split("-");
+        if (matchParts.length !== 3) {
+            return res.send("❌ Mã đơn hàng không hợp lệ (phải dạng MC25-0-1453)");
+        }
 
-        const oldYear = parseInt(match[1], 10);
-        const businessCode = match[2]; // x
-        const oldNumber = parseInt(match[3], 10);
+        const codePrefix = matchParts[0].substring(0, 2); // "MC"
+        const kinhdoanhCode = matchParts[1]; // "0"
 
-        const now = new Date();
-        const currentYear = now.getFullYear().toString().slice(-2); // "25"
-        const today = now.toLocaleDateString("vi-VN"); // dd/mm/yyyy
-        const timestamp = now.toISOString();
-
-        // 4️⃣ Đọc sheet Don_hang để tìm MAX số đơn trong năm hiện tại và cùng mã kinh doanh
-        const mainRes = await sheets.spreadsheets.values.get({
+        // Lấy toàn bộ dữ liệu Don_hang để tìm MAX trong E theo F = kinhdoanhCode và năm
+        const getDH = await sheets.spreadsheets.values.get({
             spreadsheetId: SPREADSHEET_ID,
-            range: `${MAIN_SHEET_NAME}!A:F`,
+            range: `${sheetNameDH}!A:F`,
+        });
+        const rowsDH = getDH.data.values || [];
+        const headerDH = rowsDH[0] || [];
+
+        const colBIndex = 1; // ngày tạo
+        const colEIndex = 4; // số đơn hàng
+        const colFIndex = 5; // mã kinh doanh
+
+        // Lọc theo năm hiện tại và kinh doanhCode
+        const rowsFiltered = rowsDH.filter((r, i) => {
+            if (i === 0) return false;
+            const fVal = r[colFIndex];
+            const dateVal = r[colBIndex];
+            if (!fVal || !dateVal) return false;
+            return (
+                fVal == kinhdoanhCode &&
+                dateVal.includes(yearNow) // có thể refine nếu date là dd/mm/yyyy
+            );
         });
 
-        const mainRows = mainRes.data.values || [];
-        const mainHeader = mainRows[0];
-        const mainData = mainRows.slice(1);
+        const numbers = rowsFiltered
+            .map((r) => parseInt(r[colEIndex]))
+            .filter((n) => !isNaN(n));
 
-        // Giả sử:
-        // - Cột F là mã kinh doanh
-        // - Cột B là ngày tạo (định dạng dd/mm/yyyy)
-        // - Cột E là số đơn (phần cuối của mã MC)
-        let maxNumber = 0;
-        for (const row of mainData) {
-            const dateStr = row[1];
-            const biz = row[5];
-            const num = parseInt(row[4]);
-            if (!isNaN(num) && biz === businessCode) {
-                const year = dateStr?.split("/")?.[2]?.slice(-2);
-                if (year === currentYear && num > maxNumber) {
-                    maxNumber = num;
-                }
+        const maxNum = numbers.length > 0 ? Math.max(...numbers) : 0;
+        const newNum = maxNum + 1;
+
+        const madhNew = `${codePrefix}${yearNow}-${kinhdoanhCode}-${newNum}`;
+        console.log(`🔢 Mã đơn hàng mới: ${madhNew}`);
+
+        // === 4️⃣ Tạo mảng dữ liệu mới ===
+        const today = new Date();
+        const ddmmyyyy = today.toLocaleDateString("vi-VN");
+        const nowFull = today.toLocaleString("vi-VN");
+
+        function randomUID() {
+            const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+            let str = "";
+            for (let i = 0; i < 8; i++) {
+                str += chars[Math.floor(Math.random() * chars.length)];
             }
+            return str;
         }
 
-        const newNumber = maxNumber + 1;
-        const newMadh = `MC${currentYear}-${businessCode}-${newNumber}`;
-
-        console.log(`📦 Mã đơn mới: ${newMadh}`);
-
-        // 5️⃣ Chuẩn bị dữ liệu sao chép
-        const copiedRows = matchedRows.map(r => {
-            const newRow = [...r];
-            newRow[1] = newMadh; // Cột B: thay mã đơn hàng mới
-
-            // Cột C: thêm 11 ký tự bên trái
-            if (newRow[2]) newRow[2] = "XXXXXXXXXXX" + newRow[2]; // bạn thay "XXXXXXXXXXX" = logic cụ thể của bạn
-
-            // Cột AD (cột 30 - index 29)
-            newRow[29] = today;
-
-            // Cột AG (cột 33 - index 32)
-            newRow[32] = timestamp;
-
-            return newRow;
+        const newRows = matchedRows.map((r) => {
+            const row = [...r];
+            row[0] = randomUID(); // A = UNIQUE ID
+            row[1] = madhNew; // B = mã đơn hàng mới
+            if (row[2]) row[2] = madhNew + row[2].substring(11); // C: thay 11 ký tự đầu
+            row[29] = ddmmyyyy; // AD (index 29)
+            row[32] = nowFull; // AG (index 32)
+            return row;
         });
 
-        // 6️⃣ Ghi xuống cuối sheet Don_hang_PVC_ct
+        // === 5️⃣ Ghi vào cuối sheet ===
         await sheets.spreadsheets.values.append({
             spreadsheetId: SPREADSHEET_ID,
-            range: `${SHEET_NAME}!A:AG`,
+            range: `${sheetNamePVC}!A:AG`,
             valueInputOption: "USER_ENTERED",
             insertDataOption: "INSERT_ROWS",
-            requestBody: {
-                values: copiedRows,
-            },
+            requestBody: { values: newRows },
         });
 
-        console.log("✅ Đã sao chép xong đơn hàng!");
-        res.send(`✅ Đã sao chép xong đơn hàng ${madh} → ${newMadh}. Xin cảm ơn!`);
-
-    } catch (err) {
-        console.error("❌ Lỗi:", err);
-        res.status(500).send(`Lỗi khi sao chép đơn hàng: ${err.message}`);
+        console.log(`✅ Đã sao chép xong đơn hàng ${madh} → ${madhNew}`);
+        res.send(`✅ Đã sao chép xong đơn hàng! Mã mới: ${madhNew}`);
+    } catch (error) {
+        console.error("❌ Lỗi khi sao chép đơn hàng:", error);
+        res.status(500).send("❌ Lỗi khi sao chép đơn hàng: " + error.message);
     }
 });
+
 
 
 
