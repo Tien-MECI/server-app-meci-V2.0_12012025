@@ -13,7 +13,7 @@ function sleep(ms) {
  * - spreadsheetId: id của workbook chính (chứa Don_hang_PVC_ct)
  * - spreadsheetHcId: id workbook chứa Data_bom
  * - spreadsheetKhvtId: id workbook chứa xuat_kho_VT
- * - maDonHang: mã đơn hàng được cung cấp
+ * - maDonHang: mã đơn hàng được chấp thuận
  */
 async function preparexkvtData(auth, spreadsheetId, spreadsheetHcId, spreadsheetKhvtId, maDonHang) {
   console.log('▶️ Bắt đầu preparexkvtData...');
