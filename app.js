@@ -89,6 +89,7 @@ async function loadDriveImageBase64(fileId) {
 // --- Routes ---
 app.get("/", (_req, res) => res.send("🚀 Server chạy ổn! /bbgn để xuất BBGN."));
 
+//---bbgn----
 app.get("/bbgn", async (req, res) => {
     try {
         console.log("▶️ Bắt đầu xuất BBGN ...");
@@ -201,7 +202,7 @@ app.get("/bbgn", async (req, res) => {
     }
 });
 
-
+//---bbnt----
 app.get("/bbnt", async (req, res) => {
     try {
         console.log("▶️ Bắt đầu xuất BBNT ...");
@@ -314,7 +315,7 @@ app.get("/bbnt", async (req, res) => {
     }
 });
 
-
+//---ggh---
 app.get("/ggh", async (req, res) => {
     try {
         console.log("▶️ Bắt đầu xuất GGH ...");
@@ -409,7 +410,7 @@ app.get("/ggh", async (req, res) => {
     }
 });
 
-
+//---lenhpvc-----
 app.get("/lenhpvc", async (req, res) => {
     try {
         console.log("▶️ Bắt đầu xuất Lệnh PVC ...");
@@ -540,6 +541,7 @@ app.get("/lenhpvc", async (req, res) => {
     }
 });
 
+//---baogiapvc----
 app.get("/baogiapvc", async (req, res) => {
     try {
         console.log("▶️ Bắt đầu xuất Báo Giá PVC ...");
@@ -688,6 +690,7 @@ app.get("/baogiapvc", async (req, res) => {
     }
 });
 
+//----baogiank----
 app.get("/baogiank", async (req, res) => {
     try {
         console.log("▶️ Bắt đầu xuất Báo Giá Nhôm Kính ...");
@@ -851,6 +854,7 @@ app.get("/baogiank", async (req, res) => {
     }
 });
 
+//----lenhnk------------
 app.get("/lenhnk", async (req, res) => {
     try {
         console.log("▶️ Bắt đầu xuất Lệnh Nhôm Kính ...");
@@ -980,7 +984,7 @@ app.get("/lenhnk", async (req, res) => {
     }
 });
 
-
+//-----bbgnnk----
 app.get("/bbgnnk", async (req, res) => {
     try {
         console.log("▶️ Bắt đầu xuất BBGN NK ...");
@@ -1097,6 +1101,7 @@ app.get("/bbgnnk", async (req, res) => {
     }
 });
 
+//---bbntnk----
 app.get("/bbntnk", async (req, res) => {
   try {
     console.log("▶️ Bắt đầu xuất BBNTNK ...");
@@ -1207,8 +1212,7 @@ app.get("/bbntnk", async (req, res) => {
   }
 });
 
-
-
+//---gghnk------
 app.get("/gghnk", async (req, res) => {
     try {
         console.log("▶️ Bắt đầu xuất GGHNK ...");
@@ -1302,7 +1306,6 @@ app.get("/gghnk", async (req, res) => {
         res.status(500).send("Lỗi server: " + (err.message || err));
     }
 });
-
 
 // --- Route /dntu-<ma> ---
 app.get("/dntu-:ma", async (req, res) => {
@@ -1401,7 +1404,6 @@ app.get("/dnhu-:ma", async (req, res) => {
     res.status(500).send("Lỗi server: " + (err.message || err));
   }
 });
-
 
 // --- Route /dntt-<ma> ---
 app.get("/dntt-:ma", async (req, res) => {
@@ -1604,8 +1606,6 @@ app.get("/bbsv", async (req, res) => {
     }
 });
 
-
-
 // --- Route /dnc ---
 app.get("/dnc", async (req, res) => {
     try {
@@ -1760,7 +1760,6 @@ app.get("/dnc", async (req, res) => {
         res.status(500).send("Lỗi server: " + (err.message || err));
     }
 });
-
 
 //---YCVT-BOM---
 
@@ -2240,11 +2239,6 @@ app.get('/khns', async (req, res) => {
 });
 
 
-
-
-
-
-/// ---- Dashboard ---
 // --- Route Dashboard ---
 
 import { format } from "date-fns";
@@ -2584,7 +2578,7 @@ res.status(500).send('Lỗi server: ' + (err.message || err));
 }
 });
 
-// sao chép đơn hàng chi tiết
+// === Sao chép đơn hàng chi tiết ===
 app.get("/copy-:madh", async (req, res) => {
     const { madh } = req.params;
 
@@ -2604,7 +2598,6 @@ app.get("/copy-:madh", async (req, res) => {
         }
 
         // === 2️⃣ Lọc các dòng có cột B = madh ===
-        const headerPVC = rowsPVC[0];
         const madhIndex = 1; // cột B
         const matchedRows = rowsPVC.filter((r, i) => i > 0 && r[madhIndex] === madh);
 
@@ -2624,28 +2617,24 @@ app.get("/copy-:madh", async (req, res) => {
         const codePrefix = matchParts[0].substring(0, 2); // "MC"
         const kinhdoanhCode = matchParts[1]; // "0"
 
-        // Lấy toàn bộ dữ liệu Don_hang để tìm MAX trong E theo F = kinhdoanhCode và năm
+        // Lấy dữ liệu Don_hang để tìm MAX trong E theo F = kinhdoanhCode và năm
         const getDH = await sheets.spreadsheets.values.get({
             spreadsheetId: SPREADSHEET_ID,
             range: `${sheetNameDH}!A:F`,
         });
         const rowsDH = getDH.data.values || [];
-        const headerDH = rowsDH[0] || [];
-
         const colBIndex = 1; // ngày tạo
         const colEIndex = 4; // số đơn hàng
         const colFIndex = 5; // mã kinh doanh
 
-        // Lọc theo năm hiện tại và kinh doanhCode
+        // Lọc theo năm hiện tại và mã kinh doanh
         const rowsFiltered = rowsDH.filter((r, i) => {
             if (i === 0) return false;
             const fVal = r[colFIndex];
             const dateVal = r[colBIndex];
             if (!fVal || !dateVal) return false;
-            return (
-                fVal == kinhdoanhCode &&
-                dateVal.includes(yearNow) // có thể refine nếu date là dd/mm/yyyy
-            );
+            // Kiểm tra có chứa năm hiện tại (vd: "2025" hoặc "25")
+            return fVal == kinhdoanhCode && (dateVal.includes(yearNow) || dateVal.includes("20" + yearNow));
         });
 
         const numbers = rowsFiltered
@@ -2658,27 +2647,32 @@ app.get("/copy-:madh", async (req, res) => {
         const madhNew = `${codePrefix}${yearNow}-${kinhdoanhCode}-${newNum}`;
         console.log(`🔢 Mã đơn hàng mới: ${madhNew}`);
 
-        // === 4️⃣ Tạo mảng dữ liệu mới ===
+        // === 4️⃣ Tạo dữ liệu mới ===
         const today = new Date();
-        const ddmmyyyy = today.toLocaleDateString("vi-VN");
-        const nowFull = today.toLocaleString("vi-VN");
+        const dd = String(today.getDate()).padStart(2, "0");
+        const mm = String(today.getMonth() + 1).padStart(2, "0");
+        const yyyy = today.getFullYear();
+        const hh = String(today.getHours()).padStart(2, "0");
+        const mi = String(today.getMinutes()).padStart(2, "0");
+        const ss = String(today.getSeconds()).padStart(2, "0");
 
+        const ddmmyyyy = `${dd}/${mm}/${yyyy}`;
+        const nowFull = `${dd}/${mm}/${yyyy} ${hh}:${mi}:${ss}`;
+
+        // Hàm sinh UNIQUE ID ngẫu nhiên 8 ký tự
         function randomUID() {
             const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-            let str = "";
-            for (let i = 0; i < 8; i++) {
-                str += chars[Math.floor(Math.random() * chars.length)];
-            }
-            return str;
+            return Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
         }
 
+        // Tạo mảng dữ liệu mới
         const newRows = matchedRows.map((r) => {
             const row = [...r];
             row[0] = randomUID(); // A = UNIQUE ID
             row[1] = madhNew; // B = mã đơn hàng mới
             if (row[2]) row[2] = madhNew + row[2].substring(11); // C: thay 11 ký tự đầu
-            row[29] = ddmmyyyy; // AD (index 29)
-            row[32] = nowFull; // AG (index 32)
+            row[29] = ddmmyyyy; // AD
+            row[32] = nowFull; // AG
             return row;
         });
 
@@ -2692,14 +2686,49 @@ app.get("/copy-:madh", async (req, res) => {
         });
 
         console.log(`✅ Đã sao chép xong đơn hàng ${madh} → ${madhNew}`);
-        res.send(`✅ Đã sao chép xong đơn hàng! Mã mới: ${madhNew}`);
+
+        // === 6️⃣ Trả về HTML tự đóng sau 2 giây ===
+        res.send(`
+          <html lang="vi">
+            <head>
+              <meta charset="UTF-8" />
+              <title>Đã sao chép xong đơn hàng</title>
+              <style>
+                body {
+                  font-family: sans-serif;
+                  text-align: center;
+                  margin-top: 100px;
+                }
+                h2 { color: #2ecc71; }
+              </style>
+              <script>
+                setTimeout(() => {
+                  try { window.close(); } catch(e) {}
+                }, 2000);
+              </script>
+            </head>
+            <body>
+              <h2>✅ Đã sao chép xong đơn hàng!</h2>
+              <p>Mã mới: <b>${madhNew}</b></p>
+              <p>Tab này sẽ tự đóng sau 2 giây...</p>
+            </body>
+          </html>
+        `);
+
     } catch (error) {
         console.error("❌ Lỗi khi sao chép đơn hàng:", error);
-        res.status(500).send("❌ Lỗi khi sao chép đơn hàng: " + error.message);
+        res.status(500).send(`
+          <html lang="vi">
+            <head><meta charset="UTF-8" /><title>Lỗi sao chép</title></head>
+            <body style="font-family:sans-serif;text-align:center;margin-top:100px;color:red;">
+              <h2>❌ Lỗi khi sao chép đơn hàng</h2>
+              <p>${error.message}</p>
+              <p>Vui lòng giữ tab này để kiểm tra lỗi.</p>
+            </body>
+          </html>
+        `);
     }
 });
-
-
 
 
 
