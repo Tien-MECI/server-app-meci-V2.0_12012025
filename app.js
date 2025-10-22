@@ -2746,10 +2746,10 @@ app.get("/debug", (_req, res) => {
 });
 
 // --- Start server ---
-const PORT = process.env.PORT || 8080;  // Railway sẽ cung cấp biến PORT
 app.listen(PORT, () => {
   console.log(`✅ Server is running and listening on port ${PORT}`);
 });
+
 
 
 
