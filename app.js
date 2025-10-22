@@ -2733,14 +2733,24 @@ app.get("/copy-:madh", async (req, res) => {
 
 
 
+// --- Static files ---
 app.use(express.static(path.join(__dirname, 'public')));
-// --- Debug ---
+
+// --- Debug route ---
 app.get("/debug", (_req, res) => {
-    res.json({ spreadsheetId: SPREADSHEET_ID, clientEmail: credentials.client_email, gasWebappUrl: GAS_WEBAPP_URL });
+  res.json({
+    spreadsheetId: SPREADSHEET_ID,
+    clientEmail: credentials.client_email,
+    gasWebappUrl: GAS_WEBAPP_URL
+  });
 });
 
 // --- Start server ---
-app.listen(PORT, () => console.log(`✅ Server is running on port ${PORT}`));
+const PORT = process.env.PORT || 8080;  // Railway sẽ cung cấp biến PORT
+app.listen(PORT, () => {
+  console.log(`✅ Server is running and listening on port ${PORT}`);
+});
+
 
 
 // Hàm chuyển số thành chữ (thêm vào app.js)
